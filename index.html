@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Miarma Distillery · PoC</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="game" aria-label="Miarma Distillery PoC">
+    <img id="finca" src="img/finca.png" alt="Finca pixel art de destilería" draggable="false" />
+
+    <section id="hud" class="pixel-panel" data-tip="Marcadores principales: monedas en k€, semillas en Kg, botellas y precio de mercado.">
+      <div class="brand">MIARMA DISTILLERY</div>
+      <div class="stat"><span>Monedas</span><strong id="coins">50 k€</strong></div>
+      <div class="stat"><span>Semillas</span><strong id="seeds">0 Kg</strong></div>
+      <div class="stat"><span>Botellas</span><strong id="bottles">0</strong></div>
+      <button id="buySeeds" class="pixel-btn" data-tip="Comprar 1 Kg de semillas por 10 k€. Cada tile de cultivo consume 1 Kg.">Comprar semillas · 10 k€</button>
+      <div class="market" data-tip="Precio suave/caótico: cada botella se vende entre 1€×año y 5€×año.">
+        <span>Mercado</span><strong id="market">2.4 €/bot/año</strong>
+      </div>
+      <div id="seedBag" class="token seed-token" draggable="true" data-type="seed" data-tip="Arrastra semillas a un tile vacío del cultivo. Necesitas 1 Kg por tile.">🌾</div>
+    </section>
+
+    <button id="office" class="office-hotspot" data-tip="Oficina: abre opciones de gestión. En la PoC contiene atajos de balance y reset.">Oficina</button>
+    <aside id="officePanel" class="pixel-panel hidden">
+      <h2>Oficina</h2>
+      <button id="grantMoney" class="pixel-btn">Subvención PoC +25 k€</button>
+      <button id="resetGame" class="pixel-btn danger">Reiniciar partida</button>
+      <p>Edificio exterior completo; el resto de naves quedan vacías para superponer sprites.</p>
+    </aside>
+
+    <section id="field" class="zone" aria-label="Cultivo"></section>
+    <section id="malting" class="zone" aria-label="Malteado y germinación"></section>
+
+    <section id="fermentation" class="machine-zone pixel-panel" data-tip="Cuba de maceración/fermentación. Añade malta germinada, echa levadura gratis y espera al rango óptimo.">
+      <h2>Cuba</h2>
+      <img src="img/placeholder_vat.png" alt="Cuba placeholder" />
+      <div class="bar-row"><span>Capacidad</span><div class="bar"><i id="vatCapacity"></i></div></div>
+      <div class="bar-row"><span>Ferment.</span><div class="bar ranged"><em style="left:65%;width:25%"></em><i id="vatFerment"></i></div></div>
+      <button id="yeast" class="pixel-btn">Echar levadura</button>
+      <div id="fermentDrag" class="token liquid-token" draggable="true" data-type="wash" data-tip="Arrastra al alambique cuando la fermentación esté en rango óptimo. Se transfiere un 20% de la cuba.">mosto</div>
+    </section>
+
+    <section id="stillhouse" class="machine-zone pixel-panel" data-tip="Alambique inicial. Enciende/apaga fuego para mantener 78-100 ºC. Haz al menos doble destilación.">
+      <h2>Alambique</h2>
+      <img src="img/placeholder_still.png" alt="Alambique placeholder" />
+      <div class="still-grid">
+        <div id="stillInput" class="dropbox" data-accept="wash,spirit" data-tip="Entrada del alambique. Acepta mosto fermentado o destilado para segunda pasada.">Entrada<br><strong id="stillIn">0%</strong></div>
+        <div id="stillOutput" class="dropbox" data-tip="Decantación/precipitado. Arrastra de vuelta a entrada para 2ª destilación o a barricas cuando esté listo.">Salida<br><strong id="stillOut">0%</strong></div>
+      </div>
+      <div class="bar-row"><span>Temp.</span><div class="bar ranged temp"><em style="left:52%;width:15%"></em><b style="left:70%"></b><i id="tempBar"></i></div></div>
+      <button id="fire" class="pixel-btn">Encender fuego</button>
+      <div id="spiritDrag" class="token spirit-token hidden" draggable="true" data-type="spirit" data-tip="Destilado disponible. Si sólo tiene una pasada, arrástralo otra vez a entrada; con dos, a barricas."><img src="img/placeholder_spirit.png" alt="destilado"/> destilado</div>
+    </section>
+
+    <section id="aging" class="zone storage-zone" aria-label="Almacén de barricas" data-tip="Nave de envejecimiento. Suelta destilado con dos pasadas para crear barrica. Cada año pierde 5% de volumen."></section>
+
+    <section id="bottling" class="zone bottling-zone" aria-label="Embotellado y tienda" data-tip="Arrastra barricas aquí para embotellar. Una barrica llena equivale a 100 botellas."></section>
+    <section id="truckDock" class="zone truck-zone" aria-label="Muelles de carga" data-tip="Suelta cajas aquí para vender al precio de mercado actual."></section>
+
+    <div id="tooltip" role="status"></div>
+  </main>
+  <script src="js/game.js"></script>
+</body>
+</html>
