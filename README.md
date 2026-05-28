@@ -13,7 +13,7 @@ Abrir `http://localhost:8080` desde la carpeta del proyecto.
 ## Contenido
 
 - `index.html` UI fija sobre fondo pixel-art.
-- `styles.css` escalado portrait 1080×1920, paneles, barras y tooltips.
+- `styles.css` escalado landscape 1920×1080, paneles, barras y tooltips.
 - `js/game.js` mecánicas PoC:
   - compra/drag de semillas;
   - cultivo con humedad, crecimiento, madurez y podredumbre;
@@ -22,6 +22,6 @@ Abrir `http://localhost:8080` desde la carpeta del proyecto.
   - destilación con temperatura, primera/segunda pasada;
   - barricas con envejecimiento y pérdida del 5% anual;
   - embotellado, cajas, camión y precio de mercado suave/caótico.
-- `img/finca.png` fondo FullHD portrait 1080×1920.
+- `img/finca.png` fondo FullHD landscape 1920×1080.
 - `img/placeholder_*.png` sprites provisionales reemplazables.
 

@@ -1,4 +1,4 @@
-const fitStage = () => document.documentElement.style.setProperty('--scale', Math.min(innerWidth / 1080, innerHeight / 1920, 1).toString());
+const fitStage = () => document.documentElement.style.setProperty('--scale', Math.min(innerWidth / 1920, innerHeight / 1080, 1).toString());
 addEventListener('resize', fitStage);
 fitStage();
 
