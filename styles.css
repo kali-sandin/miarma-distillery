@@ -1,8 +1,11 @@
 :root {
   --scale: 1;
+  --offset-x: 0px;
+  --offset-y: 0px;
   --ink: #2c2119;
   --cream: #f4ddb0;
-  --paper: rgba(43, 31, 24, .78);
+  --paper: rgba(43, 31, 24, .66);
+  --paper-soft: rgba(43, 31, 24, .42);
   --gold: #e2a64b;
   --green: #6bad58;
   --bad: #b44235;
@@ -11,53 +14,63 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; background: #151a14; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--cream); image-rendering: pixelated; }
 body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
-#game { position: absolute; top: 50%; left: 50%; width: 1920px; height: 1080px; transform: translate(-50%, -50%) scale(var(--scale)); transform-origin: center center; user-select: none; touch-action: none; }
-#finca { position: absolute; inset: 0; width: 1920px; height: 1080px; image-rendering: pixelated; object-fit: cover; }
-.pixel-panel { border: 4px solid #3b2a1c; background: var(--paper); box-shadow: 0 0 0 4px rgba(255,230,160,.16), 8px 8px 0 rgba(0,0,0,.26); border-radius: 0; backdrop-filter: blur(1px); }
-#hud { position: absolute; left: 26px; top: 24px; width: 428px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; z-index: 10; }
-.brand { grid-column: 1 / -1; color: var(--gold); text-shadow: 2px 2px #000; font-weight: 900; letter-spacing: 1px; }
-.stat, .market { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 17px; }
+#game { position: absolute; top: var(--offset-y); left: var(--offset-x); width: 1920px; height: 1080px; transform: scale(var(--scale)); transform-origin: top left; user-select: none; touch-action: none; }
+#finca { position: absolute; inset: 0; width: 1920px; height: 1080px; image-rendering: pixelated; object-fit: cover; pointer-events: none; }
+.pixel-panel { border: 3px solid #3b2a1c; background: var(--paper); box-shadow: 0 0 0 3px rgba(255,230,160,.13), 6px 6px 0 rgba(0,0,0,.23); backdrop-filter: blur(1px); }
+#hud { position: absolute; left: 48px; top: 778px; width: 382px; padding: 10px; display: grid; gap: 8px; z-index: 18; font-size: 13px; }
+.name-field { display: grid; grid-template-columns: 82px 1fr; gap: 8px; align-items: center; }
+.name-field span, .speed-control span { color: var(--gold); font-weight: 900; text-shadow: 2px 2px #000; }
+#distilleryName { width: 100%; min-width: 0; border: 3px solid #2d2117; background: rgba(255,231,181,.9); color: #2b2117; padding: 5px 7px; font: 700 14px ui-monospace, monospace; outline: none; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; }
+.stat, .market { display: flex; justify-content: space-between; align-items: center; gap: 7px; }
 .stat strong, .market strong { color: #fff3cf; }
-.market { grid-column: 1 / -1; }
-.pixel-btn { background: #8b5430; color: #ffe7b5; border: 3px solid #2d2117; padding: 8px 9px; font: inherit; cursor: pointer; box-shadow: inset -3px -3px 0 rgba(0,0,0,.22), inset 3px 3px 0 rgba(255,255,255,.12); }
+.action-row { display: grid; grid-template-columns: 1fr 56px; gap: 8px; align-items: center; }
+.pixel-btn { background: #8b5430; color: #ffe7b5; border: 3px solid #2d2117; padding: 6px 8px; font: 700 13px ui-monospace, monospace; cursor: pointer; box-shadow: inset -3px -3px 0 rgba(0,0,0,.22), inset 3px 3px 0 rgba(255,255,255,.12); }
 .pixel-btn:hover { filter: brightness(1.14); }
 .pixel-btn.danger { background: #8e3832; }
-#buySeeds { grid-column: 1 / -1; }
-.token { display: inline-grid; place-items: center; min-width: 66px; min-height: 46px; padding: 5px 8px; border: 3px solid #241a12; background: #f0c777; color: #2b2117; box-shadow: 4px 4px 0 rgba(0,0,0,.35); cursor: grab; font-weight: 800; text-align: center; z-index: 20; }
-.token:active { cursor: grabbing; }
-.seed-token { width: 66px; min-width: 66px; font-size: 28px; justify-self: end; }
+.pixel-btn.small { padding: 4px 6px; font-size: 11px; }
+.speed-control { display: grid; grid-template-columns: 92px 1fr; gap: 8px; align-items: center; }
+#speedSlider { appearance: none; height: 18px; border: 3px solid #241911; background: linear-gradient(90deg, #5f86a0, #d7b05d, #b2523e); box-shadow: inset 2px 2px rgba(255,255,255,.14), inset -2px -2px rgba(0,0,0,.25); cursor: pointer; }
+#speedSlider::-webkit-slider-thumb { appearance: none; width: 18px; height: 24px; background: #ffe3a3; border: 3px solid #2d2117; box-shadow: 3px 3px 0 rgba(0,0,0,.35); }
+#speedSlider::-moz-range-thumb { width: 14px; height: 20px; background: #ffe3a3; border: 3px solid #2d2117; border-radius: 0; box-shadow: 3px 3px 0 rgba(0,0,0,.35); }
+.token { display: inline-grid; place-items: center; min-width: 52px; min-height: 38px; padding: 4px 6px; border: 3px solid #241a12; background: #f0c777; color: #2b2117; box-shadow: 3px 3px 0 rgba(0,0,0,.35); cursor: grab; font-weight: 900; text-align: center; z-index: 20; touch-action: none; }
+.token:active, .card:active { cursor: grabbing; }
+.seed-token { width: 54px; min-width: 54px; font-size: 24px; justify-self: end; }
+.tiny-token { min-width: 52px; min-height: 26px; font-size: 10px; margin-top: 4px; }
 .zone { position: absolute; z-index: 3; }
-#field { left: 36px; top: 172px; width: 408px; height: 650px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 12px; }
-.tile { position: relative; border: 3px dashed rgba(255,236,175,.32); background: rgba(55,38,22,.12); min-height: 92px; }
-.tile.hover, .dropbox.hover, .bottling-zone.hover, .truck-zone.hover, .storage-zone.hover { outline: 6px solid rgba(255,235,115,.8); outline-offset: -6px; }
-.tile .plant { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%); font-size: 30px; filter: drop-shadow(3px 3px #18140f); }
-.tile .clean { position: absolute; inset: 0; border: 0; background: rgba(84,32,28,.7); color: #ffe0bb; font: inherit; cursor: pointer; }
-.mini-bars { position: absolute; left: 6px; right: 6px; bottom: 6px; display: grid; gap: 3px; }
-.bar { position: relative; height: 15px; border: 3px solid #241911; background: #33251a; overflow: hidden; }
-.bar i { display: block; height: 100%; width: 0%; background: var(--green); transition: width .2s linear; }
+#field { left: 38px; top: 160px; width: 402px; height: 548px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; }
+.tile { position: relative; border: 2px dashed rgba(255,236,175,.28); background: rgba(55,38,22,.09); min-height: 73px; }
+.tile.hover, .dropbox.hover, .bottling-zone.hover, .truck-zone.hover, .storage-zone.hover, .machine-object.hover { outline: 5px solid rgba(255,235,115,.82); outline-offset: -5px; }
+.tile .plant { position: absolute; left: 50%; top: 40%; transform: translate(-50%,-50%); font-size: 25px; filter: drop-shadow(3px 3px #18140f); }
+.tile .clean { position: absolute; inset: 0; border: 0; background: rgba(84,32,28,.68); color: #ffe0bb; font: 700 12px ui-monospace, monospace; cursor: pointer; }
+.mini-bars { position: absolute; left: 5px; right: 5px; bottom: 5px; display: grid; gap: 2px; }
+.bar { position: relative; height: 12px; border: 2px solid #241911; background: #33251a; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0%; background: var(--green); transition: width .18s linear; }
 .bar.moist i { background: var(--blue); }
 .bar.bad i { background: var(--bad); }
 .bar.ranged em { position: absolute; top: 0; height: 100%; background: rgba(255,230,75,.38); z-index: 2; pointer-events: none; }
 .bar.temp b { position: absolute; top: 0; width: 3px; height: 100%; background: rgba(245,245,255,.7); z-index: 3; }
-.bar-row { display: grid; grid-template-columns: 86px 1fr; gap: 8px; align-items: center; margin: 7px 0; font-size: 15px; }
-#malting { left: 520px; top: 74px; width: 380px; height: 388px; display: grid; grid-template-columns: repeat(2,1fr); gap: 13px; padding: 15px; }
-#malting .tile { min-height: 78px; }
-.machine-zone { position: absolute; z-index: 5; padding: 10px; }
-.machine-zone h2, #officePanel h2 { margin: 0 0 8px; font-size: 19px; color: var(--gold); }
-.machine-zone img { width: 72px; height: 72px; image-rendering: pixelated; float: right; margin-left: 5px; }
-#fermentation { left: 1010px; top: 74px; width: 380px; min-height: 260px; }
-#stillhouse { left: 1488px; top: 74px; width: 380px; min-height: 390px; }
-.still-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; clear: both; margin-top: 7px; }
-.dropbox { min-height: 78px; border: 3px dashed rgba(255,230,180,.45); background: rgba(0,0,0,.22); display: grid; place-items: center; text-align: center; }
-#aging { left: 520px; top: 588px; width: 860px; height: 408px; padding: 16px; display: grid; align-content: start; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.card { border: 3px solid #261b13; background: rgba(232,185,102,.86); color: #2d2118; padding: 8px; box-shadow: 5px 5px 0 rgba(0,0,0,.35); cursor: grab; font-size: 14px; }
-.card img { width: 54px; height: 54px; image-rendering: pixelated; float: right; }
-.card .bar { height: 13px; margin-top: 5px; }
-#bottling { left: 1488px; top: 588px; width: 380px; height: 270px; padding: 16px; display: grid; align-content: start; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-#truckDock { left: 1488px; top: 880px; width: 380px; height: 142px; }
-#office { position: absolute; left: 80px; top: 840px; width: 310px; height: 170px; border: 0; opacity: .01; cursor: pointer; z-index: 12; }
-#officePanel { position: absolute; left: 470px; top: 760px; width: 330px; z-index: 30; padding: 16px; }
-#officePanel p { line-height: 1.35; color: #ffe1ac; }
+.bar-row { display: grid; grid-template-columns: 76px 1fr; gap: 6px; align-items: center; margin: 5px 0; font-size: 12px; }
+.bar-row.compact { grid-template-columns: 38px 96px; gap: 5px; margin: 3px 0; font-size: 10px; }
+#malting { left: 520px; top: 78px; width: 338px; height: 300px; display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; padding: 10px; }
+#malting .tile { min-height: 58px; }
+.machine-object { position: absolute; z-index: 6; display: grid; grid-template-columns: auto auto; gap: 8px; align-items: center; background: transparent; border: 0; color: var(--cream); }
+.machine-sprite { width: 92px; height: 92px; image-rendering: pixelated; filter: drop-shadow(5px 6px 0 rgba(0,0,0,.35)); pointer-events: none; }
+.machine-ui { padding: 7px; background: var(--paper-soft); border: 0; min-width: 158px; }
+.mini-title { color: var(--gold); font-weight: 900; font-size: 12px; text-shadow: 2px 2px #000; margin-bottom: 3px; }
+#fermentation { left: 1010px; top: 150px; width: 300px; min-height: 130px; }
+#stillhouse { left: 1484px; top: 132px; width: 346px; min-height: 170px; }
+.still-ui { min-width: 218px; }
+.still-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; clear: both; margin-top: 4px; }
+.dropbox { min-height: 44px; border: 2px dashed rgba(255,230,180,.38); background: rgba(0,0,0,.18); display: grid; place-items: center; text-align: center; font-size: 10px; }
+#aging { left: 520px; top: 588px; width: 860px; height: 336px; padding: 12px; display: grid; align-content: start; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.card { border: 3px solid #261b13; background: rgba(232,185,102,.84); color: #2d2118; padding: 7px; box-shadow: 4px 4px 0 rgba(0,0,0,.33); cursor: grab; font-size: 12px; touch-action: none; }
+.card img { width: 42px; height: 42px; image-rendering: pixelated; float: right; }
+.card .bar { height: 11px; margin-top: 4px; }
+#bottling { left: 1488px; top: 600px; width: 346px; height: 210px; padding: 12px; display: grid; align-content: start; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+#truckDock { left: 1488px; top: 840px; width: 346px; height: 110px; }
+#office { position: absolute; left: 72px; top: 770px; width: 340px; height: 250px; border: 0; opacity: .01; cursor: pointer; z-index: 2; }
 .hidden { display: none !important; }
-#tooltip { position: fixed; z-index: 9999; max-width: 330px; padding: 9px 11px; border: 3px solid #2b2018; background: rgba(31,24,18,.92); color: #ffe7b7; box-shadow: 5px 5px 0 rgba(0,0,0,.35); pointer-events: none; opacity: 0; transform: translate(12px, 12px); font-size: 13px; line-height: 1.3; transition: opacity .1s ease; }
+.drag-ghost { position: fixed; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none; z-index: 10000; opacity: .9; filter: drop-shadow(8px 8px 0 rgba(0,0,0,.35)); }
+#tooltip { position: fixed; z-index: 9999; max-width: 330px; padding: 8px 10px; border: 3px solid #2b2018; background: rgba(31,24,18,.92); color: #ffe7b7; box-shadow: 5px 5px 0 rgba(0,0,0,.35); pointer-events: none; opacity: 0; transform: translate(12px, 12px); font-size: 12px; line-height: 1.3; transition: opacity .1s ease; }
 #tooltip.show { opacity: 1; }

@@ -25,3 +25,14 @@ Abrir `http://localhost:8080` desde la carpeta del proyecto.
 - `img/finca.png` fondo FullHD landscape 1920×1080.
 - `img/placeholder_*.png` sprites provisionales reemplazables.
 
+
+## Últimos ajustes PoC
+
+- Drag&drop propio con Pointer Events para que funcione mejor con el canvas escalado y táctil/ratón.
+- HUD compacto superpuesto a la mansión/oficina.
+- Nombre editable de la destilería.
+- Slider de velocidad entre /5 y x5.
+- Reset con confirmación.
+- Guardado automático en `localStorage` cada 20 segundos.
+- Malteado empieza seco y puede almacenarse indefinidamente hasta regar.
+- Cuba y alambique como objetos del mapa sin panel/marco grande; sólo barras y botones compactos al lado.
