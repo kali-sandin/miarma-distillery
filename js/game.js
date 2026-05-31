@@ -55,6 +55,7 @@ const MALT_OPTIMAL_END = 90;
 const FERMENT_OPTIMAL_START = 65;
 const FERMENT_OPTIMAL_MID = 77.5;
 const FERMENT_OPTIMAL_END = 90;
+const FERMENT_ROTTEN_AT = 98;
 const MALT_DRY_SECONDS = 7;
 const MALT_KILNED_GRACE = 4800;
 const PLANT_IMAGES = { sprout: 'img/avena_recien_plantada.png', green: 'img/avena_joven.png', mature: 'img/avena_madura.png', dry: 'img/avena_seca.png' };
@@ -84,6 +85,8 @@ const defaultState = () => ({
   market: 3.5,
   marketPhase: Math.random()*10,
   debugQuality: false,
+  musicEnabled: true,
+  fxEnabled: true,
   field: Array.from({length: FIELD_TILES}, () => ({status:'empty', growth:0, moisture:0, dry:0, overdue:0, quality:100, peatPpm:0})),
   malt: Array.from({length: MALT_TILES}, () => ({status:'empty', amount:0, germ:0, moisture:0, quality:100, peatPpm:0, heated:false, peat:false, dry:0, stable:0})),
   vats: Array.from({length: VAT_COUNT}, newVat),
@@ -98,27 +101,52 @@ let saveDirty = false;
 let nameEditing = false;
 let pointerActive = false;
 let renderPending = false;
+let suppressNextClick = false;
+let suppressClickTimer = null;
 
 function normaliseLoaded(s){
   const fresh = defaultState();
   const merged = {...fresh, ...s};
   merged.field = Array.from({length: FIELD_TILES}, (_, i) => ({...fresh.field[i], ...(s.field?.[i] || {})}));
   merged.malt = Array.from({length: MALT_TILES}, (_, i) => ({...fresh.malt[i], ...(s.malt?.[i] || {})}));
-  merged.vats = Array.from({length: VAT_COUNT}, (_, i) => { const v={...newVat(), ...(s.vats?.[i] || {})}; v.baseQuality = v.baseQuality || v.quality || 100; v.lineage = Array.isArray(v.lineage) ? v.lineage : []; return v; });
+  merged.vats = Array.from({length: VAT_COUNT}, (_, i) => { const v={...newVat(), ...(s.vats?.[i] || {})}; v.baseQuality = qualityOrDefault(v.baseQuality, qualityOrDefault(v.quality)); v.lineage = Array.isArray(v.lineage) ? v.lineage : []; return v; });
   merged.stills = Array.from({length: STILL_COUNT}, (_, i) => { const st={...newStill(), ...(s.stills?.[i] || {})}; st.inputLineage = Array.isArray(st.inputLineage) ? st.inputLineage : []; st.outputLineage = Array.isArray(st.outputLineage) ? st.outputLineage : []; return st; });
   merged.barrels = Array.isArray(s.barrels) && s.barrels.length ? s.barrels.map((b,i)=>({...newBarrel(b.type || 'bourbon'), ...b, count:b.count || BARREL_PACK_SIZE, barrelQuality:b.barrelQuality || 100, lineage:Array.isArray(b.lineage)?b.lineage:[], x: Number.isFinite(b.x)?b.x:20+i*110, y: Number.isFinite(b.y)?b.y:48})) : defaultBarrels();
   merged.boxes = Array.isArray(s.boxes) ? s.boxes.map((b,i)=>({...b, x: Number.isFinite(b.x)?b.x:18+i*95, y: Number.isFinite(b.y)?b.y:20})) : [];
   merged.speedStep = clamp(Number(merged.speedStep || 0), -4, 9);
   merged.debugQuality = !!merged.debugQuality;
+  merged.musicEnabled = s.musicEnabled !== false;
+  merged.fxEnabled = s.fxEnabled !== false;
   return merged;
 }
 let musicStarted = false;
 function startMainLoop(){
   const audio=$('#mainLoop');
-  if(!audio || musicStarted) return;
+  if(!audio || musicStarted || state.musicEnabled === false) return;
   musicStarted = true;
   audio.volume = .35;
   audio.play().catch(()=>{ musicStarted = false; });
+}
+function setMusicEnabled(enabled){
+  state.musicEnabled = !!enabled;
+  const audio=$('#mainLoop');
+  if(audio && !state.musicEnabled){ audio.pause(); musicStarted = false; }
+  if(audio && state.musicEnabled) startMainLoop();
+  refreshAudioToggles(); markDirty();
+}
+function refreshAudioToggles(){
+  $('#toggleMusic')?.classList.toggle('off', state.musicEnabled === false);
+  $('#toggleMusic')?.setAttribute('aria-pressed', String(state.musicEnabled !== false));
+  $('#toggleFx')?.classList.toggle('off', state.fxEnabled === false);
+  $('#toggleFx')?.setAttribute('aria-pressed', String(state.fxEnabled !== false));
+}
+function playFx(id, volume=.78){
+  if(state.fxEnabled === false) return;
+  const src=$(`#${id}`); if(!src) return;
+  const fx=src.cloneNode(true);
+  fx.volume=volume;
+  fx.play().catch(()=>{});
+  fx.addEventListener('ended', ()=>fx.remove(), {once:true});
 }
 function showSplash(){
   const splash=$('#splashScreen');
@@ -151,8 +179,10 @@ function saveGame(){
 function markDirty(){ saveDirty = true; }
 function speedMultiplier(){ const step = Number(state.speedStep || 0); return step >= 0 ? 1 + step : 1 / (1 - step); }
 function speedLabel(){ const m = speedMultiplier(); return m >= 1 ? `x${m.toFixed(0)}` : `/${Math.round(1/m)}`; }
+function setSpeedStep(step){ state.speedStep=clamp(Number(step)||0, -4, 9); $('#speedSlider').value=state.speedStep; $('#speedLabel').textContent=speedLabel(); markDirty(); }
 function tempPct(n){ return pct((n - TEMP_MIN) / (TEMP_MAX - TEMP_MIN) * 100); }
-function weightedQuality(oldVol, oldQ, addVol, addQ){ return oldVol>0 ? ((oldQ || 100) * oldVol + (addQ || 100) * addVol) / (oldVol + addVol) : (addQ || 100); }
+function qualityOrDefault(q, fallback=100){ const n=Number(q); return Number.isFinite(n) ? n : fallback; }
+function weightedQuality(oldVol, oldQ, addVol, addQ){ const o=qualityOrDefault(oldQ), a=qualityOrDefault(addQ); return oldVol>0 ? (o * oldVol + a * addVol) / (oldVol + addVol) : a; }
 function weightedValue(oldVol, oldValue, addVol, addValue){ return oldVol>0 ? ((oldValue || 0) * oldVol + (addValue || 0) * addVol) / (oldVol + addVol) : (addValue || 0); }
 function qualityCurve(value, start, mid, end){
   if(value < start) return 0;
@@ -162,17 +192,26 @@ function qualityCurve(value, start, mid, end){
 }
 function cropQuality(t){ return qualityCurve(t.growth, FIELD_HARVEST_START, FIELD_OPTIMAL_MID, FIELD_OPTIMAL_END); }
 function maltQuality(t){ return qualityCurve(t.germ, MALT_HARVEST_START, MALT_OPTIMAL_MID, MALT_OPTIMAL_END); }
-function fermentQuality(v){ return qualityCurve(v.ferment, FERMENT_OPTIMAL_START, FERMENT_OPTIMAL_MID, FERMENT_OPTIMAL_END); }
+function fermentQuality(v){
+  const f = Number(v?.ferment || 0);
+  if(f <= FERMENT_OPTIMAL_END) return qualityCurve(f, FERMENT_OPTIMAL_START, FERMENT_OPTIMAL_MID, FERMENT_OPTIMAL_END);
+  return clamp(80 - ((f - FERMENT_OPTIMAL_END) / (FERMENT_ROTTEN_AT - FERMENT_OPTIMAL_END)) * 80, 0, 80);
+}
 function vatDisplayQuality(v){
-  if(!v.volume) return v.quality || 100;
-  const base = v.baseQuality || v.quality || 100;
+  if(!v.volume) return qualityOrDefault(v.quality);
+  const base = qualityOrDefault(v.baseQuality, qualityOrDefault(v.quality));
   if(!v.yeast || v.ferment < FERMENT_OPTIMAL_START) return base;
-  return base * (fermentQuality(v) || 80) / 100;
+  return base * fermentQuality(v) / 100;
+}
+function qualityColor(q){
+  q=clamp(Number(q)||0,0,100);
+  if(q>=80){ const t=(q-80)/20; return `rgb(${Math.round(230-(175*t))}, ${Math.round(186+(69*t))}, ${Math.round(48-( -17*t))})`; }
+  const t=q/80; return `rgb(${Math.round(180 + 50*t)}, ${Math.round(38 + 148*t)}, ${Math.round(34 + 14*t)})`;
 }
 function lineageCount(lineage){ return Array.isArray(lineage) ? lineage.length : 0; }
 function lineageDebug(lineage){ const n=lineageCount(lineage); return n ? ` · L${n}` : ''; }
 function mergeLineage(...parts){ return parts.flat().filter(Boolean).slice(-40); }
-function qualityHtml(q, peat=0, lineage=[]){ return state.debugQuality ? `<div class="quality-pill">Q ${Math.round(q || 100)}${peat ? ` · T ${Math.round(peat)}ppm` : ''}${lineageDebug(lineage)}</div>` : ''; }
+function qualityHtml(q, peat=0, lineage=[]){ return state.debugQuality ? `<div class="quality-pill">Q ${Math.round(qualityOrDefault(q))}${peat ? ` · T ${Math.round(peat)}ppm` : ''}${lineageDebug(lineage)}</div>` : ''; }
 function maltedWarning(t){ return t.status==='filled' && t.heated && (t.stable || 0) > MALT_KILNED_GRACE/2; }
 function notice(msg){ alert(msg); }
 function tipHtml(text){
@@ -325,7 +364,8 @@ Turba: ${Math.round(t.peatPpm || 0)}ppm.||Arrástrala a una tina.`;
 function renderVats(){
   const root = $('#fermentation');
   root.innerHTML = state.vats.map((v,i)=>{
-    const ready = v.volume>0 && v.ferment>=FERMENT_OPTIMAL_START && v.ferment<=FERMENT_OPTIMAL_END && !v.rotten;
+    const q = vatDisplayQuality(v);
+    const ready = v.volume>0 && v.ferment>=FERMENT_OPTIMAL_START && !v.rotten;
     const drag = ready ? `data-drag="wash" data-vat="${i}" data-label="mosto"` : '';
     const abv = vatAbv(v);
     const warn = fermentWarning(v);
@@ -334,15 +374,15 @@ Pulsa para limpiar.` : `🧪 Tina ${i+1}.
 Volumen: ${v.volume.toFixed(0)}%.
 Fermentación: ${v.ferment.toFixed(0)}%.
 ABV: ${abv.toFixed(1)}°.
-Calidad: ${Math.round(vatDisplayQuality(v))}.
+Calidad: ${Math.round(q)}.
 Turba: ${Math.round(v.peatPpm || 0)}ppm.${warn?'||Atención: si no echas levadura pronto, se estropeará.':''}`;
     return `<div class="machine-unit vat-unit drop-target ${ready?'ready-drag':''} ${isVatActive(v,i)?'':'inactive'}" data-i="${i}" ${drag} data-tip="${tip}">
-      ${qualityHtml(vatDisplayQuality(v), v.peatPpm || 0, v.lineage || [])}
+      ${qualityHtml(q, v.peatPpm || 0, v.lineage || [])}
       <div class="bar vertical vol"><i style="height:${pct(v.volume)}"></i><span class="bar-abv">Vol</span></div>
       <img class="machine-sprite vat-sprite" src="img/tina_fermentacion.png" alt="tina de fermentación" draggable="false">
       ${v.rotten ? '<div class="vat-rot-overlay"><img src="img/tina_fermentacion_estropeada.png" alt="fermentación estropeada"></div>' : ''}
       ${warn ? '<div class="warning-overlay">⚠️</div>' : ''}
-      <div class="bar vertical ranged ferment quality-gradient"><em style="height:${FERMENT_OPTIMAL_END-FERMENT_OPTIMAL_START}%;bottom:${FERMENT_OPTIMAL_START}%"></em><i style="height:${pct(v.ferment)}"></i><span class="bar-abv">Ferm ${abv.toFixed(1)}°</span></div>
+      <div class="bar vertical ranged ferment quality-gradient"><em style="height:${FERMENT_ROTTEN_AT-FERMENT_OPTIMAL_START}%;bottom:${FERMENT_OPTIMAL_START}%"></em><i style="height:${pct(v.ferment)};background:${qualityColor(q)}"></i><span class="bar-abv">Ferm ${abv.toFixed(1)}°</span></div>
       <button class="pixel-btn small yeast-btn ${v.yeast?'used':''}" type="button" data-i="${i}">Echar levadura</button>
     </div>`;
   }).join('');
@@ -357,10 +397,10 @@ function renderStills(){
 Entrada: ${s.input.toFixed(0)}% (${Math.round(s.input/100*STILL_INPUT_LITRES)}l) / ${s.inputAbv.toFixed(0)}° ABV.
 Salida: ${s.output.toFixed(1)}% (${Math.round(stillOutLitres(s))}l) / ${s.outputAbv.toFixed(0)}° ABV.
 Calor: ${heat}.
-Calidad: ${Math.round(s.outputQuality || s.inputQuality || 100)}.||78.3-100° destila alcohol; por encima de 100° arrastra agua y baja ABV.`;
+Calidad: ${Math.round(s.output>0 ? qualityOrDefault(s.outputQuality) : qualityOrDefault(s.inputQuality))}.||78.3-100° destila alcohol; por encima de 100° arrastra agua y baja ABV.`;
     return `<div class="machine-unit still-unit ${isStillActive(s,i)?'':'inactive'}" data-i="${i}" data-tip="${tip}">
       ${qualityHtml(s.output>0 ? s.outputQuality : s.inputQuality, s.output>0 ? s.outputPeatPpm : s.inputPeatPpm, s.output>0 ? s.outputLineage : s.inputLineage)}
-      <div class="temp-chip">${s.temp.toFixed(0)}°</div>
+      <div class="temp-chip">${s.temp.toFixed(0)}°C</div>
       <div class="bar vertical input"><i style="height:${pct(s.input)}"></i><span class="bar-abv">${s.inputAbv.toFixed(0)}°</span></div>
       <div class="bar vertical tempv"><em class="alcohol-zone" style="height:4%;bottom:58%"></em><b class="water-line" style="bottom:80%"></b><i style="height:${tempPct(s.temp)}"></i><span class="bar-abv">🌡️</span></div>
       <div class="still-visual"><img class="machine-sprite still-sprite" src="img/alambique.png" alt="alambique" draggable="false"><img class="machine-sprite still-sprite fire-gif ${s.fire?'':'hidden'}" src="img/alambique.gif" alt="fuego" draggable="false"></div>
@@ -433,7 +473,7 @@ function handleDrop(target,data,e){
   if(data.drag==='barrel' && target.closest('#aging')){ moveBarrel(data.id, e, data); return; }
   if(target.classList.contains('field-tile') && data.drag==='seed'){
     const t=state.field[+target.dataset.i];
-    if(t.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:0, dry:0, overdue:0, quality:100}); }
+    if(t.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:0, dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); }
   }
   if(target.classList.contains('malt-tile') && data.drag==='crop'){
     const dst=state.malt[+target.dataset.i], src=state.field[+data.source];
@@ -441,6 +481,7 @@ function handleDrop(target,data,e){
       const add=1, old=dst.amount||0;
       Object.assign(dst,{status:'filled', amount:old+add, germ:dst.germ||0, moisture:dst.moisture||0, quality:weightedQuality(old, dst.quality||100, add, cropQuality(src)), lineage:mergeLineage(dst.lineage||[], [{stage:'cultivo', q:cropQuality(src), kg:add}]), heated:false, peat:dst.peat||false, dry:0, stable:0});
       Object.assign(src,{status:'empty', growth:0, moisture:0, dry:0, overdue:0, quality:100});
+      playFx('fxDropGrain');
     }
   }
   if(target.classList.contains('vat-unit') && data.drag==='malt') addMaltToVat(+target.dataset.i, data.source);
@@ -453,17 +494,18 @@ function addMaltToVat(vatIndex, source){
   const t=state.malt[+source], v=state.vats[vatIndex];
   if(!t || !v || t.status!=='filled' || !t.heated || t.germ<MALT_HARVEST_START || v.rotten) return;
   const add=Math.min(20*(t.amount||1),100-v.volume); if(add<=0) return;
-  v.baseQuality=weightedQuality(v.volume, v.baseQuality || v.quality || 100, add, t.quality || 100);
+  v.baseQuality=weightedQuality(v.volume, qualityOrDefault(v.baseQuality, qualityOrDefault(v.quality)), add, qualityOrDefault(t.quality));
   v.quality=v.baseQuality;
   v.peatPpm=weightedValue(v.volume, v.peatPpm, add, t.peatPpm || 0);
   v.lineage=mergeLineage(v.lineage||[], t.lineage||[], [{stage:'malteado', q:t.quality||100, peat:t.peatPpm||0, kg:t.amount||1}]);
   v.ferment = v.volume ? v.ferment*(v.volume/(v.volume+add)) : 0;
   v.volume += add; v.rotten=false; v.idle=0;
   Object.assign(t,{status:'empty',amount:0,germ:0,moisture:0,quality:100,peatPpm:0,lineage:[],heated:false,peat:false,dry:0,stable:0});
+  playFx('fxDropGrain');
 }
 function transferWashToStill(vatIndex, stillIndex){
   const v=state.vats[vatIndex], s=state.stills[stillIndex];
-  if(!v || !s || v.volume<=0 || v.ferment<FERMENT_OPTIMAL_START || v.ferment>FERMENT_OPTIMAL_END || v.rotten) return;
+  if(!v || !s || v.volume<=0 || v.ferment<FERMENT_OPTIMAL_START || v.rotten) return;
   const move=Math.min(v.volume,100-s.input); if(move<=0) return;
   const q=vatDisplayQuality(v);
   s.inputQuality=weightedQuality(s.input, s.inputQuality, move, q);
@@ -482,7 +524,7 @@ function redistill(fromIndex, toIndex){
   const toOldL=to.input/100*STILL_INPUT_LITRES;
   const toAddPct=moveL/STILL_INPUT_LITRES*100;
   const fromSubPct=moveL/STILL_OUTPUT_LITRES*100;
-  to.inputQuality=weightedQuality(toOldL, to.inputQuality, moveL, from.outputQuality || 100);
+  to.inputQuality=weightedQuality(toOldL, to.inputQuality, moveL, qualityOrDefault(from.outputQuality));
   to.inputPeatPpm=weightedValue(toOldL, to.inputPeatPpm, moveL, from.outputPeatPpm || 0);
   to.inputLineage=mergeLineage(to.inputLineage||[], from.outputLineage||[], [{stage:'redestilacion_entrada', from:fromIndex, litres:moveL}]);
   to.inputAbv=weightedValue(toOldL, to.inputAbv, moveL, from.outputAbv || 0);
@@ -511,7 +553,7 @@ function addSpiritToBarrel(stillIndex, id){
   if(addL<=0) return;
   const oldVol=b.volume||0;
   const barrelFactor=(b.barrelQuality || 100)/100;
-  const incomingQ=(s.outputQuality || 100)*barrelFactor;
+  const incomingQ=qualityOrDefault(s.outputQuality)*barrelFactor;
   b.age = oldLitres>0 ? Math.min(b.age || 0, 0) : 0;
   b.quality = weightedQuality(oldLitres, b.quality, addL, incomingQ);
   b.peatPpm = weightedValue(oldLitres, b.peatPpm, addL, s.outputPeatPpm || 0);
@@ -578,6 +620,7 @@ function finishBottleBarrel(id,targetAbv,p={x:18+state.boxes.length*95,y:20}){
   if(bottles<=0) return;
   const age=Math.floor(b.age || 0);
   state.boxes.push({id:uuid(), bottles, age, abv:targetAbv, quality:b.quality || 100, peatPpm:b.peatPpm||0, lineage:mergeLineage(b.lineage||[], [{stage:'embotellado', abv:targetAbv, liquidL, finalLitres, bottles}]), x:p.x, y:p.y});
+  playFx('fxSuccess', .86);
   state.bottles += bottles;
   b.barrelQuality=Math.max(0,(b.barrelQuality||100)-1);
   Object.assign(b,{volume:0,age:0,abv:0,quality:100,peatPpm:0,lineage:[]});
@@ -611,6 +654,7 @@ function render(){
   $('#seedInventory').classList.toggle('disabled', state.seeds < SEED_KG_PER_PLOT);
   $('#game').classList.toggle('debug-zones', !!state.debugQuality);
   $('#toggleDebugView').classList.toggle('on', !!state.debugQuality);
+  refreshAudioToggles();
   renderField(); renderMalt(); renderVats(); renderStills(); renderCards();
 }
 
@@ -645,7 +689,7 @@ function tick(){
       v.idle += sp;
       if(v.yeast){ v.ferment=clamp(v.ferment+0.18*sp,0,100); v.abv=vatAbv(v); v.quality=vatDisplayQuality(v); }
       if(!v.yeast && v.idle>FERMENT_IDLE_ROT) v.rotten=true;
-      if(v.ferment>98) v.rotten=true;
+      if(v.ferment>FERMENT_ROTTEN_AT) v.rotten=true;
     }
   }
   for(const s of state.stills){
@@ -661,7 +705,7 @@ function tick(){
       const actualTake=outVolume/(1 + waterFactor);
       const perfectMax=run===1?25:(run===2?75:83);
       const outAbv=clamp(perfectMax*(1-waterFactor*.55),8,perfectMax);
-      const prevOut=s.output, inputQuality=s.inputQuality || 100;
+      const prevOut=s.output, inputQuality=qualityOrDefault(s.inputQuality);
       s.input-=actualTake; s.output+=outVolume;
       s.outputRuns=Math.max(s.outputRuns,run);
       s.outputAbv=prevOut>0 ? ((s.outputAbv*prevOut)+(outAbv*outVolume))/(prevOut+outVolume) : outAbv;
@@ -749,6 +793,7 @@ function endDrag(e){
   const {data, source, moved} = dragging;
   clearHover(); clearHints(); dragging.ghost.remove(); dragging=null;
   if(!moved && source?.closest?.('.field-tile')){ waterField(source.closest('.field-tile')); return; }
+  if(moved){ suppressNextClick = true; clearTimeout(suppressClickTimer); suppressClickTimer = setTimeout(()=>{ suppressNextClick=false; }, 350); }
   if(target){ handleDrop(target, data, e); markDirty(); render(); }
 }
 
@@ -771,11 +816,12 @@ document.addEventListener('pointermove', e=>{
 document.addEventListener('pointerup', endDrag);
 document.addEventListener('pointercancel', endDrag);
 document.addEventListener('click', e=>{
+  if(suppressNextClick){ suppressNextClick=false; clearTimeout(suppressClickTimer); e.preventDefault(); e.stopPropagation(); return; }
   if(e.target.closest('.clean, button, input')) return;
   const fieldTile=e.target.closest('.field-tile');
   if(fieldTile){
     const t=state.field[+fieldTile.dataset.i];
-    if(t?.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:0, dry:0, overdue:0, quality:100}); markDirty(); render(); }
+    if(t?.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:0, dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); markDirty(); render(); }
     else waterField(fieldTile);
   }
   const vat=e.target.closest('.vat-unit');
@@ -807,8 +853,15 @@ function debugFill(){
   state.vats = Array.from({length:VAT_COUNT}, newVat);
   state.vats[0] = {volume:rnd(35,92), ferment:rnd(FERMENT_OPTIMAL_START,FERMENT_OPTIMAL_END), yeast:true, idle:0, rotten:false, baseQuality:95, quality:95, peatPpm:Math.random()<.4?rnd(0,60):0, lineage:[{stage:'debug_vat'}], abv:0};
   state.vats[0].abv = vatAbv(state.vats[0]);
+  if(Math.random()<.55){
+    const v={volume:rnd(20,80), ferment:rnd(FERMENT_OPTIMAL_START,FERMENT_ROTTEN_AT-1), yeast:true, idle:0, rotten:false, baseQuality:rnd(82,98), quality:95, peatPpm:Math.random()<.4?rnd(0,60):0, lineage:[{stage:'debug_vat_extra'}], abv:0};
+    v.quality = vatDisplayQuality(v); v.abv = vatAbv(v); state.vats[1]=v;
+  }
   state.stills = Array.from({length:STILL_COUNT}, newStill);
   state.stills[0] = {input:rnd(10,75), inputAbv:8, inputQuality:95, inputPeatPpm:Math.random()<.4?rnd(0,60):0, inputLineage:[{stage:'debug_input'}], runs:0, output:rnd(42,88), outputAbv:rnd(45,68), outputQuality:94, outputPeatPpm:Math.random()<.4?rnd(0,60):0, outputLineage:[{stage:'debug_output'}], outputRuns:2, temp:rnd(78,104), fire:Math.random()<.5};
+  if(Math.random()<.55){
+    state.stills[1] = {input:rnd(8,64), inputAbv:rnd(6,25), inputQuality:rnd(78,96), inputPeatPpm:Math.random()<.4?rnd(0,60):0, inputLineage:[{stage:'debug_input_extra'}], runs:Math.random()<.5?0:1, output:rnd(0,55), outputAbv:rnd(35,72), outputQuality:rnd(78,96), outputPeatPpm:Math.random()<.4?rnd(0,60):0, outputLineage:[{stage:'debug_output_extra'}], outputRuns:Math.random()<.5?1:2, temp:rnd(50,106), fire:Math.random()<.5};
+  }
   state.barrels = [newBarrel('bourbon',24,56), newBarrel('sherry',210,56)];
   Object.assign(state.barrels[0], {volume:rnd(35,88), age:rnd(3.2,8), abv:rnd(45,68), quality:rnd(82,100), peatPpm:Math.random()<.4?rnd(0,60):0, lineage:[{stage:'debug_barrel'}]});
   const bottles=Math.floor(rnd(300,900));
@@ -825,12 +878,22 @@ $('#editName').onclick=()=>{ nameEditing=true; render(); $('#distilleryName').fo
 function acceptName(){ nameEditing=false; state.distilleryName=$('#distilleryName').value.trim() || 'Miarma Distillery'; markDirty(); render(); saveGame(); }
 $('#acceptName').onclick=acceptName;
 $('#distilleryName').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); acceptName(); }});
-document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ e.preventDefault(); $('#hud').classList.toggle('collapsed'); } });
-$('#speedSlider').addEventListener('input', e=>{ state.speedStep=Number(e.target.value); $('#speedLabel').textContent=speedLabel(); markDirty(); });
-$('#speedReset').onclick=()=>{ state.speedStep=0; $('#speedSlider').value=0; $('#speedLabel').textContent=speedLabel(); markDirty(); render(); };
-$('#speedSlider').addEventListener('wheel', e=>{ e.preventDefault(); state.speedStep=clamp(Number(state.speedStep||0)+(e.deltaY<0?1:-1), -4, 9); $('#speedSlider').value=state.speedStep; $('#speedLabel').textContent=speedLabel(); markDirty(); }, {passive:false});
+document.addEventListener('keydown', e=>{
+  const editing = e.target.closest('input, textarea, select') || nameEditing;
+  if(e.key==='Escape'){ e.preventDefault(); $('#hud').classList.toggle('collapsed'); return; }
+  if(editing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.key==='º'){ e.preventDefault(); setSpeedStep((state.speedStep||0)-1); render(); return; }
+  if(e.key==='1'){ e.preventDefault(); setSpeedStep(0); render(); return; }
+  if(e.key==='2'){ e.preventDefault(); setSpeedStep((state.speedStep||0)+1); render(); return; }
+  if(e.key==='3'){ e.preventDefault(); setSpeedStep(9); render(); }
+});
+$('#speedSlider').addEventListener('input', e=>{ setSpeedStep(Number(e.target.value)); });
+$('#speedReset').onclick=()=>{ setSpeedStep(0); render(); };
+$('#speedSlider').addEventListener('wheel', e=>{ e.preventDefault(); setSpeedStep(Number(state.speedStep||0)+(e.deltaY<0?1:-1)); }, {passive:false});
 $('#debugFill').onclick=debugFill;
 $('#toggleDebugView').onclick=()=>{ state.debugQuality=!state.debugQuality; $('#toggleDebugView').classList.toggle('on', state.debugQuality); markDirty(); render(); };
+$('#toggleMusic').onclick=()=>{ setMusicEnabled(state.musicEnabled === false); saveGame(); };
+$('#toggleFx').onclick=()=>{ state.fxEnabled = state.fxEnabled === false; refreshAudioToggles(); markDirty(); saveGame(); };
 $('#hudIcon').onclick=()=>{ $('#hud').classList.toggle('collapsed'); };
 $('#helpButton').onclick=()=>$('#helpModal').classList.remove('hidden');
 $('#helpModal').onclick=()=>$('#helpModal').classList.add('hidden');

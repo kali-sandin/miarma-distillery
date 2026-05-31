@@ -7,8 +7,10 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="splashScreen" class="splash-screen hidden" role="button" aria-label="Pantalla inicial de Sim Distillery"><img src="img/splash.jpg" alt="Sim Distillery" draggable="false" /><div class="splash-hint">Click para empezar</div></div>
+  <div id="splashScreen" class="splash-screen hidden" role="button" aria-label="Pantalla inicial de Sim Distillery"><img src="img/splash.jpg" alt="Sim Distillery" draggable="false" /></div>
   <audio id="mainLoop" src="audio/main_loop.mp3" loop preload="auto"></audio>
+  <audio id="fxDropGrain" src="fx/fx-drop_grain.mp3" preload="auto"></audio>
+  <audio id="fxSuccess" src="fx/fx-success.mp3" preload="auto"></audio>
   <main id="game" aria-label="Miarma Distillery PoC">
     <img id="finca" src="img/finca.jpg" alt="Finca pixel art de destilería" draggable="false" />
 
@@ -17,6 +19,8 @@
         <strong id="distilleryNameView" class="name-view">Miarma Distillery</strong>
         <input id="distilleryName" maxlength="28" value="Miarma Distillery" autocomplete="off" />
         <button id="editName" class="pixel-btn small name-edit" type="button">Editar</button>
+        <button id="toggleMusic" class="pixel-btn small icon-toggle" type="button" data-tip="Música de fondo: activar/desactivar.">🎵</button>
+        <button id="toggleFx" class="pixel-btn small icon-toggle" type="button" data-tip="Efectos de sonido: activar/desactivar.">🔊</button>
         <button id="acceptName" class="pixel-btn small name-accept" type="button">Aceptar</button>
       </label>
       <div class="stats-grid" id="resources" data-tip="Recursos">

@@ -8,3 +8,4 @@ audio/main_loop_original.mp3
 img/*.xcf
 img/splash.png
 img/ayuda.png
+img/*_orig.*
