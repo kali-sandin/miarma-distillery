@@ -7,64 +7,61 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div id="splashScreen" class="splash-screen hidden" role="button" aria-label="Pantalla inicial de Sim Distillery"><img src="img/splash.jpg" alt="Sim Distillery" draggable="false" /><div class="splash-hint">Click para empezar</div></div>
+  <audio id="mainLoop" src="audio/main_loop.mp3" loop preload="auto"></audio>
   <main id="game" aria-label="Miarma Distillery PoC">
-    <img id="finca" src="img/finca.png" alt="Finca pixel art de destilería" draggable="false" />
+    <img id="finca" src="img/finca.jpg" alt="Finca pixel art de destilería" draggable="false" />
 
     <section id="hud" class="pixel-panel" data-tip="Panel general de la oficina: nombre, dinero, semillas, velocidad y acciones principales.">
       <label class="name-field">
-        <span>Destilería</span>
+        <strong id="distilleryNameView" class="name-view">Miarma Distillery</strong>
         <input id="distilleryName" maxlength="28" value="Miarma Distillery" autocomplete="off" />
+        <button id="editName" class="pixel-btn small name-edit" type="button">Editar</button>
+        <button id="acceptName" class="pixel-btn small name-accept" type="button">Aceptar</button>
       </label>
-      <div class="stats-grid">
-        <div class="stat"><span>Monedas</span><strong id="coins">50 k€</strong></div>
-        <div class="stat"><span>Semillas</span><strong id="seeds">0 Kg</strong></div>
-        <div class="stat"><span>Botellas</span><strong id="bottles">0</strong></div>
-        <div class="stat"><span>Mercado</span><strong id="market">2.4 €</strong></div>
+      <div class="stats-grid" id="resources" data-tip="Recursos">
+        <div class="stat"><span>🪙</span><strong id="coins">10 k€</strong></div>
+        <div class="stat seed-inventory" id="seedInventory" data-drag="seed" data-tip="🌾 Semillas disponibles.
+Arrastra este icono a una parcela vacía para plantar 10 Kg."><span>🌾</span><strong id="seeds">0 Kg</strong></div>
+        <div class="stat"><span>🍾</span><strong id="bottles">0</strong></div>
+        <div class="stat"><span>📈</span><strong id="market">3.5 €</strong></div>
       </div>
       <div class="action-row">
-        <button id="buySeeds" class="pixel-btn" data-tip="Comprar 1 Kg de semillas por 10 k€. Cada tile de cultivo consume 1 Kg.">Comprar semilla · 10 k€</button>
-        <div id="seedBag" class="token seed-token" data-drag="seed" data-tip="Arrastra semillas a un tile vacío del cultivo. Necesitas 1 Kg por tile.">🌾</div>
+        <button id="buySeeds" class="pixel-btn" data-tip="Comprar semillas.
+Precio: 1 k€.
+Añade: 10 Kg.
+Cada parcela consume 10 Kg.">Comprar semillas</button>
       </div>
-      <label class="speed-control" data-tip="Velocidad del tiempo. El centro es la velocidad actual/base; izquierda /5, derecha x5.">
+      <label class="speed-control" data-tip="Velocidad del tiempo.
+Rueda del ratón: cambia step a step.
+Botón x1: vuelve a velocidad base.">
         <span>Tiempo <strong id="speedLabel">x1</strong></span>
-        <input id="speedSlider" type="range" min="-4" max="4" step="1" value="0" />
+        <button id="speedReset" class="pixel-btn small" type="button" data-tip="Restablecer tiempo a x1.">x1</button>
+        <input id="speedSlider" type="range" min="-4" max="9" step="1" value="0" />
       </label>
-      <button id="resetGame" class="pixel-btn danger" data-tip="Reinicia la partida tras pedir confirmación y borra la partida guardada del navegador.">Reiniciar juego</button>
+      <div class="menu-buttons">
+        <button id="helpButton" class="pixel-btn" type="button" data-tip="Abre la ayuda visual del juego.">Ayuda</button>
+        <button id="debugFill" class="pixel-btn debug" type="button" data-tip="Debug: randomiza objetos y cantidades en rangos razonables.">Debug</button>
+        <button id="toggleDebugView" class="pixel-btn eye" type="button" data-tip="Mostrar u ocultar zonas de interacción y calidades Q.">👁️</button>
+        <button id="resetGame" class="pixel-btn danger" type="button" data-tip="Reinicia la partida y borra el guardado local del navegador.">Reiniciar juego</button>
+      </div>
     </section>
 
     <section id="field" class="zone drop-target" aria-label="Cultivo"></section>
-    <section id="malting" class="zone drop-target" aria-label="Malteado y germinación"></section>
-
-    <section id="fermentation" class="machine-object drop-target" data-tip="Cuba inicial. Suelta malta germinada, echa levadura gratis y espera al rango óptimo.">
-      <img class="machine-sprite" src="img/placeholder_vat.png" alt="Cuba placeholder" />
-      <div class="machine-ui">
-        <div class="mini-title">Cuba</div>
-        <div class="bar-row compact"><span>Cap.</span><div class="bar"><i id="vatCapacity"></i></div></div>
-        <div class="bar-row compact"><span>Ferm.</span><div class="bar ranged"><em style="left:65%;width:25%"></em><i id="vatFerment"></i></div></div>
-        <button id="yeast" class="pixel-btn small">Levadura</button>
-        <div id="fermentDrag" class="token tiny-token hidden" data-drag="wash" data-tip="Arrastra al alambique en rango óptimo. Se transfiere un 20% de la cuba.">mosto</div>
-      </div>
+    <section id="maltingWrap" class="zone">
+      <div id="malting" aria-label="Malteado y germinación"></div>
     </section>
 
-    <section id="stillhouse" class="machine-object" data-tip="Alambique inicial. Mantén 78-100 ºC. Tras una primera pasada, arrastra el destilado otra vez a entrada para segunda destilación.">
-      <img class="machine-sprite" src="img/placeholder_still.png" alt="Alambique placeholder" />
-      <div class="machine-ui still-ui">
-        <div class="mini-title">Alambique</div>
-        <div class="still-grid">
-          <div id="stillInput" class="dropbox drop-target" data-tip="Entrada. Acepta mosto fermentado o destilado para segunda pasada.">IN <strong id="stillIn">0%</strong></div>
-          <div id="stillOutput" class="dropbox" data-tip="Salida/decantación. Arrastra de vuelta a entrada o a barricas si ya tiene dos pasadas.">OUT <strong id="stillOut">0%</strong></div>
-        </div>
-        <div class="bar-row compact"><span>Temp.</span><div class="bar ranged temp"><em style="left:52%;width:15%"></em><b style="left:70%"></b><i id="tempBar"></i></div></div>
-        <button id="fire" class="pixel-btn small">Fuego</button>
-        <div id="spiritDrag" class="token tiny-token hidden" data-drag="spirit" data-tip="Destilado disponible: segunda pasada antes de barrica.">dest.</div>
-      </div>
-    </section>
+    <section id="fermentation" class="zone machines-grid" aria-label="Tinas de fermentación"></section>
+    <section id="stillhouse" class="zone machines-grid" aria-label="Alambiques"></section>
 
-    <section id="aging" class="zone storage-zone drop-target" aria-label="Almacén de barricas" data-tip="Nave de envejecimiento. Suelta destilado con dos pasadas para crear barrica. Cada año pierde 5% de volumen."></section>
-    <section id="bottling" class="zone bottling-zone drop-target" aria-label="Embotellado y tienda" data-tip="Arrastra barricas aquí para embotellar. Una barrica completa equivale a 100 botellas."></section>
-    <section id="truckDock" class="zone truck-zone drop-target" aria-label="Muelles de carga" data-tip="Suelta cajas aquí para vender al precio de mercado actual."></section>
+    <section id="aging" class="zone storage-zone drop-target" aria-label="Almacén de barricas" data-tip="Nave de envejecimiento. Suelta destilado con dos pasadas para crear una barrica. Cada año pierde 5% de volumen. Puedes comprar barriles Bourbon/Jerez y reutilizarlos al embotellar."></section>
+    <section id="bottling" class="zone bottling-zone drop-target" aria-label="Embotellado y tienda" data-tip="Arrastra barricas aquí para embotellar. Una barrica completa equivale a 1000 botellas: cada icono representa 10 barriles."></section>
+    <section id="truckDock" class="zone truck-zone drop-target" aria-label="Muelles de carga" data-tip="Suelta cajas aquí para vender: precio de mercado en € x botella x años, multiplicado por calidad Q."></section>
 
     <button id="office" class="office-hotspot" data-tip="Mansión/oficina. El panel general está superpuesto aquí abajo.">Oficina</button>
+    <button id="hudIcon" class="hud-icon" type="button" data-tip="Mostrar u ocultar panel de información y menú.">☰</button>
+    <div id="helpModal" class="help-modal hidden" role="dialog" aria-modal="true"><img src="img/ayuda.jpg" alt="Ayuda de Miarma Distillery" /></div>
     <div id="tooltip" role="status"></div>
   </main>
   <script src="js/game.js"></script>

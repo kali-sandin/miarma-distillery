@@ -1,6 +1,9 @@
-const STORAGE_KEY = 'miarma-distillery-state-v2';
+const STORAGE_KEY = 'miarma-distillery-state-v3';
+const SPLASH_KEY = 'sim-distillery-splash-seen-v1';
 const FIELD_TILES = 20;
-const MALT_TILES = 8;
+const MALT_TILES = 4;
+const VAT_COUNT = 4;
+const STILL_COUNT = 4;
 
 const fitStage = () => {
   const scale = Math.min(innerWidth / 1920, innerHeight / 1080, 1);
@@ -15,61 +18,184 @@ const $ = (q, root=document) => root.querySelector(q);
 const $$ = (q, root=document) => [...root.querySelectorAll(q)];
 const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
 const pct = n => `${clamp(n,0,100).toFixed(0)}%`;
+const rnd = (a,b) => a + Math.random()*(b-a);
+const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+const scaleNow = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scale')) || 1;
+const localPoint = (el, x, y) => { const r=el.getBoundingClientRect(), sc=scaleNow(); return {x: clamp((x-r.left)/sc, 6, Math.max(6, el.offsetWidth-120)), y: clamp((y-r.top)/sc, 6, Math.max(6, el.offsetHeight-90))}; };
+const localDropPoint = (el, e, data) => { const r=el.getBoundingClientRect(), sc=scaleNow(); return {x: clamp((e.clientX-r.left)/sc - (Number(data?.offsetX)||0), 6, Math.max(6, el.offsetWidth-120)), y: clamp((e.clientY-r.top)/sc - (Number(data?.offsetY)||0), 6, Math.max(6, el.offsetHeight-90))}; };
+const isVatActive = (v,i) => i===0 || v.volume>0 || v.ferment>0 || v.rotten || v.yeast;
+const isStillActive = (s,i) => i===0 || s.input>0 || s.output>0 || s.fire || s.temp>24;
+const pointIn = (el, x, y) => { const r=el.getBoundingClientRect(); return x>=r.left && x<=r.right && y>=r.top && y<=r.bottom; };
 
+const ALCOHOL_BOIL = 78.3;
+const WATER_BOIL = 100;
+const TEMP_MAX = 120;
+const TEMP_MIN = 20;
+const FIELD_WATER_CAP = 50;
+const SEED_KG_PER_PLOT = 10;
+const SEED_PACK_KG = 10;
+const SEED_PACK_COST = 1;
+const BARREL_PACK_SIZE = 10;
+const STILL_OUTPUT_LITRES = 2000;
+const STILL_INPUT_LITRES = 4000;
+const BOTTLE_LITRES = 0.7;
+const FERMENT_IDLE_ROT = 900;
+const TURBA_MAX_PPM = 60;
+const FIELD_HARVEST_START = 50;
+const FIELD_OPTIMAL_START = 70;
+const FIELD_OPTIMAL_MID = 82;
+const FIELD_OPTIMAL_END = 95;
+const FIELD_FULL_GROWTH = 100;
+const FIELD_DRY_SECONDS = 7;
+const FIELD_OVERDUE_SECONDS = 5;
+const MALT_HARVEST_START = 50;
+const MALT_OPTIMAL_START = 68;
+const MALT_OPTIMAL_MID = 79;
+const MALT_OPTIMAL_END = 90;
+const FERMENT_OPTIMAL_START = 65;
+const FERMENT_OPTIMAL_MID = 77.5;
+const FERMENT_OPTIMAL_END = 90;
+const MALT_DRY_SECONDS = 7;
+const MALT_KILNED_GRACE = 4800;
+const PLANT_IMAGES = { sprout: 'img/avena_recien_plantada.png', green: 'img/avena_joven.png', mature: 'img/avena_madura.png', dry: 'img/avena_seca.png' };
+const MALT_IMAGES = { wet: 'img/avena_germinando.png', water1: 'img/avena_germinando_1.png', water2: 'img/avena_germinando_2.png', bad: 'img/avena_germinando_estropeada.png', heated: 'img/avena_germinando_malteada.png' };
+const bottleImage = b => b.age >= 18 ? 'img/bottles_18.png' : (b.age >= 12 ? 'img/bottles_12.png' : 'img/bottles_no_age.png');
+const BARREL_TYPES = {
+  bourbon: { label:'Bourbon', wood:'Roble americano', litres:200, cost:3, image:'img/barril_bourbon.png' },
+  sherry: { label:'Jerez', wood:'Roble europeo', litres:500, cost:8, image:'img/barril_sherry.png' }
+};
+function barrelCapacityL(b){ const def=BARREL_TYPES[b?.type || 'bourbon'] || BARREL_TYPES.bourbon; return def.litres * (b?.count || BARREL_PACK_SIZE); }
+function barrelLiquidL(b){ return (Number(b?.volume)||0) / 100 * barrelCapacityL(b); }
+function barrelPctFromL(b, litres){ return clamp((litres / barrelCapacityL(b)) * 100, 0, 100); }
+function stillOutLitres(s){ return (Number(s?.output)||0) / 100 * STILL_OUTPUT_LITRES; }
+function stillOutPct(litres){ return clamp(litres / STILL_OUTPUT_LITRES * 100, 0, 100); }
+function newBarrel(type='bourbon', x=24, y=48){ return {id:uuid(), type, count:BARREL_PACK_SIZE, barrelQuality:100, volume:0, age:0, abv:0, quality:100, peatPpm:0, lineage:[], x, y}; }
+function defaultBarrels(){ return [newBarrel('bourbon',24,56)]; }
+const barrelImage = b => BARREL_TYPES[b.type || 'bourbon']?.image || (b.age >= 10 ? 'img/barril_old.png' : (b.age >= 4 ? 'img/barril_sherry.png' : 'img/barril_bourbon.png'));
+
+const newVat = () => ({ volume:0, ferment:0, yeast:false, idle:0, rotten:false, baseQuality:100, quality:100, abv:0, peatPpm:0, lineage:[] });
+const newStill = () => ({ input:0, inputAbv:0, inputQuality:100, inputPeatPpm:0, inputLineage:[], runs:0, output:0, outputAbv:0, outputQuality:100, outputPeatPpm:0, outputLineage:[], outputRuns:0, temp:20, fire:false });
 const defaultState = () => ({
   distilleryName: 'Miarma Distillery',
   speedStep: 0,
-  coins: 50,
+  coins: 10,
   seeds: 0,
   bottles: 0,
-  market: 2.4,
+  market: 3.5,
   marketPhase: Math.random()*10,
-  field: Array.from({length: FIELD_TILES}, () => ({status:'empty', growth:0, moisture:35})),
-  malt: Array.from({length: MALT_TILES}, () => ({status:'empty', germ:0, moisture:0})),
-  vat: { volume: 0, ferment: 0, yeast: false, idle: 0, rotten: false },
-  still: { input: 0, inputAbv: 0, runs: 0, output: 0, outputAbv: 0, outputRuns: 0, temp: 22, fire: false },
-  barrels: [],
+  debugQuality: false,
+  field: Array.from({length: FIELD_TILES}, () => ({status:'empty', growth:0, moisture:0, dry:0, overdue:0, quality:100, peatPpm:0})),
+  malt: Array.from({length: MALT_TILES}, () => ({status:'empty', amount:0, germ:0, moisture:0, quality:100, peatPpm:0, heated:false, peat:false, dry:0, stable:0})),
+  vats: Array.from({length: VAT_COUNT}, newVat),
+  stills: Array.from({length: STILL_COUNT}, newStill),
+  barrels: defaultBarrels(),
   boxes: []
 });
 
 let state = defaultState();
 let dragging = null;
 let saveDirty = false;
+let nameEditing = false;
+let pointerActive = false;
+let renderPending = false;
 
 function normaliseLoaded(s){
   const fresh = defaultState();
   const merged = {...fresh, ...s};
   merged.field = Array.from({length: FIELD_TILES}, (_, i) => ({...fresh.field[i], ...(s.field?.[i] || {})}));
   merged.malt = Array.from({length: MALT_TILES}, (_, i) => ({...fresh.malt[i], ...(s.malt?.[i] || {})}));
-  merged.vat = {...fresh.vat, ...(s.vat || {})};
-  merged.still = {...fresh.still, ...(s.still || {})};
-  merged.barrels = Array.isArray(s.barrels) ? s.barrels : [];
-  merged.boxes = Array.isArray(s.boxes) ? s.boxes : [];
-  merged.speedStep = clamp(Number(merged.speedStep || 0), -4, 4);
+  merged.vats = Array.from({length: VAT_COUNT}, (_, i) => { const v={...newVat(), ...(s.vats?.[i] || {})}; v.baseQuality = v.baseQuality || v.quality || 100; v.lineage = Array.isArray(v.lineage) ? v.lineage : []; return v; });
+  merged.stills = Array.from({length: STILL_COUNT}, (_, i) => { const st={...newStill(), ...(s.stills?.[i] || {})}; st.inputLineage = Array.isArray(st.inputLineage) ? st.inputLineage : []; st.outputLineage = Array.isArray(st.outputLineage) ? st.outputLineage : []; return st; });
+  merged.barrels = Array.isArray(s.barrels) && s.barrels.length ? s.barrels.map((b,i)=>({...newBarrel(b.type || 'bourbon'), ...b, count:b.count || BARREL_PACK_SIZE, barrelQuality:b.barrelQuality || 100, lineage:Array.isArray(b.lineage)?b.lineage:[], x: Number.isFinite(b.x)?b.x:20+i*110, y: Number.isFinite(b.y)?b.y:48})) : defaultBarrels();
+  merged.boxes = Array.isArray(s.boxes) ? s.boxes.map((b,i)=>({...b, x: Number.isFinite(b.x)?b.x:18+i*95, y: Number.isFinite(b.y)?b.y:20})) : [];
+  merged.speedStep = clamp(Number(merged.speedStep || 0), -4, 9);
+  merged.debugQuality = !!merged.debugQuality;
   return merged;
 }
-
+let musicStarted = false;
+function startMainLoop(){
+  const audio=$('#mainLoop');
+  if(!audio || musicStarted) return;
+  musicStarted = true;
+  audio.volume = .35;
+  audio.play().catch(()=>{ musicStarted = false; });
+}
+function showSplash(){
+  const splash=$('#splashScreen');
+  if(!splash) return;
+  splash.classList.remove('hidden','leaving');
+}
+function hideSplash(){
+  const splash=$('#splashScreen');
+  if(!splash || splash.classList.contains('hidden')) return;
+  startMainLoop();
+  splash.classList.add('leaving');
+  setTimeout(()=>splash.classList.add('hidden'), 520);
+}
+function setupSplash(){
+  const splash=$('#splashScreen');
+  if(!splash) return;
+  showSplash();
+  splash.addEventListener('click', hideSplash);
+  splash.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' ' || e.key==='Escape') hideSplash(); });
+  document.addEventListener('pointerdown', startMainLoop, {once:true, capture:true});
+}
 function loadGame(){
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) state = normaliseLoaded(JSON.parse(raw));
-  } catch(err) {
-    console.warn('No se pudo cargar la partida guardada', err);
-  }
+  try { const raw = localStorage.getItem(STORAGE_KEY); if(raw) state = normaliseLoaded(JSON.parse(raw)); }
+  catch(err) { console.warn('No se pudo cargar la partida guardada', err); }
 }
 function saveGame(){
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); saveDirty = false; }
   catch(err) { console.warn('No se pudo guardar la partida', err); }
 }
 function markDirty(){ saveDirty = true; }
-
-function speedMultiplier(){
-  const step = Number(state.speedStep || 0);
-  return step >= 0 ? 1 + step : 1 / (1 - step);
+function speedMultiplier(){ const step = Number(state.speedStep || 0); return step >= 0 ? 1 + step : 1 / (1 - step); }
+function speedLabel(){ const m = speedMultiplier(); return m >= 1 ? `x${m.toFixed(0)}` : `/${Math.round(1/m)}`; }
+function tempPct(n){ return pct((n - TEMP_MIN) / (TEMP_MAX - TEMP_MIN) * 100); }
+function weightedQuality(oldVol, oldQ, addVol, addQ){ return oldVol>0 ? ((oldQ || 100) * oldVol + (addQ || 100) * addVol) / (oldVol + addVol) : (addQ || 100); }
+function weightedValue(oldVol, oldValue, addVol, addValue){ return oldVol>0 ? ((oldValue || 0) * oldVol + (addValue || 0) * addVol) / (oldVol + addVol) : (addValue || 0); }
+function qualityCurve(value, start, mid, end){
+  if(value < start) return 0;
+  if(value <= mid) return 80 + (value - start) / (mid - start) * 20;
+  if(value <= end) return 100 - (value - mid) / (end - mid) * 20;
+  return 80;
 }
-function speedLabel(){
-  const m = speedMultiplier();
-  return m >= 1 ? `x${m.toFixed(0)}` : `/${Math.round(1/m)}`;
+function cropQuality(t){ return qualityCurve(t.growth, FIELD_HARVEST_START, FIELD_OPTIMAL_MID, FIELD_OPTIMAL_END); }
+function maltQuality(t){ return qualityCurve(t.germ, MALT_HARVEST_START, MALT_OPTIMAL_MID, MALT_OPTIMAL_END); }
+function fermentQuality(v){ return qualityCurve(v.ferment, FERMENT_OPTIMAL_START, FERMENT_OPTIMAL_MID, FERMENT_OPTIMAL_END); }
+function vatDisplayQuality(v){
+  if(!v.volume) return v.quality || 100;
+  const base = v.baseQuality || v.quality || 100;
+  if(!v.yeast || v.ferment < FERMENT_OPTIMAL_START) return base;
+  return base * (fermentQuality(v) || 80) / 100;
+}
+function lineageCount(lineage){ return Array.isArray(lineage) ? lineage.length : 0; }
+function lineageDebug(lineage){ const n=lineageCount(lineage); return n ? ` · L${n}` : ''; }
+function mergeLineage(...parts){ return parts.flat().filter(Boolean).slice(-40); }
+function qualityHtml(q, peat=0, lineage=[]){ return state.debugQuality ? `<div class="quality-pill">Q ${Math.round(q || 100)}${peat ? ` · T ${Math.round(peat)}ppm` : ''}${lineageDebug(lineage)}</div>` : ''; }
+function maltedWarning(t){ return t.status==='filled' && t.heated && (t.stable || 0) > MALT_KILNED_GRACE/2; }
+function notice(msg){ alert(msg); }
+function tipHtml(text){
+  const [main, note] = String(text || '').split('||');
+  const lines = main.split(/\s*·\s*|\n+/).map(x=>x.trim()).filter(Boolean);
+  const body = lines.map(x=>`<div>${x}</div>`).join('');
+  return body + (note ? `<span class="tip-note">${note.trim()}</span>` : '');
+}
+function vatAbv(v){ return v.volume>0 ? clamp((v.ferment / FERMENT_OPTIMAL_END) * 8, 0, 8) : 0; }
+function maltWaterImage(t){ if(t.status==='rotten') return MALT_IMAGES.bad; if(t.moisture>66) return MALT_IMAGES.water2; if(t.moisture>0) return MALT_IMAGES.water1; return ''; }
+function fermentWarning(v){ return !v.yeast && v.volume>0 && !v.rotten && v.idle > FERMENT_IDLE_ROT/2; }
+function clearHints(){ $$('.can-drop').forEach(el=>el.classList.remove('can-drop')); }
+function markDropHints(data){
+  clearHints(); if(!data) return;
+  let sel = '';
+  if(data.drag==='seed') sel = '.field-tile';
+  if(data.drag==='crop') sel = '.malt-tile';
+  if(data.drag==='malt') sel = '.vat-unit';
+  if(data.drag==='wash') sel = '.still-drop.in';
+  if(data.drag==='spirit') sel = '.still-drop.in, .barrel-card';
+  if(data.drag==='barrel') sel = '#aging, #bottling';
+  if(data.drag==='box') sel = '#bottling, #truckDock';
+  if(sel) $$(sel).forEach(el=>el.classList.add('can-drop'));
 }
 
 function initTiles(){
@@ -89,164 +215,506 @@ function initTiles(){
   }
 }
 
+function bars(a,b,start,width,bad=false, opts=''){
+  return `<div class="mini-bars"><div class="bar moist"><em class="dry-zone"></em><i style="width:${pct(a)}"></i></div><div class="bar ranged quality-gradient ${bad?'bad':''}"><em style="left:${start}%;width:${width}%"></em><i style="width:${pct(b)}"></i></div></div>`;
+}
+function addClean(el, fn){
+  const b=document.createElement('button');
+  b.className='clean'; b.type='button'; b.textContent='Limpiar';
+  let done = false;
+  const cleanNow = e=>{
+    e.preventDefault(); e.stopPropagation();
+    if(done) return;
+    done = true;
+    dragging?.ghost?.remove?.(); dragging = null;
+    fn(); markDirty(); render(); saveGame();
+  };
+  b.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); };
+  b.onpointerup=cleanNow; b.onclick=cleanNow;
+  el.appendChild(b);
+}
+function fieldTip(t){
+  if(t.status==='empty') return 'Parcela vacía. Arrastra 10 Kg de semillas aquí.';
+  if(t.status==='dry') return 'Cultivo seco. Pulsa Limpiar en la zona de barritas.';
+  if(t.status==='rotten') return 'Cultivo estropeado. Pulsa Limpiar.';
+  return `🌾 Cultivo.
+Humedad: ${t.moisture.toFixed(0)}%.
+Crecimiento: ${t.growth.toFixed(0)}%.
+Cosechable desde: ${FIELD_HARVEST_START}%.
+Calidad: ${Math.round(cropQuality(t))}.||Click para regar; arrastra al malteado cuando madure.`;
+}
+function maltTip(t){
+  if(t.status==='empty') return `Malteado vacío.
+Capacidad: 2 Kg.
+Suelta cebada madura aquí.||No germina hasta que añadas agua.`;
+  if(t.status==='rotten') return `Malta estropeada.
+Ya no se puede usar: pulsa Limpiar.`;
+  if(t.heated) return `Malta calentada${t.peatPpm?' con turba':''}.
+Germinación detenida: ${t.germ.toFixed(0)}%.
+Calidad: ${Math.round(t.quality || 100)}.
+Turba: ${Math.round(t.peatPpm || 0)}ppm.${maltedWarning(t)?'||Atención: esta malta lleva mucho tiempo secada; si la dejas demasiado, se estropeará.':''}`;
+  if(t.moisture<=0 && t.germ<=0) return 'Cebada almacenada en seco. Click para llenar el depósito de agua y empezar germinación.';
+  return `🌿 Malteado.
+Cantidad: ${(t.amount||1).toFixed(1)} Kg / 2 Kg.
+Humedad: ${t.moisture.toFixed(0)}%.
+Germinación: ${t.germ.toFixed(0)}%.
+Óptimo: ${MALT_HARVEST_START}-${MALT_OPTIMAL_END}%.||Click para llenar el depósito de agua.`;
+}
+
+function renderField(){
+  $$('.field-tile').forEach(el=>{
+    const t = state.field[+el.dataset.i];
+    el.classList.toggle('empty', t.status==='empty');
+    el.innerHTML = t.status==='empty' ? '' : bars((t.moisture/FIELD_WATER_CAP)*100, t.growth, FIELD_HARVEST_START, FIELD_OPTIMAL_END - FIELD_HARVEST_START, t.status==='rotten' || t.status==='dry', 'field');
+    el.dataset.tip = fieldTip(t);
+    if(t.status==='planted' || t.status==='dry'){
+      const plant = document.createElement('div');
+      plant.className='plant';
+      const img = document.createElement('img');
+      img.className='plant-img'; img.draggable=false;
+      if(t.status==='dry'){ plant.className += ' dry'; img.src=PLANT_IMAGES.dry; img.alt='cultivo seco'; }
+      else if(t.growth>=FIELD_HARVEST_START){ img.src=PLANT_IMAGES.mature; img.alt='cultivo maduro'; }
+      else if(t.growth>=35){ img.src=PLANT_IMAGES.green; img.alt='cultivo verde'; }
+      else { img.src=PLANT_IMAGES.sprout; img.alt='cultivo recién plantado'; }
+      plant.appendChild(img); el.appendChild(plant);
+      if(t.status==='planted' && t.growth>=FIELD_HARVEST_START){
+        plant.className += ' token crop-token';
+        plant.dataset.drag='crop'; plant.dataset.source=el.dataset.i;
+        plant.dataset.tip=`🌾 Cebada madura.
+Calidad: ${Math.round(cropQuality(t))}.||Arrástrala a malteado.`;
+      }
+      if(state.debugQuality) el.insertAdjacentHTML('beforeend', qualityHtml(cropQuality(t), t.peatPpm || 0));
+    }
+    if(t.status==='rotten' || t.status==='dry') addClean(el, () => Object.assign(t,{status:'empty',growth:0,moisture:0,dry:0,overdue:0,quality:100}));
+  });
+}
+
+function renderMalt(){
+  $$('.malt-tile').forEach(el=>{
+    const i=+el.dataset.i, t=state.malt[i];
+    el.classList.toggle('empty', t.status==='empty');
+    el.innerHTML = `<div class="malt-capacity"><i style="height:${pct(((t.amount||0)/2)*100)}"></i></div>` + (t.status==='empty' ? '' : bars(t.moisture, t.germ, MALT_HARVEST_START, MALT_OPTIMAL_END - MALT_HARVEST_START, t.status==='rotten', 'quality'));
+    el.dataset.tip = maltTip(t);
+    if(t.status==='filled' || t.status==='rotten'){
+      const plant = document.createElement('div');
+      plant.className='plant';
+      plant.innerHTML = `<img class="plant-img" src="${t.heated ? MALT_IMAGES.heated : MALT_IMAGES.wet}" alt="malta" draggable="false">`;
+      const waterImg = maltWaterImage(t);
+      if(waterImg) el.insertAdjacentHTML('beforeend', `<div class="malt-overlay"><img src="${waterImg}" alt="agua germinando"></div>`);
+      if(maltedWarning(t)) el.insertAdjacentHTML('beforeend', '<div class="warning-overlay malt-warning">⚠️</div>');
+      el.appendChild(plant);
+      if(t.status==='filled' && t.heated && t.germ>=MALT_HARVEST_START){
+        plant.className += ' token malt-token';
+        plant.dataset.drag='malt'; plant.dataset.source=i;
+        plant.dataset.tip=`Malta secada${t.peatPpm?' con turba':''}.
+Calidad: ${Math.round(t.quality || 100)}.
+Turba: ${Math.round(t.peatPpm || 0)}ppm.||Arrástrala a una tina.`;
+      }
+      if(!t.heated && t.status!=='rotten'){
+        const controls = document.createElement('div');
+        controls.className='malt-controls';
+        controls.innerHTML = `<button class="pixel-btn heat-tile" type="button" data-i="${i}" data-tip="🔥 Calentar: seca la malta y detiene la germinación en este punto.">🔥</button><button class="peat-icon ${t.peat?'on':''}" type="button" data-i="${i}" data-tip="🪵 Turba: marca esta malta como ahumada antes de calentar.">🪵</button>`;
+        el.appendChild(controls);
+      }
+      if(state.debugQuality) el.insertAdjacentHTML('beforeend', qualityHtml(t.quality || 100, t.peatPpm || 0, t.lineage || []));
+    }
+    if(t.status==='rotten') addClean(el, () => Object.assign(t,{status:'empty',amount:0,germ:0,moisture:0,quality:100,peatPpm:0,lineage:[],heated:false,peat:false,dry:0,stable:0}));
+  });
+}
+
+function renderVats(){
+  const root = $('#fermentation');
+  root.innerHTML = state.vats.map((v,i)=>{
+    const ready = v.volume>0 && v.ferment>=FERMENT_OPTIMAL_START && v.ferment<=FERMENT_OPTIMAL_END && !v.rotten;
+    const drag = ready ? `data-drag="wash" data-vat="${i}" data-label="mosto"` : '';
+    const abv = vatAbv(v);
+    const warn = fermentWarning(v);
+    const tip = v.rotten ? `Tina estropeada.
+Pulsa para limpiar.` : `🧪 Tina ${i+1}.
+Volumen: ${v.volume.toFixed(0)}%.
+Fermentación: ${v.ferment.toFixed(0)}%.
+ABV: ${abv.toFixed(1)}°.
+Calidad: ${Math.round(vatDisplayQuality(v))}.
+Turba: ${Math.round(v.peatPpm || 0)}ppm.${warn?'||Atención: si no echas levadura pronto, se estropeará.':''}`;
+    return `<div class="machine-unit vat-unit drop-target ${ready?'ready-drag':''} ${isVatActive(v,i)?'':'inactive'}" data-i="${i}" ${drag} data-tip="${tip}">
+      ${qualityHtml(vatDisplayQuality(v), v.peatPpm || 0, v.lineage || [])}
+      <div class="bar vertical vol"><i style="height:${pct(v.volume)}"></i><span class="bar-abv">Vol</span></div>
+      <img class="machine-sprite vat-sprite" src="img/tina_fermentacion.png" alt="tina de fermentación" draggable="false">
+      ${v.rotten ? '<div class="vat-rot-overlay"><img src="img/tina_fermentacion_estropeada.png" alt="fermentación estropeada"></div>' : ''}
+      ${warn ? '<div class="warning-overlay">⚠️</div>' : ''}
+      <div class="bar vertical ranged ferment quality-gradient"><em style="height:${FERMENT_OPTIMAL_END-FERMENT_OPTIMAL_START}%;bottom:${FERMENT_OPTIMAL_START}%"></em><i style="height:${pct(v.ferment)}"></i><span class="bar-abv">Ferm ${abv.toFixed(1)}°</span></div>
+      <button class="pixel-btn small yeast-btn ${v.yeast?'used':''}" type="button" data-i="${i}">Echar levadura</button>
+    </div>`;
+  }).join('');
+}
+
+function renderStills(){
+  const root = $('#stillhouse');
+  root.innerHTML = state.stills.map((s,i)=>{
+    const spiritReady = s.output > 0;
+    const heat = tempPct(s.temp);
+    const tip = `⚗️ Alambique ${i+1}.
+Entrada: ${s.input.toFixed(0)}% (${Math.round(s.input/100*STILL_INPUT_LITRES)}l) / ${s.inputAbv.toFixed(0)}° ABV.
+Salida: ${s.output.toFixed(1)}% (${Math.round(stillOutLitres(s))}l) / ${s.outputAbv.toFixed(0)}° ABV.
+Calor: ${heat}.
+Calidad: ${Math.round(s.outputQuality || s.inputQuality || 100)}.||78.3-100° destila alcohol; por encima de 100° arrastra agua y baja ABV.`;
+    return `<div class="machine-unit still-unit ${isStillActive(s,i)?'':'inactive'}" data-i="${i}" data-tip="${tip}">
+      ${qualityHtml(s.output>0 ? s.outputQuality : s.inputQuality, s.output>0 ? s.outputPeatPpm : s.inputPeatPpm, s.output>0 ? s.outputLineage : s.inputLineage)}
+      <div class="temp-chip">${s.temp.toFixed(0)}°</div>
+      <div class="bar vertical input"><i style="height:${pct(s.input)}"></i><span class="bar-abv">${s.inputAbv.toFixed(0)}°</span></div>
+      <div class="bar vertical tempv"><em class="alcohol-zone" style="height:4%;bottom:58%"></em><b class="water-line" style="bottom:80%"></b><i style="height:${tempPct(s.temp)}"></i><span class="bar-abv">🌡️</span></div>
+      <div class="still-visual"><img class="machine-sprite still-sprite" src="img/alambique.png" alt="alambique" draggable="false"><img class="machine-sprite still-sprite fire-gif ${s.fire?'':'hidden'}" src="img/alambique.gif" alt="fuego" draggable="false"></div>
+      <div class="bar vertical output"><i style="height:${pct(s.output)}"></i><span class="bar-abv">${s.outputAbv.toFixed(0)}°</span></div>
+      <div class="still-drop in drop-target" data-still="${i}" data-zone="in" data-tip="Entrada del alambique: suelta mosto o destilado para segunda pasada."></div>
+      <div class="still-drop out ${spiritReady?'ready-drag':''}" data-still="${i}" data-zone="out" ${spiritReady ? 'data-drag="spirit" data-label="destilado"' : ''} data-tip="Salida del alambique: arrastra de aquí a IN para segunda pasada o a barricas."></div>
+      <button class="pixel-btn small empty-still-btn" type="button" data-i="${i}" data-tip="Vaciar entrada.\nDescarta el líquido de la parte izquierda para preparar otra destilación.">🪣 Vaciar</button><button class="pixel-btn small fire-btn" type="button" data-i="${i}" data-tip="Fuego.\nEnciende o apaga el calentamiento.">🔥 ${s.fire?'Apagar':'Fuego'}</button>
+    </div>`;
+  }).join('');
+}
+
+function renderCards(){
+  const aging=$('#aging'), bottling=$('#bottling');
+  aging.innerHTML=''; bottling.innerHTML='';
+  const shop=document.createElement('div');
+  shop.className='barrel-shop';
+  shop.innerHTML=`<button class="barrel-buy" type="button" data-type="bourbon" data-tip="Comprar pack de ${BARREL_PACK_SIZE} barriles Bourbon.\nRoble americano · 200l · ${BARREL_TYPES.bourbon.cost} k€.">+ Bourbon ${BARREL_TYPES.bourbon.cost}k€</button><button class="barrel-buy" type="button" data-type="sherry" data-tip="Comprar pack de ${BARREL_PACK_SIZE} barriles Jerez.\nRoble europeo · 500l · ${BARREL_TYPES.sherry.cost} k€.">+ Jerez ${BARREL_TYPES.sherry.cost}k€</button>`;
+  aging.appendChild(shop);
+  if(state.barrels.some(b=>(b.barrelQuality||100)<90)){
+    const discard=document.createElement('div');
+    discard.id='barrelDiscard'; discard.className='barrel-discard drop-target';
+    discard.dataset.tip='Descartar barriles viejos.\nSuelta aquí un pack con Q de barril menor de 90 para retirarlo.';
+    discard.textContent='🗑️ Descartar barriles Q<90';
+    aging.appendChild(discard);
+  }
+  state.barrels.forEach((b,i)=>{
+    if(!Number.isFinite(b.x)) b.x=24+i*120; if(!Number.isFinite(b.y)) b.y=56;
+    const type=BARREL_TYPES[b.type || 'bourbon'] || BARREL_TYPES.bourbon;
+    const el=document.createElement('div'); el.className=`card barrel-card drop-target barrel-${b.type || 'bourbon'} ${b.volume>0?'filled':'empty-barrel'}`; el.dataset.drag='barrel'; el.dataset.id=b.id;
+    el.style.left=`${b.x}px`; el.style.top=`${b.y}px`;
+    el.dataset.tip=`🛢️ Pack ${b.count || BARREL_PACK_SIZE} barriles · ${type.wood} ${type.litres}l.
+Volumen líquido: ${(b.volume||0).toFixed(1)}% (${Math.floor(barrelLiquidL(b))}l / ${barrelCapacityL(b)}l).
+Edad líquido: ${(b.age||0).toFixed(1)} años.
+🧪 Alcohol: ${(b.abv||0).toFixed(0)}°.
+⭐ Q líquido: ${Math.round(b.quality || 100)}.
+🪵 Q barril: ${Math.round(b.barrelQuality || 100)}.${state.debugQuality?`\nLinaje: ${lineageCount(b.lineage)} eventos.`:''}||Arrastra destilado aquí, mueve líquido entre barriles o lleva el barril a embotellado.`;
+    el.innerHTML=`${qualityHtml(b.quality, b.peatPpm || 0, b.lineage || [])}<div class="vol-label">${(b.volume||0).toFixed(0)}%</div><div class="bar vol-bar"><i style="height:${pct(b.volume||0)}"></i></div><div class="barrel-text"><span>🕰️ ${(b.age||0).toFixed(1)}a</span><span class="abs-label">🧪 ${(b.abv||0).toFixed(0)}°</span></div><img src="${barrelImage(b)}" alt="barrica">`;
+    aging.appendChild(el);
+  });
+  if(!state.boxes.length){
+    bottling.innerHTML='<div class="card empty-card" data-tip="Aquí aparecerá una caja cuando embotelles una barrica.\nAhora cada icono de barril representa 10 barriles, así que las cajas salen x10 botellas."><img src="img/bottles_no_age.png" alt="botellas">Vacío<br>Embotella barricas</div>';
+  }
+  state.boxes.forEach((b,i)=>{
+    if(!Number.isFinite(b.x)) b.x=18+i*95; if(!Number.isFinite(b.y)) b.y=20;
+    const el=document.createElement('div'); el.className='card box-card bottle-card drop-target'; el.dataset.drag='box'; el.dataset.id=b.id;
+    el.style.left=`${b.x}px`; el.style.top=`${b.y}px`;
+    el.dataset.tip=`📦 Caja · 🍾 ${b.bottles} botellas · 🕰️ ${Math.floor(b.age)} años · 🧪 ${Math.round(b.abv || 0)}° ABV · ⭐ Calidad ${Math.round(b.quality || 100)}.${state.debugQuality?`\nLinaje: ${lineageCount(b.lineage)} eventos.`:''}||Muévela por la tienda o arrástrala al camión para vender.`;
+    el.innerHTML=`${qualityHtml(b.quality, b.peatPpm || 0, b.lineage || [])}<div class="box-text"><span>🍾 ${b.bottles}</span><span>🕰️ ${Math.floor(b.age)}a</span></div><img src="${bottleImage(b)}" alt="botellas">`;
+    bottling.appendChild(el);
+  });
+}
+
+function buyBarrel(type){
+  const def=BARREL_TYPES[type]; if(!def || state.coins<def.cost) return;
+  state.coins-=def.cost;
+  state.barrels.push(newBarrel(type, 24 + (state.barrels.length%4)*185, 56 + Math.floor(state.barrels.length/4)*118));
+  markDirty(); render(); saveGame();
+}
+
+function handleDrop(target,data,e){
+  if(e && data.drag==='box' && pointIn($('#truckDock'), e.clientX, e.clientY)){ sellBox(data.id); return; }
+  if(e && data.drag==='box' && pointIn($('#bottling'), e.clientX, e.clientY)){ moveBox(data.id, e, data); return; }
+  if(data.drag==='barrel' && target.closest('#barrelDiscard')){ discardBarrel(data.id); return; }
+  if(data.drag==='barrel' && target.classList.contains('barrel-card')){
+    if(target.dataset.id !== data.id) transferBarrelToBarrel(data.id, target.dataset.id);
+    else if(e) moveBarrel(data.id, e, data);
+    return;
+  }
+  if(data.drag==='barrel' && target.closest('#bottling')){ bottleBarrel(data.id, e, data); return; }
+  if(data.drag==='barrel' && target.closest('#aging')){ moveBarrel(data.id, e, data); return; }
+  if(target.classList.contains('field-tile') && data.drag==='seed'){
+    const t=state.field[+target.dataset.i];
+    if(t.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:0, dry:0, overdue:0, quality:100}); }
+  }
+  if(target.classList.contains('malt-tile') && data.drag==='crop'){
+    const dst=state.malt[+target.dataset.i], src=state.field[+data.source];
+    if(dst && src?.growth>=FIELD_HARVEST_START && (dst.amount||0)<2){
+      const add=1, old=dst.amount||0;
+      Object.assign(dst,{status:'filled', amount:old+add, germ:dst.germ||0, moisture:dst.moisture||0, quality:weightedQuality(old, dst.quality||100, add, cropQuality(src)), lineage:mergeLineage(dst.lineage||[], [{stage:'cultivo', q:cropQuality(src), kg:add}]), heated:false, peat:dst.peat||false, dry:0, stable:0});
+      Object.assign(src,{status:'empty', growth:0, moisture:0, dry:0, overdue:0, quality:100});
+    }
+  }
+  if(target.classList.contains('vat-unit') && data.drag==='malt') addMaltToVat(+target.dataset.i, data.source);
+  if(target.classList.contains('still-drop') && target.dataset.zone==='in' && data.drag==='wash') transferWashToStill(+data.vat, +target.dataset.still);
+  if(target.classList.contains('still-drop') && target.dataset.zone==='in' && data.drag==='spirit') redistill(+data.still, +target.dataset.still);
+  if(target.classList.contains('barrel-card') && data.drag==='spirit') addSpiritToBarrel(+data.still, target.dataset.id);
+  if(target.closest('#bottling') && data.drag==='box') moveBox(data.id, e, data);
+}
+function addMaltToVat(vatIndex, source){
+  const t=state.malt[+source], v=state.vats[vatIndex];
+  if(!t || !v || t.status!=='filled' || !t.heated || t.germ<MALT_HARVEST_START || v.rotten) return;
+  const add=Math.min(20*(t.amount||1),100-v.volume); if(add<=0) return;
+  v.baseQuality=weightedQuality(v.volume, v.baseQuality || v.quality || 100, add, t.quality || 100);
+  v.quality=v.baseQuality;
+  v.peatPpm=weightedValue(v.volume, v.peatPpm, add, t.peatPpm || 0);
+  v.lineage=mergeLineage(v.lineage||[], t.lineage||[], [{stage:'malteado', q:t.quality||100, peat:t.peatPpm||0, kg:t.amount||1}]);
+  v.ferment = v.volume ? v.ferment*(v.volume/(v.volume+add)) : 0;
+  v.volume += add; v.rotten=false; v.idle=0;
+  Object.assign(t,{status:'empty',amount:0,germ:0,moisture:0,quality:100,peatPpm:0,lineage:[],heated:false,peat:false,dry:0,stable:0});
+}
+function transferWashToStill(vatIndex, stillIndex){
+  const v=state.vats[vatIndex], s=state.stills[stillIndex];
+  if(!v || !s || v.volume<=0 || v.ferment<FERMENT_OPTIMAL_START || v.ferment>FERMENT_OPTIMAL_END || v.rotten) return;
+  const move=Math.min(v.volume,100-s.input); if(move<=0) return;
+  const q=vatDisplayQuality(v);
+  s.inputQuality=weightedQuality(s.input, s.inputQuality, move, q);
+  s.inputPeatPpm=weightedValue(s.input, s.inputPeatPpm, move, v.peatPpm || 0);
+  s.inputLineage=mergeLineage(s.inputLineage||[], v.lineage||[], [{stage:'fermentacion', q, ferment:v.ferment, volume:move}]);
+  s.input += move; s.inputAbv=weightedValue(s.input-move, s.inputAbv, move, vatAbv(v)); s.runs=0;
+  v.volume -= move;
+  if(v.volume<1) Object.assign(v,newVat());
+}
+function redistill(fromIndex, toIndex){
+  const from=state.stills[fromIndex], to=state.stills[toIndex];
+  if(!from || !to || from.output<=0) return;
+  const fromL=stillOutLitres(from);
+  const availableInputL=(100-to.input)/100*STILL_INPUT_LITRES;
+  const moveL=Math.min(fromL, availableInputL); if(moveL<=0) return;
+  const toOldL=to.input/100*STILL_INPUT_LITRES;
+  const toAddPct=moveL/STILL_INPUT_LITRES*100;
+  const fromSubPct=moveL/STILL_OUTPUT_LITRES*100;
+  to.inputQuality=weightedQuality(toOldL, to.inputQuality, moveL, from.outputQuality || 100);
+  to.inputPeatPpm=weightedValue(toOldL, to.inputPeatPpm, moveL, from.outputPeatPpm || 0);
+  to.inputLineage=mergeLineage(to.inputLineage||[], from.outputLineage||[], [{stage:'redestilacion_entrada', from:fromIndex, litres:moveL}]);
+  to.inputAbv=weightedValue(toOldL, to.inputAbv, moveL, from.outputAbv || 0);
+  to.input += toAddPct; to.runs=from.outputRuns;
+  from.output -= fromSubPct;
+  if(from.output<.1){ from.output=0; from.outputAbv=0; from.outputQuality=100; from.outputPeatPpm=0; from.outputLineage=[]; from.outputRuns=0; }
+}
+function firstEmptyBarrel(){ return state.barrels.find(b=>(b.volume||0)<=0); }
+function makeBarrel(stillIndex,e,data){
+  const b=firstEmptyBarrel();
+  if(!b) return;
+  if(e) Object.assign(b, localDropPoint($('#aging'), e, data));
+  addSpiritToBarrel(stillIndex, b.id);
+}
+function addSpiritToBarrel(stillIndex, id){
+  const s=state.stills[stillIndex], b=state.barrels.find(x=>x.id===id);
+  if(!s || !b || s.output<=0) return;
+  if(s.outputAbv<40){ notice('El destilado tiene menos de 40° ABV. Mínimo debe tener 40°; haz una nueva destilación antes de meterlo en barrica.'); return; }
+  if(s.outputRuns<2){ notice('Este destilado necesita una nueva destilación antes de pasar a barrica.'); return; }
+  const oldLitres=barrelLiquidL(b), availableL=barrelCapacityL(b)-oldLitres;
+  if(availableL<=0) return;
+  const sourceL=stillOutLitres(s);
+  const targetAbv=Math.min(s.outputAbv,65);
+  const dilutedL=s.outputAbv>65 ? sourceL * s.outputAbv / targetAbv : sourceL;
+  const addL=Math.min(dilutedL, availableL);
+  if(addL<=0) return;
+  const oldVol=b.volume||0;
+  const barrelFactor=(b.barrelQuality || 100)/100;
+  const incomingQ=(s.outputQuality || 100)*barrelFactor;
+  b.age = oldLitres>0 ? Math.min(b.age || 0, 0) : 0;
+  b.quality = weightedQuality(oldLitres, b.quality, addL, incomingQ);
+  b.peatPpm = weightedValue(oldLitres, b.peatPpm, addL, s.outputPeatPpm || 0);
+  b.abv = weightedValue(oldLitres, b.abv, addL, targetAbv);
+  b.lineage = mergeLineage(b.lineage||[], s.outputLineage||[], [{stage:'barrica', barrelType:b.type||'bourbon', barrelQ:b.barrelQuality||100, sourceL, dilutedL, addedL:addL, discardedL:Math.max(0,dilutedL-addL), abv:targetAbv}]);
+  b.volume = barrelPctFromL(b, oldLitres + addL);
+  s.output=0; s.outputAbv=0; s.outputQuality=100; s.outputPeatPpm=0; s.outputLineage=[]; s.outputRuns=0;
+}
+function transferBarrelToBarrel(fromId,toId){
+  const from=state.barrels.find(x=>x.id===fromId), to=state.barrels.find(x=>x.id===toId);
+  if(!from || !to || from===to || (from.volume||0)<=0) return;
+  const fromL=barrelLiquidL(from), toL=barrelLiquidL(to), availableL=barrelCapacityL(to)-toL;
+  const moveL=Math.min(fromL, availableL); if(moveL<=0) return;
+  const barrelFactor=(to.barrelQuality||100)/100;
+  to.quality=weightedQuality(toL, to.quality, moveL, (from.quality||100)*barrelFactor);
+  to.peatPpm=weightedValue(toL, to.peatPpm, moveL, from.peatPpm||0);
+  to.abv=weightedValue(toL, to.abv, moveL, from.abv||0);
+  to.age=toL>0 ? Math.min(to.age||0, from.age||0) : (from.age||0);
+  to.lineage=mergeLineage(to.lineage||[], from.lineage||[], [{stage:'trasiego_barril', from:from.type||'bourbon', to:to.type||'bourbon', litres:moveL}]);
+  to.volume=barrelPctFromL(to, toL+moveL);
+  from.volume=barrelPctFromL(from, fromL-moveL);
+  if(from.volume<.1) Object.assign(from,{volume:0,age:0,abv:0,quality:100,peatPpm:0,lineage:[]});
+}
+function moveBarrel(id,e,data){
+  const b=state.barrels.find(x=>x.id===id); if(!b || !e) return;
+  Object.assign(b, localDropPoint($('#aging'), e, data));
+}
+function discardBarrel(id){
+  const i=state.barrels.findIndex(b=>b.id===id); if(i<0) return;
+  const b=state.barrels[i];
+  if((b.barrelQuality||100)>=90){ notice('Sólo se descartan aquí barriles antiguos con Q menor de 90.'); return; }
+  if(confirm('¿Descartar este pack de barriles antiguos? Se perderá también cualquier líquido que contenga.')){ state.barrels.splice(i,1); markDirty(); render(); saveGame(); }
+}
+function bottleOptions(abv){
+  const max=Math.floor(abv||0);
+  const base=[40,43,45].filter(x=>x<=max);
+  for(let x=46;x<=max;x++) base.push(x);
+  return [...new Set(base)];
+}
+function bottleBarrel(id,e,data){
+  const b=state.barrels.find(x=>x.id===id); if(!b || (b.volume||0)<=0) return;
+  if(b.abv < 40){ notice('Para embotellar whisky legalmente debe tener al menos 40° ABV.'); return; }
+  if(b.age < 3){ notice('Aún no puede embotellarse como whisky escocés auténtico: necesita al menos 3 años de envejecimiento.'); return; }
+  const p=e ? localDropPoint($('#bottling'), e, data) : {x:18+state.boxes.length*95,y:20};
+  openBottleDialog(b,p);
+}
+function openBottleDialog(b,p){
+  const opts=bottleOptions(b.abv); if(!opts.length) return;
+  const old=$('#bottleModal'); old?.remove();
+  const modal=document.createElement('div'); modal.id='bottleModal'; modal.className='bottle-modal';
+  modal.innerHTML=`<div class="bottle-card-modal"><h3>Embotellar</h3><p>Elige grado ABS final</p><input id="bottleAbvRange" type="range" min="0" max="${opts.length-1}" step="1" value="${opts.length-1}"><strong id="bottleAbvLabel"></strong><div><button id="bottleOk" class="pixel-btn small" type="button">Embotellar</button><button id="bottleCancel" class="pixel-btn small danger" type="button">Cancelar</button></div></div>`;
+  document.body.appendChild(modal);
+  const input=$('#bottleAbvRange'), label=$('#bottleAbvLabel');
+  const update=()=>{ const abv=opts[+input.value]; label.textContent=abv>=46 ? `${abv}° cask strength` : `${abv}°`; };
+  input.oninput=update; update();
+  $('#bottleCancel').onclick=()=>modal.remove();
+  $('#bottleOk').onclick=()=>{ finishBottleBarrel(b.id, opts[+input.value], p); modal.remove(); markDirty(); render(); saveGame(); };
+}
+function finishBottleBarrel(id,targetAbv,p={x:18+state.boxes.length*95,y:20}){
+  const b=state.barrels.find(x=>x.id===id); if(!b || (b.volume||0)<=0 || b.age<3 || targetAbv<40 || targetAbv>b.abv) return;
+  const liquidL = barrelLiquidL(b);
+  const finalLitres = liquidL * (b.abv || targetAbv) / targetAbv;
+  const bottles=Math.floor(finalLitres / BOTTLE_LITRES);
+  if(bottles<=0) return;
+  const age=Math.floor(b.age || 0);
+  state.boxes.push({id:uuid(), bottles, age, abv:targetAbv, quality:b.quality || 100, peatPpm:b.peatPpm||0, lineage:mergeLineage(b.lineage||[], [{stage:'embotellado', abv:targetAbv, liquidL, finalLitres, bottles}]), x:p.x, y:p.y});
+  state.bottles += bottles;
+  b.barrelQuality=Math.max(0,(b.barrelQuality||100)-1);
+  Object.assign(b,{volume:0,age:0,abv:0,quality:100,peatPpm:0,lineage:[]});
+}
+function moveBox(id,e,data){
+  const b=state.boxes.find(x=>x.id===id); if(!b || !e) return;
+  Object.assign(b, localDropPoint($('#bottling'), e, data));
+}
+function sellBox(id){
+  const i=state.boxes.findIndex(b=>b.id===id); if(i<0) return;
+  const b=state.boxes.splice(i,1)[0];
+  const euros=b.bottles * Math.max(.1,b.age) * state.market * ((b.quality || 100)/100);
+  state.coins += euros/1000; state.bottles -= b.bottles;
+}
+
+
 function render(){
-  if(dragging) return;
+  if(dragging || pointerActive){ renderPending = true; return; }
+  renderPending = false;
+  $('.name-field').classList.toggle('editing', nameEditing);
+  $('#distilleryNameView').textContent = state.distilleryName;
   $('#distilleryName').value = state.distilleryName;
   $('#coins').textContent = `${state.coins.toFixed(0)} k€`;
   $('#seeds').textContent = `${state.seeds.toFixed(0)} Kg`;
   $('#bottles').textContent = `${state.bottles}`;
   $('#market').textContent = `${state.market.toFixed(2)} €`;
+  $('#resources').dataset.tip = `Recursos: 🪙 Monedas ${state.coins.toFixed(0)} k€ · 🌾 Semillas ${state.seeds.toFixed(0)} Kg · 🍾 Botellas ${state.bottles} · 📈 Mercado ${state.market.toFixed(2)} € x botella x años`;
+  $('#market').closest('.stat, .market')?.setAttribute('data-tip', `Precio de mercado: ${state.market.toFixed(2)} € x botella x años. La calidad multiplica el precio: Q90 = x0.90.`);
   $('#speedSlider').value = state.speedStep;
   $('#speedLabel').textContent = speedLabel();
-  $('#seedBag').style.opacity = state.seeds > 0 ? '1' : '.38';
-
-  $$('.field-tile').forEach(el=>{
-    const t = state.field[+el.dataset.i];
-    el.innerHTML = bars(t.moisture, t.growth, 75, 20, t.status==='rotten');
-    el.dataset.tip = fieldTip(t);
-    if(t.status==='planted'){
-      const plant = document.createElement('div');
-      plant.className='plant';
-      plant.textContent = t.status==='rotten'?'☠️': t.growth<35?'🌱':'🌾';
-      el.appendChild(plant);
-      if(t.growth>=75 && t.growth<=95){
-        plant.className += ' token crop-token';
-        plant.dataset.drag='crop'; plant.dataset.source=el.dataset.i;
-        plant.dataset.tip='Cebada madura: arrástrala a malteado/germinación.';
-        plant.textContent='🌾';
-      }
-    }
-    if(t.status==='rotten') addClean(el, () => Object.assign(t,{status:'empty',growth:0,moisture:25}));
-  });
-
-  $$('.malt-tile').forEach(el=>{
-    const t = state.malt[+el.dataset.i];
-    el.innerHTML = bars(t.moisture, t.germ, 68, 22, t.status==='rotten');
-    el.dataset.tip = maltTip(t);
-    if(t.status==='filled'){
-      const plant = document.createElement('div');
-      plant.className='plant'; plant.textContent = t.status==='rotten'?'☠️':'🌿';
-      el.appendChild(plant);
-      if(t.germ>=68 && t.germ<=90){
-        plant.className += ' token malt-token';
-        plant.dataset.drag='malt'; plant.dataset.source=el.dataset.i;
-        plant.dataset.tip='Malta germinada en óptimo: arrástrala a la cuba.';
-        plant.textContent='🌿';
-      }
-    }
-    if(t.status==='rotten') addClean(el, () => Object.assign(t,{status:'empty',germ:0,moisture:0}));
-  });
-
-  $('#vatCapacity').style.width = pct(state.vat.volume);
-  $('#vatFerment').style.width = pct(state.vat.ferment);
-  $('#fermentDrag').classList.toggle('hidden', !(state.vat.volume>0 && state.vat.ferment>=65 && state.vat.ferment<=90 && !state.vat.rotten));
-  $('#fermentDrag').dataset.tip = `Mosto: ${state.vat.volume.toFixed(0)}% de cuba · fermentación ${state.vat.ferment.toFixed(0)}%${state.vat.yeast?' · con levadura':''}.`;
-  $('#fermentation').dataset.tip = state.vat.rotten ? 'La cuba se ha podrido: pulsa aquí para limpiar.' : `Cuba ${state.vat.volume.toFixed(0)}% · fermentación ${state.vat.ferment.toFixed(0)}% · rango óptimo 65-90%.`;
-
-  $('#stillIn').textContent = `${state.still.input.toFixed(0)}% · ${state.still.inputAbv.toFixed(0)}º`;
-  $('#stillOut').textContent = `${state.still.output.toFixed(1)}% · ${state.still.outputRuns}x`;
-  $('#tempBar').style.width = pct(state.still.temp);
-  $('#fire').textContent = state.still.fire ? 'Apagar' : 'Fuego';
-  $('#spiritDrag').classList.toggle('hidden', state.still.output <= 0);
-  $('#spiritDrag').dataset.tip = `Destilado ${state.still.output.toFixed(1)}% · ${state.still.outputAbv.toFixed(0)}º · pasadas ${state.still.outputRuns}. ${state.still.outputRuns<2?'Necesita segunda destilación.':'Listo para barrica.'}`;
-
-  renderCards();
-}
-
-function bars(a,b,start,width,bad=false){
-  return `<div class="mini-bars"><div class="bar moist"><i style="width:${pct(a)}"></i></div><div class="bar ranged ${bad?'bad':''}"><em style="left:${start}%;width:${width}%"></em><i style="width:${pct(b)}"></i></div></div>`;
-}
-function addClean(el, fn){
-  const b=document.createElement('button');
-  b.className='clean'; b.textContent='Limpiar';
-  b.onclick=e=>{e.stopPropagation(); fn(); markDirty(); render();};
-  el.appendChild(b);
-}
-function fieldTip(t){ if(t.status==='empty') return 'Tile vacío. Arrastra 1 Kg de semillas aquí.'; if(t.status==='rotten') return 'Cultivo estropeado por pasarse de madurez. Click para limpiar.'; return `Cultivo: humedad ${t.moisture.toFixed(0)}% · crecimiento ${t.growth.toFixed(0)}% · cosecha entre 75-95%. Click para regar.`; }
-function maltTip(t){ if(t.status==='empty') return 'Tile seco/vacío. Suelta cebada madura aquí; no germina hasta que le eches agua.'; if(t.status==='rotten') return 'Malta podrida por exceso de humedad/tiempo. Click para limpiar.'; if(t.moisture<=0 && t.germ<=0) return 'Cebada almacenada en seco. Puede esperar indefinidamente; click/drag para regar y empezar germinación.'; return `Malteado: humedad ${t.moisture.toFixed(0)}% · germinación ${t.germ.toFixed(0)}% · óptimo 68-90%. Click/drag para regar.`; }
-
-function renderCards(){
-  const aging=$('#aging'), bottling=$('#bottling');
-  aging.innerHTML=''; bottling.innerHTML='';
-  state.barrels.forEach(b=>{
-    const el=document.createElement('div'); el.className='card barrel-card'; el.dataset.drag='barrel'; el.dataset.id=b.id;
-    el.dataset.tip=`Barrica: ${b.volume.toFixed(1)}% volumen · ${b.age.toFixed(1)} años · ${b.abv.toFixed(0)}º. Arrastra a embotellado.`;
-    el.innerHTML=`<img src="img/placeholder_barrel.png" alt="barrica"><strong>Barrica</strong><br>${b.age.toFixed(1)} años<br>${b.volume.toFixed(1)}%<div class="bar"><i style="width:${pct((b.age%10)*10)}"></i></div>`;
-    aging.appendChild(el);
-  });
-  state.boxes.forEach(b=>{
-    const el=document.createElement('div'); el.className='card box-card'; el.dataset.drag='box'; el.dataset.id=b.id;
-    el.dataset.tip=`Caja: ${b.bottles} botellas · whisky de ${b.age.toFixed(1)} años. Arrastra al camión para vender.`;
-    el.innerHTML=`<img src="img/placeholder_box.png" alt="caja"><strong>Caja</strong><br>${b.bottles} bot.<br>${b.age.toFixed(1)} años<div class="bar"><i style="width:${pct(b.bottles)}"></i></div>`;
-    bottling.appendChild(el);
-  });
+  $('#seedInventory').classList.toggle('disabled', state.seeds < SEED_KG_PER_PLOT);
+  $('#game').classList.toggle('debug-zones', !!state.debugQuality);
+  $('#toggleDebugView').classList.toggle('on', !!state.debugQuality);
+  renderField(); renderMalt(); renderVats(); renderStills(); renderCards();
 }
 
 function tick(){
   const sp = speedMultiplier();
   state.marketPhase += 0.018 * sp;
-  state.market = 3 + Math.sin(state.marketPhase)*1.15 + Math.sin(state.marketPhase*2.7)*0.55 + (Math.random()-.5)*0.035;
-  state.market = clamp(state.market,1,5);
+  state.market = clamp(3.5 + Math.sin(state.marketPhase)*1.15 + Math.sin(state.marketPhase*2.7)*0.45 + (Math.random()-.5)*0.03, 2, 5);
   for(const t of state.field){
     if(t.status==='planted'){
-      t.moisture=clamp(t.moisture-.12*sp,0,100);
-      if(t.moisture>8) t.growth += 0.075*sp*(0.55+t.moisture/100);
-      if(t.growth>102) t.status='rotten';
+      t.moisture=clamp(t.moisture-.06*sp,0,FIELD_WATER_CAP);
+      if(t.moisture>8 && t.growth < FIELD_FULL_GROWTH) t.growth = clamp(t.growth + 0.0375*sp*(0.55+t.moisture/FIELD_WATER_CAP), 0, FIELD_FULL_GROWTH);
+      t.dry = t.moisture<=4 ? (t.dry || 0) + sp : 0;
+      t.overdue = t.growth>=FIELD_FULL_GROWTH ? (t.overdue || 0) + sp : 0;
+      if(t.dry>FIELD_DRY_SECONDS*10 || t.overdue>FIELD_OVERDUE_SECONDS*10) t.status='dry';
     }
   }
   for(const t of state.malt){
     if(t.status==='filled'){
-      t.moisture=clamp(t.moisture-.06*sp,0,100);
-      if(t.moisture>88) t.status='rotten';
-      if(t.moisture>8) t.germ += 0.095*sp*(t.moisture/62);
-      if(t.germ>104) t.status='rotten';
+      if(t.heated){
+        t.moisture=0; t.stable=(t.stable || 0)+sp;
+        if(t.stable>MALT_KILNED_GRACE) t.status='rotten';
+      } else {
+        t.moisture=clamp(t.moisture-.06*sp,0,100);
+        if(t.moisture>8) t.germ += 0.22*sp*(t.moisture/62);
+        t.dry = (t.germ>0 && t.moisture<=4) ? (t.dry || 0) + sp : 0;
+        if(t.germ>100 || t.dry>MALT_DRY_SECONDS*14) t.status='rotten';
+      }
     }
   }
-  const v=state.vat;
-  if(v.volume>0 && !v.rotten){
-    v.idle += sp;
-    if(v.yeast) v.ferment=clamp(v.ferment+0.09*sp,0,100);
-    if(!v.yeast && v.idle>420) v.rotten=true;
-    if(v.ferment>98) v.rotten=true;
+  for(const v of state.vats){
+    if(v.volume>0 && !v.rotten){
+      v.idle += sp;
+      if(v.yeast){ v.ferment=clamp(v.ferment+0.18*sp,0,100); v.abv=vatAbv(v); v.quality=vatDisplayQuality(v); }
+      if(!v.yeast && v.idle>FERMENT_IDLE_ROT) v.rotten=true;
+      if(v.ferment>98) v.rotten=true;
+    }
   }
-  const s=state.still;
-  s.temp = clamp(s.temp + (s.fire ? .42*sp : -.22*sp), 18, 115);
-  if(s.input>0 && s.temp>=78 && s.temp<100){
-    const take=Math.min(s.input,.08*sp);
-    s.input-=take; s.output+=take*.10;
-    s.outputRuns=Math.max(s.outputRuns, s.runs+1);
-    s.outputAbv=s.outputRuns===1?25:65;
-    s.inputAbv=s.input>0?s.inputAbv:0;
-    if(s.input<=0) s.runs=0;
+  for(const s of state.stills){
+    s.temp = clamp(s.temp + (s.fire ? .42*sp : -.22*sp), TEMP_MIN, TEMP_MAX);
+    if(s.input>0 && s.temp>=ALCOHOL_BOIL){
+      const waterRange = s.temp>=WATER_BOIL;
+      const take=Math.min(s.input,(waterRange ? .32 : .16)*sp);
+      const run=s.runs+1;
+      const waterFactor=waterRange ? clamp((s.temp-WATER_BOIL)/(TEMP_MAX-WATER_BOIL),0,1) : 0;
+      const desiredOutVolume=take*(1 + waterFactor);
+      const outVolume=Math.min(desiredOutVolume, 100-s.output);
+      if(outVolume<=0) continue;
+      const actualTake=outVolume/(1 + waterFactor);
+      const perfectMax=run===1?25:(run===2?75:83);
+      const outAbv=clamp(perfectMax*(1-waterFactor*.55),8,perfectMax);
+      const prevOut=s.output, inputQuality=s.inputQuality || 100;
+      s.input-=actualTake; s.output+=outVolume;
+      s.outputRuns=Math.max(s.outputRuns,run);
+      s.outputAbv=prevOut>0 ? ((s.outputAbv*prevOut)+(outAbv*outVolume))/(prevOut+outVolume) : outAbv;
+      s.outputQuality=prevOut>0 ? (((s.outputQuality||100)*prevOut)+(inputQuality*outVolume))/(prevOut+outVolume) : inputQuality;
+      s.outputPeatPpm=prevOut>0 ? weightedValue(prevOut, s.outputPeatPpm, outVolume, s.inputPeatPpm) : (s.inputPeatPpm || 0);
+      s.outputLineage=mergeLineage(s.outputLineage, s.inputLineage, [{stage:'destilado', run, abv:outAbv, litres:outVolume/100*STILL_OUTPUT_LITRES, q:inputQuality}]);
+      s.inputAbv=s.input>0?s.inputAbv:0;
+      if(s.input<=0){ s.runs=0; s.inputQuality=100; s.inputPeatPpm=0; s.inputLineage=[]; }
+    }
   }
-  for(const b of state.barrels){
-    const old=Math.floor(b.age);
-    b.age += sp/1800;
-    if(Math.floor(b.age)>old) b.volume*=.95;
-  }
-  markDirty();
-  render();
+  for(const b of state.barrels){ if((b.volume||0)>0){ const old=Math.floor(b.age); b.age += sp/1800; if(Math.floor(b.age)>old) b.volume*=.95; } }
+  markDirty(); render();
 }
 
-function waterMalt(tile, amount){
-  const t = state.malt[+tile.dataset.i];
-  if(t?.status==='filled' && t.status!=='rotten'){
-    t.moisture=clamp(t.moisture+amount,0,100);
-    markDirty(); render();
-  }
-}
 function waterField(tile){
   const t=state.field[+tile.dataset.i];
   if(t?.status==='planted'){
-    t.moisture=clamp(t.moisture+28,0,100);
+    t.moisture=FIELD_WATER_CAP; t.dry=0;
     markDirty(); render();
   }
+}
+function waterMalt(tile, amount=100){
+  const t=state.malt[+tile.dataset.i];
+  if(t?.status==='filled' && t.status!=='rotten' && !t.heated){
+    t.moisture=100; t.dry=0;
+    markDirty(); render();
+  }
+}
+function heatMalt(i){
+  const t=state.malt[+i];
+  if(!t || t.status!=='filled' || t.heated || t.status==='rotten' || t.germ<MALT_HARVEST_START) return;
+  t.peat = !!t.peat;
+  t.peatPpm = t.peat ? TURBA_MAX_PPM : 0;
+  t.heated = true; t.moisture = 0; t.stable = 0;
+  t.quality = maltQuality(t);
+  t.lineage = mergeLineage(t.lineage||[], [{stage:'secado_malta', q:t.quality, peat:t.peatPpm||0, germ:t.germ}]);
+  markDirty(); render(); saveGame();
 }
 
 function dragDataFrom(el){
   const type = el.dataset.drag;
-  if(type==='seed' && state.seeds < 1) return null;
-  return {...el.dataset, label: el.textContent.trim() || type};
+  if(type==='seed' && state.seeds < SEED_KG_PER_PLOT) return null;
+  return {...el.dataset, label: el.dataset.label || el.textContent.trim() || type};
+}
+function makeGhost(data, source){
+  const ghost = document.createElement('div');
+  ghost.className = `drag-ghost token ${data.drag}-token`;
+  if(data.drag==='crop') ghost.innerHTML = `<img class="plant-img" src="${MALT_IMAGES.wet}" alt="grano para maltear">`;
+  else if(data.drag==='malt') ghost.innerHTML = `<img class="plant-img" src="${MALT_IMAGES.heated}" alt="malta">`;
+  else if(data.drag==='wash') ghost.textContent = 'mosto';
+  else if(data.drag==='spirit') ghost.textContent = 'dest.';
+  else { const clone=source.cloneNode(true); clone.classList.add('drag-ghost'); return clone; }
+  return ghost;
 }
 function startDrag(e, source){
   if(e.button !== undefined && e.button !== 0) return;
@@ -254,152 +722,139 @@ function startDrag(e, source){
   if(!data) return;
   e.preventDefault();
   source.setPointerCapture?.(e.pointerId);
-  const ghost = source.cloneNode(true);
-  ghost.classList.add('drag-ghost');
-  ghost.style.width = `${Math.max(source.offsetWidth, 46)}px`;
+  const rect = source.getBoundingClientRect();
+  data.offsetX = (e.clientX - rect.left) / scaleNow();
+  data.offsetY = (e.clientY - rect.top) / scaleNow();
+  markDropHints(data);
+  const ghost = makeGhost(data, source);
+  if(source.classList.contains('card')){ ghost.style.width=`${rect.width}px`; ghost.style.height=`${rect.height}px`; }
   document.body.appendChild(ghost);
-  dragging = {data, ghost, pointerId:e.pointerId, source, lastTarget:null, x:e.clientX, y:e.clientY, moved:false};
+  dragging = {data, ghost, pointerId:e.pointerId, source, lastTarget:null, x:e.clientX, y:e.clientY, moved:false, card:source.classList.contains('card')};
   moveGhost(e.clientX, e.clientY);
 }
-function moveGhost(x,y){
-  if(!dragging) return;
-  dragging.ghost.style.left = `${x}px`;
-  dragging.ghost.style.top = `${y}px`;
-}
+function moveGhost(x,y){ if(!dragging) return; if(dragging.card){ dragging.ghost.style.transform='none'; dragging.ghost.style.left=`${x - dragging.data.offsetX*scaleNow()}px`; dragging.ghost.style.top=`${y - dragging.data.offsetY*scaleNow()}px`; } else { dragging.ghost.style.left=`${x}px`; dragging.ghost.style.top=`${y}px`; } }
 function clearHover(){ dragging?.lastTarget?.classList.remove('hover'); if(dragging) dragging.lastTarget=null; }
 function updateDropHover(e){
   if(!dragging) return;
   dragging.ghost.style.display='none';
-  const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.drop-target');
+  const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.drop-target');
   dragging.ghost.style.display='';
-  if(target !== dragging.lastTarget){
-    clearHover();
-    if(target){ target.classList.add('hover'); dragging.lastTarget = target; }
-  }
+  if(target!==dragging.lastTarget){ clearHover(); if(target){ target.classList.add('hover'); dragging.lastTarget=target; } }
 }
 function endDrag(e){
   if(!dragging) return;
   dragging.ghost.style.display='none';
-  const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.drop-target');
+  const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.drop-target');
   dragging.ghost.style.display='';
-  const data = dragging.data;
-  clearHover();
-  dragging.ghost.remove();
-  dragging = null;
-  if(target){ handleDrop(target, data); markDirty(); render(); }
+  const {data, source, moved} = dragging;
+  clearHover(); clearHints(); dragging.ghost.remove(); dragging=null;
+  if(!moved && source?.closest?.('.field-tile')){ waterField(source.closest('.field-tile')); return; }
+  if(target){ handleDrop(target, data, e); markDirty(); render(); }
 }
 
+document.addEventListener('pointerdown', e=>{ pointerActive = true; }, true);
+document.addEventListener('pointerup', () => setTimeout(()=>{ pointerActive = false; if(renderPending) render(); }, 0), true);
+document.addEventListener('pointercancel', () => setTimeout(()=>{ pointerActive = false; if(renderPending) render(); }, 0), true);
+
 document.addEventListener('pointerdown', e=>{
+  if(e.target.closest('button, input, label')) return;
   const dragSource = e.target.closest('[data-drag]');
   if(dragSource) return startDrag(e, dragSource);
   const maltTile = e.target.closest('.malt-tile');
-  if(maltTile) return waterMalt(maltTile, 11);
+  if(maltTile) return waterMalt(maltTile, 100);
 });
 document.addEventListener('pointermove', e=>{
   if(!dragging) return;
-  if(Math.hypot(e.clientX-dragging.x, e.clientY-dragging.y)>4) dragging.moved = true;
-  moveGhost(e.clientX, e.clientY);
-  updateDropHover(e);
+  if(Math.hypot(e.clientX-dragging.x, e.clientY-dragging.y)>10) dragging.moved=true;
+  moveGhost(e.clientX,e.clientY); updateDropHover(e);
 });
 document.addEventListener('pointerup', endDrag);
 document.addEventListener('pointercancel', endDrag);
-document.addEventListener('pointerover', e=>{
-  if(dragging) return;
-  const maltTile = e.target.closest('.malt-tile');
-  if(maltTile && e.buttons) waterMalt(maltTile, 4);
+document.addEventListener('click', e=>{
+  if(e.target.closest('.clean, button, input')) return;
+  const fieldTile=e.target.closest('.field-tile');
+  if(fieldTile){
+    const t=state.field[+fieldTile.dataset.i];
+    if(t?.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:0, dry:0, overdue:0, quality:100}); markDirty(); render(); }
+    else waterField(fieldTile);
+  }
+  const vat=e.target.closest('.vat-unit');
+  if(vat){ const v=state.vats[+vat.dataset.i]; if(v?.rotten){ Object.assign(v,newVat()); markDirty(); render(); } }
 });
 document.addEventListener('click', e=>{
-  if(e.target.closest('[data-drag], .clean, button, input')) return;
-  const fieldTile = e.target.closest('.field-tile');
-  if(fieldTile) waterField(fieldTile);
-  if(e.target.closest('#fermentation') && state.vat.rotten){
-    Object.assign(state.vat,{volume:0,ferment:0,yeast:false,idle:0,rotten:false});
-    markDirty(); render();
-  }
+  const peatIcon=e.target.closest('.peat-icon'); if(peatIcon){ e.preventDefault(); e.stopPropagation(); const t=state.malt[+peatIcon.dataset.i]; if(t && t.status==='filled' && !t.heated){ t.peat=!t.peat; markDirty(); render(); } return; }
+  const heat=e.target.closest('.heat-tile'); if(heat) heatMalt(heat.dataset.i);
+  const yeast=e.target.closest('.yeast-btn'); if(yeast){ const v=state.vats[+yeast.dataset.i]; if(v?.volume>0 && !v.rotten){ v.yeast=true; v.idle=0; markDirty(); render(); } }
+  const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; markDirty(); render(); } }
+  const empty=e.target.closest('.empty-still-btn'); if(empty){ const s=state.stills[+empty.dataset.i]; if(s && (!s.input || confirm('¿Vaciar la entrada izquierda del alambique?'))){ s.input=0; s.inputAbv=0; s.inputQuality=100; s.inputPeatPpm=0; s.inputLineage=[]; s.runs=0; markDirty(); render(); } }
 });
 
-function handleDrop(target,data){
-  if(target.classList.contains('field-tile') && data.drag==='seed'){
-    const t=state.field[+target.dataset.i];
-    if(t.status==='empty' && state.seeds>=1){ state.seeds--; Object.assign(t,{status:'planted', growth:0, moisture:55}); }
+function debugFill(){
+  state.coins = rnd(80,180); state.seeds = Math.floor(rnd(20,80));
+  for(const t of state.field){
+    const r=Math.random();
+    if(r<.15) Object.assign(t,{status:'empty', growth:0, moisture:0, dry:0, overdue:0, quality:100});
+    else if(r<.28) Object.assign(t,{status:'dry', growth:100, moisture:0, dry:80, overdue:80, quality:90});
+    else Object.assign(t,{status:'planted', growth:rnd(12,100), moisture:rnd(8,FIELD_WATER_CAP), dry:0, overdue:0, quality:100});
   }
-  if(target.classList.contains('malt-tile') && data.drag==='crop'){
-    const dst=state.malt[+target.dataset.i], src=state.field[+data.source];
-    if(dst.status==='empty' && src?.growth>=75 && src.growth<=95){
-      Object.assign(dst,{status:'filled', germ:0, moisture:0});
-      Object.assign(src,{status:'empty', growth:0, moisture:25});
-    }
+  for(const t of state.malt){
+    const heated=Math.random()<.5;
+    const germ=heated ? rnd(MALT_HARVEST_START,96) : rnd(0,96);
+    const peat=heated && Math.random()<.5;
+    const q=heated?maltQuality({germ}):(germ>=MALT_HARVEST_START?maltQuality({germ}):100);
+    Object.assign(t,{status:'filled', amount:rnd(.7,2), germ, moisture:heated?0:rnd(12,78), quality:q, heated, peat, peatPpm:peat?TURBA_MAX_PPM:0, lineage:[{stage:'debug_malta', q, germ}], dry:0, stable:0});
   }
-  if(target.id==='fermentation' && data.drag==='malt') addMaltToVat(data.source);
-  if(target.id==='stillInput' && data.drag==='wash') transferWashToStill();
-  if(target.id==='stillInput' && data.drag==='spirit') redistill();
-  if(target.id==='aging' && data.drag==='spirit') makeBarrel();
-  if(target.id==='bottling' && data.drag==='barrel') bottleBarrel(data.id);
-  if(target.id==='truckDock' && data.drag==='box') sellBox(data.id);
-}
-function addMaltToVat(source){
-  const t=state.malt[+source];
-  if(!t || t.status!=='filled' || t.germ<68 || t.germ>90) return;
-  const add=Math.min(20, 100-state.vat.volume);
-  if(add<=0) return;
-  Object.assign(t,{status:'empty',germ:0,moisture:0});
-  state.vat.ferment = state.vat.volume ? state.vat.ferment*(state.vat.volume/(state.vat.volume+add)) : 0;
-  state.vat.volume += add; state.vat.rotten=false; state.vat.idle=0;
-}
-function transferWashToStill(){
-  const v=state.vat, s=state.still;
-  if(v.volume<=0 || v.ferment<65 || v.ferment>90 || v.rotten) return;
-  const move=Math.min(v.volume*.20, 100-s.input);
-  if(move<=0) return;
-  v.volume-=move;
-  if(v.volume<1){ v.volume=0; v.ferment=0; v.yeast=false; }
-  s.input+=move; s.inputAbv=8; s.runs=0;
-}
-function redistill(){
-  const s=state.still;
-  if(s.output<=0) return;
-  s.input += s.output; s.inputAbv=s.outputAbv; s.runs=s.outputRuns;
-  s.output=0; s.outputAbv=0; s.outputRuns=0;
-}
-function makeBarrel(){
-  const s=state.still;
-  if(s.output<=0 || s.outputRuns<2) return;
-  state.barrels.push({id:crypto.randomUUID(), volume:clamp(s.output*10,5,100), age:0.1, abv:s.outputAbv});
-  s.output=0; s.outputAbv=0; s.outputRuns=0;
-}
-function bottleBarrel(id){
-  const i=state.barrels.findIndex(b=>b.id===id);
-  if(i<0) return;
-  const b=state.barrels.splice(i,1)[0];
-  const bottles=Math.max(1,Math.round(clamp(b.volume,0,100)));
-  state.boxes.push({id:crypto.randomUUID(), bottles, age:b.age}); state.bottles += bottles;
-}
-function sellBox(id){
-  const i=state.boxes.findIndex(b=>b.id===id);
-  if(i<0) return;
-  const b=state.boxes.splice(i,1)[0];
-  const euros=b.bottles * Math.max(.1,b.age) * state.market;
-  state.coins += euros/1000; state.bottles -= b.bottles;
+  state.vats = Array.from({length:VAT_COUNT}, newVat);
+  state.vats[0] = {volume:rnd(35,92), ferment:rnd(FERMENT_OPTIMAL_START,FERMENT_OPTIMAL_END), yeast:true, idle:0, rotten:false, baseQuality:95, quality:95, peatPpm:Math.random()<.4?rnd(0,60):0, lineage:[{stage:'debug_vat'}], abv:0};
+  state.vats[0].abv = vatAbv(state.vats[0]);
+  state.stills = Array.from({length:STILL_COUNT}, newStill);
+  state.stills[0] = {input:rnd(10,75), inputAbv:8, inputQuality:95, inputPeatPpm:Math.random()<.4?rnd(0,60):0, inputLineage:[{stage:'debug_input'}], runs:0, output:rnd(42,88), outputAbv:rnd(45,68), outputQuality:94, outputPeatPpm:Math.random()<.4?rnd(0,60):0, outputLineage:[{stage:'debug_output'}], outputRuns:2, temp:rnd(78,104), fire:Math.random()<.5};
+  state.barrels = [newBarrel('bourbon',24,56), newBarrel('sherry',210,56)];
+  Object.assign(state.barrels[0], {volume:rnd(35,88), age:rnd(3.2,8), abv:rnd(45,68), quality:rnd(82,100), peatPpm:Math.random()<.4?rnd(0,60):0, lineage:[{stage:'debug_barrel'}]});
+  const bottles=Math.floor(rnd(300,900));
+  state.boxes = [{id:uuid(), bottles, age:rnd(3,12), abv:rnd(40,55), quality:rnd(82,100), peatPpm:Math.random()<.4?rnd(0,60):0, lineage:[{stage:'debug_box'}], x:rnd(18,160), y:rnd(20,80)}];
+  state.bottles = bottles;
+  markDirty(); render(); saveGame();
 }
 
-$('#buySeeds').onclick=()=>{ if(state.coins>=10){ state.coins-=10; state.seeds+=1; markDirty(); render(); }};
-$('#yeast').onclick=()=>{ if(state.vat.volume>0 && !state.vat.rotten){ state.vat.yeast=true; state.vat.idle=0; markDirty(); render(); }};
-$('#fire').onclick=()=>{ state.still.fire=!state.still.fire; markDirty(); render(); };
+
+document.addEventListener('click', e=>{ const buy=e.target.closest('.barrel-buy'); if(buy){ e.preventDefault(); buyBarrel(buy.dataset.type); } });
+$('#buySeeds').onclick=()=>{ if(state.coins>=SEED_PACK_COST){ state.coins-=SEED_PACK_COST; state.seeds+=SEED_PACK_KG; markDirty(); render(); }};
 $('#distilleryName').addEventListener('input', e=>{ state.distilleryName=e.target.value || 'Miarma Distillery'; markDirty(); });
+$('#editName').onclick=()=>{ nameEditing=true; render(); $('#distilleryName').focus(); $('#distilleryName').select(); };
+function acceptName(){ nameEditing=false; state.distilleryName=$('#distilleryName').value.trim() || 'Miarma Distillery'; markDirty(); render(); saveGame(); }
+$('#acceptName').onclick=acceptName;
+$('#distilleryName').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); acceptName(); }});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ e.preventDefault(); $('#hud').classList.toggle('collapsed'); } });
 $('#speedSlider').addEventListener('input', e=>{ state.speedStep=Number(e.target.value); $('#speedLabel').textContent=speedLabel(); markDirty(); });
+$('#speedReset').onclick=()=>{ state.speedStep=0; $('#speedSlider').value=0; $('#speedLabel').textContent=speedLabel(); markDirty(); render(); };
+$('#speedSlider').addEventListener('wheel', e=>{ e.preventDefault(); state.speedStep=clamp(Number(state.speedStep||0)+(e.deltaY<0?1:-1), -4, 9); $('#speedSlider').value=state.speedStep; $('#speedLabel').textContent=speedLabel(); markDirty(); }, {passive:false});
+$('#debugFill').onclick=debugFill;
+$('#toggleDebugView').onclick=()=>{ state.debugQuality=!state.debugQuality; $('#toggleDebugView').classList.toggle('on', state.debugQuality); markDirty(); render(); };
+$('#hudIcon').onclick=()=>{ $('#hud').classList.toggle('collapsed'); };
+$('#helpButton').onclick=()=>$('#helpModal').classList.remove('hidden');
+$('#helpModal').onclick=()=>$('#helpModal').classList.add('hidden');
 $('#resetGame').onclick=()=>{
   if(confirm('¿Reiniciar la partida y borrar el guardado local de Miarma Distillery?')){
-    localStorage.removeItem(STORAGE_KEY);
-    state = defaultState();
-    markDirty(); render(); saveGame();
+    localStorage.removeItem(STORAGE_KEY); state=defaultState(); markDirty(); render(); saveGame(); showSplash();
   }
 };
 
 const tip=$('#tooltip');
-document.addEventListener('pointermove', e=>{ tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px'; });
-document.addEventListener('pointerover', e=>{ const el=e.target.closest('[data-tip]'); if(!el) return; tip.textContent=el.dataset.tip; tip.classList.add('show'); });
+document.body.appendChild(tip);
+document.addEventListener('pointermove', e=>{
+  const padX=10, padY=6;
+  const w=tip.offsetWidth || 260, h=tip.offsetHeight || 50;
+  let left = e.clientX + padX, top = e.clientY + padY;
+  let tx = '0', ty = '0';
+  if(left + w > innerWidth){ left = e.clientX - padX; tx = '-100%'; }
+  if(top + h > innerHeight){ top = e.clientY - padY; ty = '-100%'; }
+  tip.style.left=`${left}px`; tip.style.top=`${top}px`; tip.style.transform=`translate(${tx}, ${ty})`;
+});
+document.addEventListener('pointerover', e=>{ const el=e.target.closest('[data-tip]'); if(!el) return; tip.innerHTML=tipHtml(el.dataset.tip); tip.classList.add('show'); });
 document.addEventListener('pointerout', e=>{ if(e.target.closest('[data-tip]')) tip.classList.remove('show'); });
 
+setupSplash();
 loadGame();
 initTiles();
 render();

@@ -2,3 +2,9 @@
 node_modules/
 .openclaw-check/
 *.log
+
+# Source/backup assets not used by the game
+audio/main_loop_original.mp3
+img/*.xcf
+img/splash.png
+img/ayuda.png
