@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base target="_blank" />
+  <title>Magnitudes · Miarma Distillery</title>
+  <style>
+    :root{--ink:#241911;--cream:#ffe7b5;--gold:#e2a64b;--line:rgba(255,231,181,.16)}
+    *{box-sizing:border-box} body{margin:0;padding:10px;background:transparent;color:var(--cream);font:12px/1.24 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden}
+    main{max-width:960px;margin:auto;padding:4px 6px}
+    h1{margin:0 0 6px;color:var(--gold);font-size:20px;text-shadow:2px 2px #000}.summary{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.pill{background:#6f4729;border-radius:8px;padding:3px 7px;color:#fff3cf;font-weight:900}
+    table{width:100%;border-collapse:collapse;background:rgba(0,0,0,.10);border-radius:8px;overflow:hidden} th,td{border:0;border-bottom:1px solid var(--line);padding:5px 7px;vertical-align:middle} tr:last-child td{border-bottom:0} th{color:#fff4ce;background:rgba(226,166,75,.18);text-align:left} td.game{color:#fff3cf;font-weight:900}.metric{display:flex;align-items:center;gap:9px;font-weight:900;color:#fff4ce}.icon{width:44px;height:44px;object-fit:contain;image-rendering:auto;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.3))}a{color:#8fd7ff;text-decoration:none}.note{margin:7px 0 0;color:#d7c4a4;font-size:11px}.note span{display:block;margin-top:2px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>⚖️ Magnitudes comparadas</h1>
+  <div class="summary">
+    <span class="pill">8 parcelas → 16.000 l wash</span>
+    <span class="pill">2 tandas × 8.000 l</span>
+    <span class="pill">2.000 l @ 63,5%</span>
+    <span class="pill">10 barriles Bourbon</span>
+  </div>
+
+  <table>
+    <tr><th>Métrica</th><th>Referencia real</th><th>Adaptado en juego</th></tr>
+    <tr>
+      <td><span class="metric"><img class="icon" src="../img/avena_recien_plantada.png" alt="">Dosis de siembra</span></td>
+      <td>~100–200 kg/ha en cebada; ejemplo técnico 168,8 kg/ha (<a href="https://www.growerexperts.com/choosing-the-ideal-sowing-rate-for-barley/">GrowerExperts</a>, <a href="https://teagasc.ie/news--events/daily/spring-barley-establishment-achieving-good-plant-establishment/">Teagasc</a>).</td>
+      <td class="game">20 kg / 0,105 ha = ~190 kg/ha.</td>
+    </tr>
+    <tr>
+      <td><span class="metric"><img class="icon" src="../img/avena_madura.png" alt="">Rendimiento cebada</span></td>
+      <td>Variedades de malteado: ~5,3–5,7 t/ha; media reciente ~5,5 t/ha (<a href="https://www.whiskymag.com/articles/growing-issues/">Whisky Magazine</a>).</td>
+      <td class="game">5,5 t/ha → ~578 kg por parcela.</td>
+    </tr>
+    <tr>
+      <td><span class="metric"><img class="icon" src="../img/avena_germinando_malteada.png" alt="">Malta por tina</span></td>
+      <td>Lagavulin: 4,4 t de grist por mash + 21.000 l de agua (<a href="https://distilando.com/lagavulin">Distilando</a>).</td>
+      <td class="game">3,56 t de malta → 16.000 l de wash.</td>
+    </tr>
+    <tr>
+      <td><span class="metric"><img class="icon" src="../img/tina_maceracion.png" alt="">Fermentación / wash</span></td>
+      <td>Wash típico 7–10% ABV; fermentaciones 48–96 h (<a href="https://www.diffordsguide.com/g/1168/single-malt-scotch-whisky-production/fermentation">Difford's</a>, <a href="https://whiskyadvocate.com/how-to-make-whisky">Whisky Advocate</a>).</td>
+      <td class="game">Wash máximo 9% ABV/AVB; ventana óptima visual.</td>
+    </tr>
+    <tr>
+      <td><span class="metric"><img class="icon" src="../img/tina_fermentacion.png" alt="">Volumen de tina</span></td>
+      <td>Lagavulin usa 21.000 l de agua por mash; Aberargie fermenta 72 h (<a href="https://distilando.com/lagavulin">Lagavulin</a>, <a href="https://distilando.com/aberargie">Aberargie</a>).</td>
+      <td class="game">16.000 l de wash por tina llena.</td>
+    </tr>
+    <tr>
+      <td><span class="metric"><img class="icon" src="../img/alambique.png" alt="">Volumen alambique</span></td>
+      <td>Aberargie: wash still 15.000 l; spirit still 10.000 l (<a href="https://distilando.com/aberargie">Distilando</a>).</td>
+      <td class="game">8.000 l por carga; 2 cargas por tina.</td>
+    </tr>
+    <tr>
+      <td><span class="metric"><img class="icon" src="../img/alambique_completo.png" alt="">Grado de destilado</span></td>
+      <td>New make suele salir ~68–72% ABV; Glen Scotia declara media 71% (<a href="https://us.glenscotia.com/pages/our-process">Glen Scotia</a>, <a href="https://www.diageobaracademy.com/en-us/home/alcohol-categories/scotch-whisky">Diageo Bar Academy</a>).</td>
+      <td class="game">~907 l @ 70% por tanda antes de ajustar a barrica.</td>
+    </tr>
+    <tr>
+      <td><span class="metric"><img class="icon" src="../img/barril_bourbon.png" alt="">Llenado en barrica</span></td>
+      <td>Scotch malt: llenado habitual 63,5% ABV; Bourbon/ASB ~190–200 l (<a href="https://www.theglenlivet.com/en/our-community/articles/what-is-cask-strength/">The Glenlivet</a>, <a href="https://www.whiskyinvestdirect.com/about-whisky/scotch-whisky-casks-and-barrels">WhiskyInvestDirect</a>).</td>
+      <td class="game">2.000 l @ 63,5% = 10 Bourbon de 200 l.</td>
+    </tr>
+  </table>
+  <p class="note">
+    <span><strong>LPA</strong> = litros de alcohol puro = litros × ABV / 100.</span>
+    <span><strong>ABV/AVB</strong> = grado alcohólico por volumen.</span>
+    <span><strong>Semillas</strong>: 20 kg por parcela (≈190 kg/ha).</span>
+  </p>
+</main>
+<script>document.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener noreferrer'});</script>
+</body>
+</html>

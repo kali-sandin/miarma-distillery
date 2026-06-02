@@ -10,6 +10,15 @@
   <div id="splashScreen" class="splash-screen hidden" role="button" aria-label="Pantalla inicial de Sim Distillery"><img src="img/splash.jpg" alt="Sim Distillery" draggable="false" /></div>
   <audio id="mainLoop" src="audio/main_loop.mp3" loop preload="auto"></audio>
   <audio id="fxDropGrain" src="fx/fx-drop_grain.mp3" preload="auto"></audio>
+  <audio id="fxBubblesDrop" src="fx/bubbles-drop.mp3" preload="auto"></audio>
+  <audio id="fxCashRegister" src="fx/cash_register.mp3" preload="auto"></audio>
+  <audio id="fxFireLong" src="fx/fire-long.mp3" preload="auto"></audio>
+  <audio id="fxFlameShort" src="fx/flame-short.mp3" preload="auto"></audio>
+  <audio id="fxRottenFlies" src="fx/rotten-flies.mp3" preload="auto"></audio>
+  <audio id="fxWater" src="fx/water.mp3" preload="auto"></audio>
+  <audio id="fxWoodGrab" src="fx/wood-grab.mp3" preload="auto"></audio>
+  <audio id="fxWoodRelease" src="fx/wood-release.mp3" preload="auto"></audio>
+  <audio id="fxWarning" src="fx/warning.mp3" preload="auto"></audio>
   <audio id="fxSuccess" src="fx/fx-success.mp3" preload="auto"></audio>
   <main id="game" aria-label="Miarma Distillery PoC">
     <img id="finca" src="img/finca.jpg" alt="Finca pixel art de destilería" draggable="false" />
@@ -26,15 +35,15 @@
       <div class="stats-grid" id="resources" data-tip="Recursos">
         <div class="stat"><span>🪙</span><strong id="coins">10 k€</strong></div>
         <div class="stat seed-inventory" id="seedInventory" data-drag="seed" data-tip="🌾 Semillas disponibles.
-Arrastra este icono a una parcela vacía para plantar 10 Kg."><span>🌾</span><strong id="seeds">0 Kg</strong></div>
+Arrastra este icono a una parcela vacía para plantar 20 Kg."><span>🌾</span><strong id="seeds">0 Kg</strong></div>
         <div class="stat"><span>🍾</span><strong id="bottles">0</strong></div>
         <div class="stat"><span>📈</span><strong id="market">3.5 €</strong></div>
       </div>
       <div class="action-row">
         <button id="buySeeds" class="pixel-btn" data-tip="Comprar semillas.
 Precio: 1 k€.
-Añade: 10 Kg.
-Cada parcela consume 10 Kg.">Comprar semillas</button>
+Añade: 20 Kg.
+Cada parcela consume 20 Kg.">Comprar semillas</button>
       </div>
       <label class="speed-control" data-tip="Velocidad del tiempo.
 Rueda del ratón: cambia step a step.
@@ -45,9 +54,10 @@ Botón x1: vuelve a velocidad base.">
       </label>
       <div class="menu-buttons">
         <button id="helpButton" class="pixel-btn" type="button" data-tip="Abre la ayuda visual del juego.">Ayuda</button>
+        <button id="magnitudesButton" class="pixel-btn ref" type="button" data-tip="Referencia rápida: magnitudes reales usadas para equilibrar cosecha, malta, tina, alambique y barriles.">⚖️</button>
         <button id="debugFill" class="pixel-btn debug" type="button" data-tip="Debug: randomiza objetos y cantidades en rangos razonables.">Debug</button>
         <button id="toggleDebugView" class="pixel-btn eye" type="button" data-tip="Mostrar u ocultar zonas de interacción y calidades Q.">👁️</button>
-        <button id="resetGame" class="pixel-btn danger" type="button" data-tip="Reinicia la partida y borra el guardado local del navegador.">Reiniciar juego</button>
+        <button id="resetGame" class="pixel-btn danger" type="button" data-tip="Reinicia la partida y borra el guardado local del navegador.">Reset</button>
       </div>
     </section>
 
@@ -65,7 +75,8 @@ Botón x1: vuelve a velocidad base.">
 
     <button id="office" class="office-hotspot" data-tip="Mansión/oficina. El panel general está superpuesto aquí abajo.">Oficina</button>
     <button id="hudIcon" class="hud-icon" type="button" data-tip="Mostrar u ocultar panel de información y menú.">☰</button>
-    <div id="helpModal" class="help-modal hidden" role="dialog" aria-modal="true"><img src="img/ayuda.jpg" alt="Ayuda de Miarma Distillery" /></div>
+    <div id="helpModal" class="help-modal hidden" role="dialog" aria-modal="true"><img src="img/ayuda.png" alt="Ayuda de Miarma Distillery" /></div>
+    <div id="magnitudesModal" class="reference-modal hidden" role="dialog" aria-modal="true"><iframe src="docs/magnitudes.html" title="Magnitudes de referencia" loading="lazy"></iframe></div>
     <div id="tooltip" role="status"></div>
   </main>
   <script src="js/game.js"></script>

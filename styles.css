@@ -4,7 +4,7 @@
   --offset-y: 0px;
   --ink: #2c2119;
   --cream: #f4ddb0;
-  --paper: rgba(43, 31, 24, .66);
+  --paper: rgba(43, 31, 24, .84);
   --paper-soft: rgba(43, 31, 24, .32);
   --gold: #e2a64b;
   --green: #6bad58;
@@ -123,6 +123,9 @@ body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 #tooltip.show { opacity: 1; }
 .help-modal { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; background: rgba(0,0,0,.48); animation: helpIn .14s cubic-bezier(.2,1.4,.4,1); cursor: pointer; }
 .help-modal img { max-width: min(82vw, 1100px); max-height: 82vh; border: 5px solid #2b2018; box-shadow: 12px 12px 0 rgba(0,0,0,.35); image-rendering: auto; }
+.reference-modal { position: fixed; inset: 0; z-index: 20001; display: grid; place-items: center; background: rgba(0,0,0,.38); animation: helpIn .14s cubic-bezier(.2,1.4,.4,1); cursor: pointer; }
+.reference-modal iframe { width: min(86vw, 980px); height: min(78vh, 760px); border: 5px solid #2b2018; border-radius: 14px; background: #231812; box-shadow: 12px 12px 0 rgba(0,0,0,.35); image-rendering: auto; }
+.pixel-btn.ref { background:#6f5b33; }
 @keyframes helpIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
 
 #malting .tile .plant { filter: none; }
@@ -149,11 +152,12 @@ body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 .hud-icon { position: absolute; left: 22px; bottom: 20px; z-index: 30; width: 48px; height: 44px; border: 3px solid #2d2117; background: rgba(43,31,24,.82); color: #ffe7b5; font: 900 22px ui-monospace, monospace; box-shadow: 5px 5px 0 rgba(0,0,0,.32); cursor: pointer; transition: transform .16s cubic-bezier(.2,1.35,.4,1), opacity .12s ease; }
 .hud-icon:not(.hidden) { animation: iconPop .16s cubic-bezier(.2,1.35,.4,1); }
 @keyframes iconPop { from { transform: scale(.65); opacity:0; } to { transform: scale(1); opacity:1; } }
-.menu-buttons { display: grid; grid-template-columns: max-content max-content max-content 1fr max-content; align-items: end; gap: 8px; }
+.menu-buttons { display: grid; grid-template-columns: max-content max-content max-content max-content 1fr max-content; align-items: end; gap: 8px; }
 #helpButton { grid-column: 1; }
-#debugFill { grid-column: 2; }
-#toggleDebugView { grid-column: 3; }
-#resetGame { grid-column: 5; justify-self: end; }
+#magnitudesButton { grid-column: 2; }
+#debugFill { grid-column: 3; }
+#toggleDebugView { grid-column: 4; }
+#resetGame { grid-column: 6; justify-self: end; }
 .stat strong:nth-child(n) { font-size: 12px; }
 .seed-inventory { cursor: grab; }
 .seed-inventory.disabled { opacity: .38; cursor: default; }
@@ -355,3 +359,41 @@ body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 .still-drop.in { left:36px !important; width:84px !important; }
 .still-drop.out { left:auto !important; right:8px !important; width:54px !important; }
 .bar.tempv em.alcohol-zone { background: rgba(255,38,22,.9) !important; box-shadow:0 0 5px rgba(255,52,24,.95); }
+
+/* 2026-06-01 slots/time + barrel liquid lineage */
+.clean-vat-btn { border:0 !important; box-shadow:none !important; background:transparent !important; color:#ffe7b5; text-shadow:1px 1px #000; height:26px; line-height:26px; padding:0 3px !important; font-size:14px !important; display:flex; align-items:center; justify-content:center; white-space:nowrap; position:absolute; left:50%; bottom:6px; transform:translateX(-50%); }
+.barrel-card .vol-bar.liquid-stack { position:relative; background:#2d2117; }
+.barrel-card .vol-bar.liquid-stack i { position:absolute; left:0; right:0; bottom:0; width:100%; background:#54412d; }
+.liquid-segment { position:absolute; left:0; right:0; min-height:2px; box-shadow:inset 0 1px rgba(255,240,190,.35), inset 0 -1px rgba(70,35,10,.45); }
+.liquid-swatch { display:inline-block; width:10px; height:10px; margin-right:5px; border:1px solid rgba(255,240,190,.72); vertical-align:-1px; box-shadow:1px 1px 0 rgba(0,0,0,.45); }
+#tooltip .liquid-swatch { white-space:normal; }
+
+/* 2026-06-02 UX/layout cleanup */
+.pixel-panel { border:0 !important; box-shadow:0 12px 34px rgba(0,0,0,.28) !important; border-radius:10px; }
+.pixel-btn, .hud-icon { border:0 !important; box-shadow:inset 0 -2px 0 rgba(0,0,0,.22), 0 3px 9px rgba(0,0,0,.22) !important; border-radius:8px; }
+.tile { border:0 !important; background:rgba(0,0,0,.025); }
+.bar { border:1px solid rgba(36,25,17,.82) !important; }
+.quality-pill, #tooltip { border:0 !important; border-radius:8px; }
+.dropbox, .empty-card { border:1px dashed rgba(255,236,175,.18) !important; }
+#maltingWrap { top:83px !important; }
+#malting { gap:4px !important; padding:6px !important; }
+#fermentation { top:87px !important; gap:6px !important; }
+#stillhouse { top:51px !important; gap:6px !important; }
+#aging { top:573px !important; height:321px !important; }
+#bottling { top:580px !important; height:240px !important; }
+#truckDock { left:1468px !important; width:79px !important; height:160px !important; }
+.barrel-shop { left:10px !important; top:-40px !important; gap:8px !important; }
+.barrel-buy, .equipment-buy { border:0; border-radius:8px; background:rgba(36,25,17,.86); color:#ffe7b5; text-shadow:1px 1px #000; font:900 14px ui-monospace, monospace; padding:7px 10px; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.28); }
+.barrel-buy:hover, .equipment-buy:hover { filter:brightness(1.16); }
+.equipment-shop { position:absolute; left:8px; top:-38px; z-index:18; display:flex; gap:8px; pointer-events:auto; }
+.still-shop { left:8px; }
+.still-unit .bar.tempv { background:linear-gradient(to top, #2498ff 0%, #2498ff 12%, #171c1f 12%, #171c1f 58.3%, #5bb765 58.3%, #5bb765 80%, #d3aa3d 80%, #ffba35 100%) !important; }
+.bar.tempv i { background:#ff2414 !important; box-shadow:0 0 8px rgba(255,36,20,.95); }
+.bar.tempv em.alcohol-zone { background:rgba(255,215,70,.42) !important; box-shadow:none !important; }
+.vat-shop { top:-38px !important; }
+.reference-modal { background: rgba(0,0,0,.46) !important; }
+.reference-modal iframe { border:0 !important; border-radius:0 !important; box-shadow:none !important; background:rgba(36,25,17,.88) !important; }
+.crop-q { top:8px !important; }
+.market-chart { display:block; width:220px; height:58px; margin-top:7px; background:rgba(0,0,0,.22); border-radius:7px; }
+.market-chart polyline { fill:none; stroke:#87e2ff; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 3px rgba(135,226,255,.45)); }
+.market-chart text { fill:#d9c39f; font:700 8px ui-monospace, monospace; }
