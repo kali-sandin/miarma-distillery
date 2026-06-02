@@ -184,6 +184,7 @@ function refreshAudioToggles(){
   $('#toggleMusic')?.setAttribute('aria-pressed', String(state.musicEnabled !== false));
   $('#toggleFx')?.classList.toggle('off', state.fxEnabled === false);
   $('#toggleFx')?.setAttribute('aria-pressed', String(state.fxEnabled !== false));
+  updateLoopFx?.();
 }
 function playFx(id, volume=.78){
   if(state.fxEnabled === false) return;
@@ -192,6 +193,26 @@ function playFx(id, volume=.78){
   fx.volume=volume;
   fx.play().catch(()=>{});
   fx.addEventListener('ended', ()=>fx.remove(), {once:true});
+}
+const LOOP_FX_IDS = ['fxChicharrasCicada', 'fxFireLong', 'fxRottenFlies'];
+function setLoopFx(id, active, volume=.45){
+  const el=$(`#${id}`); if(!el) return;
+  el.loop = true;
+  el.volume = volume;
+  if(state.fxEnabled === false || !active){
+    if(!el.paused){ el.pause(); el.currentTime = 0; }
+    return;
+  }
+  if(el.paused) el.play().catch(()=>{});
+}
+function updateLoopFx(){
+  const dryCrop = state.field?.some(t=>t.status==='dry');
+  const rotten = state.field?.some(t=>t.status==='rotten') || state.malt?.some(t=>t.status==='rotten') || state.vats?.some(v=>v.rotten);
+  const fire = state.stills?.some(s=>s.fire);
+  setLoopFx('fxChicharrasCicada', dryCrop, .34);
+  setLoopFx('fxRottenFlies', rotten, .34);
+  setLoopFx('fxFireLong', fire, .48);
+  if(state.fxEnabled === false) LOOP_FX_IDS.forEach(id=>setLoopFx(id, false));
 }
 function showSplash(){
   const splash=$('#splashScreen');
@@ -746,7 +767,8 @@ function addSpiritToBarrel(stillIndex, id){
   b.components = mergeComponents(normalizeComponents(b, oldLitres), [batchComponent]);
   b.lineage = mergeLineage(b.lineage||[], s.outputLineage||[], [{stage:'barrica', batchId, barrelType:b.type||'bourbon', barrelQ:b.barrelQuality||100, sourceL, dilutedL, addedL:addL, discardedL:Math.max(0,dilutedL-addL), abv:targetAbv, peat:s.outputPeatPpm||0}]);
   b.volume = barrelPctFromL(b, oldLitres + addL);
-  playFx('fxWoodRelease', .62);
+  playFx('fxBubblesDrop', .62);
+  playFx('fxWoodRelease', .52);
   clearStillOutput(s);
 }
 function transferBarrelToBarrel(fromId,toId){
@@ -810,7 +832,7 @@ function finishBottleBarrel(id,targetAbv,p={x:18+state.boxes.length*95,y:20}){
   const age=Math.floor(b.age || 0);
   const bottleComponents=normalizeComponents(b, liquidL).map(c=>({...c, litres:c.litres * (finalLitres/liquidL), abv:targetAbv, age}));
   state.boxes.push({id:uuid(), bottles, age, abv:targetAbv, quality:b.quality || 100, peatPpm:b.peatPpm||0, components:bottleComponents, lineage:mergeLineage(b.lineage||[], [{stage:'embotellado', abv:targetAbv, liquidL, finalLitres, bottles, peat:b.peatPpm||0}]), x:p.x, y:p.y});
-  playFx('fxSuccess', .86);
+  playFx('fxNewBottles', .82);
   state.bottles += bottles;
   b.barrelQuality=Math.max(0,(b.barrelQuality||100)-1);
   Object.assign(b,{volume:0,age:0,abv:0,quality:100,peatPpm:0,components:[],lineage:[]});
@@ -847,6 +869,7 @@ function render(){
   $('#toggleDebugView').classList.toggle('on', !!state.debugQuality);
   refreshAudioToggles();
   renderField(); renderMalt(); renderVats(); renderStills(); renderCards();
+  updateLoopFx();
 }
 
 function simulate(timeStep=1, speed=speedMultiplier()){
@@ -862,19 +885,19 @@ function simulate(timeStep=1, speed=speedMultiplier()){
       if(t.moisture>8 && t.growth < FIELD_FULL_GROWTH) t.growth = clamp(t.growth + 0.0375*sp*(0.55+t.moisture/FIELD_WATER_CAP), 0, FIELD_FULL_GROWTH);
       t.dry = t.moisture<=4 ? (t.dry || 0) + sp : 0;
       t.overdue = t.growth>=FIELD_FULL_GROWTH ? (t.overdue || 0) + sp : 0;
-      if(t.dry>FIELD_DRY_SECONDS*10 || t.overdue>FIELD_OVERDUE_SECONDS*10){ t.status='dry'; playFx('fxRottenFlies', .34); }
+      if(t.dry>FIELD_DRY_SECONDS*10 || t.overdue>FIELD_OVERDUE_SECONDS*10) t.status='dry';
     }
   }
   for(const t of state.malt){
     if(t.status==='filled'){
       if(t.heated){
         t.moisture=0; t.stable=(t.stable || 0)+sp;
-        if(t.stable>MALT_KILNED_GRACE){ t.status='rotten'; playFx('fxRottenFlies', .38); }
+        if(t.stable>MALT_KILNED_GRACE) t.status='rotten';
       } else {
         t.moisture=clamp(t.moisture-.06*sp,0,100);
         if(t.moisture>8) t.germ += 0.22*sp*(t.moisture/62);
         t.dry = (t.germ>0 && t.moisture<=4) ? (t.dry || 0) + sp : 0;
-        if(t.germ>100 || t.dry>MALT_DRY_SECONDS*14){ t.status='rotten'; playFx('fxRottenFlies', .38); }
+        if(t.germ>100 || t.dry>MALT_DRY_SECONDS*14) t.status='rotten';
       }
     }
   }
@@ -883,8 +906,8 @@ function simulate(timeStep=1, speed=speedMultiplier()){
       v.idle += sp;
       if(v.yeast){ v.ferment=clamp(v.ferment+0.18*sp,0,100); v.abv=vatAbv(v); v.quality=vatDisplayQuality(v); }
       if(!v.yeast && !v.warned && v.idle>FERMENT_IDLE_ROT/2){ v.warned=true; playFx('fxWarning', .68); }
-      if(!v.yeast && v.idle>FERMENT_IDLE_ROT){ v.rotten=true; playFx('fxRottenFlies', .38); }
-      if(v.ferment>FERMENT_ROTTEN_AT){ v.rotten=true; playFx('fxRottenFlies', .38); }
+      if(!v.yeast && v.idle>FERMENT_IDLE_ROT) v.rotten=true;
+      if(v.ferment>FERMENT_ROTTEN_AT) v.rotten=true;
     }
   }
   for(const s of state.stills){
@@ -1076,7 +1099,7 @@ document.addEventListener('click', e=>{
   const peatIcon=e.target.closest('.peat-icon'); if(peatIcon){ e.preventDefault(); e.stopPropagation(); const t=state.malt[+peatIcon.dataset.i]; if(t && t.status==='filled' && !t.heated){ t.peat=!t.peat; markDirty(); render(); } return; }
   const heat=e.target.closest('.heat-tile'); if(heat) heatMalt(heat.dataset.i);
   const yeast=e.target.closest('.yeast-btn'); if(yeast){ const v=state.vats[+yeast.dataset.i]; if(v?.volume>0 && !v.rotten){ v.yeast=true; v.warned=false; v.idle=0; markDirty(); render(); } }
-  const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; if(s.fire) playFx('fxFireLong', .56); markDirty(); render(); } }
+  const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; markDirty(); render(); } }
   const empty=e.target.closest('.empty-still-btn'); if(empty){ const s=state.stills[+empty.dataset.i]; if(s && (!s.input || confirm('¿Vaciar la entrada izquierda del alambique?'))){ clearStillInput(s); markDirty(); render(); } }
 });
 

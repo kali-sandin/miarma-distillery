@@ -121,9 +121,9 @@ body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 .drag-ghost.card img { width: 70px !important; height: 70px !important; }
 #tooltip { position: fixed; z-index: 9999; max-width: 330px; padding: 8px 10px; border: 3px solid #2b2018; background: rgba(31,24,18,.92); color: #ffe7b7; box-shadow: 5px 5px 0 rgba(0,0,0,.35); pointer-events: none; opacity: 0; transform: none; font-size: 12px; line-height: 1.3; transition: opacity .08s ease; }
 #tooltip.show { opacity: 1; }
-.help-modal { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; background: rgba(0,0,0,.48); animation: helpIn .14s cubic-bezier(.2,1.4,.4,1); cursor: pointer; }
+.help-modal { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; background: rgba(0,0,0,.70); animation: helpIn .14s cubic-bezier(.2,1.4,.4,1); cursor: pointer; }
 .help-modal img { max-width: min(82vw, 1100px); max-height: 82vh; border: 5px solid #2b2018; box-shadow: 12px 12px 0 rgba(0,0,0,.35); image-rendering: auto; }
-.reference-modal { position: fixed; inset: 0; z-index: 20001; display: grid; place-items: center; background: rgba(0,0,0,.38); animation: helpIn .14s cubic-bezier(.2,1.4,.4,1); cursor: pointer; }
+.reference-modal { position: fixed; inset: 0; z-index: 20001; display: grid; place-items: center; background: rgba(0,0,0,.70); animation: helpIn .14s cubic-bezier(.2,1.4,.4,1); cursor: pointer; }
 .reference-modal iframe { width: min(86vw, 980px); height: min(78vh, 760px); border: 5px solid #2b2018; border-radius: 14px; background: #231812; box-shadow: 12px 12px 0 rgba(0,0,0,.35); image-rendering: auto; }
 .pixel-btn.ref { background:#6f5b33; }
 @keyframes helpIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
@@ -391,7 +391,7 @@ body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 .bar.tempv i { background:#ff2414 !important; box-shadow:0 0 8px rgba(255,36,20,.95); }
 .bar.tempv em.alcohol-zone { background:rgba(255,215,70,.42) !important; box-shadow:none !important; }
 .vat-shop { top:-38px !important; }
-.reference-modal { background: rgba(0,0,0,.46) !important; }
+.reference-modal { background: rgba(0,0,0,.70) !important; }
 .reference-modal iframe { border:0 !important; border-radius:0 !important; box-shadow:none !important; background:rgba(36,25,17,.88) !important; }
 .crop-q { top:8px !important; }
 .market-chart { display:block; width:220px; height:58px; margin-top:7px; background:rgba(0,0,0,.22); border-radius:7px; }
