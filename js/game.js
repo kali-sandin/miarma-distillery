@@ -375,7 +375,7 @@ function marketSparklineHtml(){
   const vals=data.map(x=>Number(x.p)||state.market);
   const min=Math.min(...vals), max=Math.max(...vals), span=Math.max(.15,max-min);
   const points=vals.map((v,i)=>`${pad+(i/(Math.max(1,vals.length-1)))*(w-pad*2)},${h-pad-((v-min)/span)*(h-pad*2)}`).join(' ');
-  return `<div class="market-spark"><svg class='market-chart' viewBox='0 0 ${w} ${h}' aria-label='histórico reciente'><polyline points='${points}'></polyline><text x='4' y='11'>histórico reciente</text></svg><span class="market-side"><b>${state.market.toFixed(2)}€</b><em>rango ${min.toFixed(2)}–${max.toFixed(2)}€</em></span></div>`;
+  return `<div class="market-spark"><svg class='market-chart' viewBox='0 0 ${w} ${h}' aria-label='histórico reciente'><polyline points='${points}'></polyline><text x='4' y='11'>histórico reciente</text></svg><span class="market-side"><em>${max.toFixed(2)}€</em><b>${state.market.toFixed(2)}€</b><em>${min.toFixed(2)}€</em></span></div>`;
 }
 function maltedWarning(t){ return t.status==='filled' && t.heated && (t.stable || 0) > MALT_KILNED_GRACE/2; }
 const SCOT_MOODS = {
@@ -387,15 +387,16 @@ const SCOT_MOODS = {
 };
 function scotImg(mood='explain'){ return (SCOT_MOODS[mood] || SCOT_MOODS.explain)[0]; }
 function popupCloseSound(){ playFx('fxAhhh', .68); }
-function gamePopup({title='Aviso', msg='', mood='explain', confirm=false, ok='Vale', cancel='Cancelar'}={}){
+function gamePopup({title='Aviso', msg='', html='', mood='explain', confirm=false, ok='Vale', cancel='Cancelar'}={}){
   const root=$('#gamePopup'); if(!root){ if(confirm) return Promise.resolve(window.confirm(msg)); noticeFallback(msg); return Promise.resolve(true); }
   playFx('fxCork', .72);
   return new Promise(resolve=>{
     const img=scotImg(mood);
+    const body = html || `<p>${escapeHtml(msg)}</p>`;
     root.innerHTML=`<div class="game-popup-card ${mood}">
       <button class="game-popup-close" type="button" aria-label="Cerrar">×</button>
       <img class="game-popup-character" src="${img}" alt="" onerror="this.hidden=true">
-      <div class="game-popup-copy"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(msg)}</p><div class="game-popup-actions"><button class="pixel-btn small ok" type="button">${escapeHtml(ok)}</button>${confirm?`<button class="pixel-btn small danger cancel" type="button">${escapeHtml(cancel)}</button>`:''}</div></div>
+      <div class="game-popup-copy"><h3>${escapeHtml(title)}</h3>${body}<div class="game-popup-actions"><button class="pixel-btn small ok" type="button">${escapeHtml(ok)}</button>${confirm?`<button class="pixel-btn small danger cancel" type="button">${escapeHtml(cancel)}</button>`:''}</div></div>
     </div>`;
     root.classList.remove('hidden');
     const done=answer=>{ root.classList.add('hidden'); root.innerHTML=''; popupCloseSound(); resolve(answer); };
@@ -403,6 +404,27 @@ function gamePopup({title='Aviso', msg='', mood='explain', confirm=false, ok='Va
     root.querySelector('.cancel')?.addEventListener('click', e=>{ e.stopPropagation(); done(false); });
     root.querySelector('.game-popup-close')?.addEventListener('click', e=>{ e.stopPropagation(); done(false); });
     root.addEventListener('click', e=>{ if(e.target===root) done(false); }, {once:true});
+  });
+}
+function showKeybindingsPopup(){
+  return gamePopup({
+    title:'Atajos de teclado',
+    mood:'happy',
+    html:`<div class="keybindings-copy">
+      <div class="keybind-icons"><img src="img/alambique.png" alt=""><span>🔥</span><img src="img/bottles_12.png" alt=""></div>
+      <div class="keybind-grid">
+        <b>f / g / h / j</b><span>Fuego alambiques 1 / 2 / 3 / 4</span>
+        <b>m</b><span>Música on/off</span>
+        <b>x</b><span>Efectos on/off</span>
+        <b>º</b><span>Bajar velocidad</span>
+        <b>1</b><span>Tiempo x1</span>
+        <b>2</b><span>Subir velocidad</span>
+        <b>3 / 4</b><span>Tiempo al máximo x10</span>
+        <b>Esc</b><span>Mostrar/ocultar menú principal</span>
+        <b>Enter</b><span>Aceptar nombre si estás editándolo</span>
+      </div>
+    </div>`,
+    ok:'Vale'
   });
 }
 function noticeFallback(msg){ alert(msg); }
@@ -1216,9 +1238,9 @@ function showHud(){ $('#hud').classList.remove('collapsed'); playFx('fxCork', .7
 function hideHud(){ $('#hud').classList.add('collapsed'); playFx('fxAhhh', .68); }
 $('#hudIcon').onclick=()=>{ $('#hud').classList.contains('collapsed') ? showHud() : hideHud(); };
 function openOverlay(sel){ const el=$(sel); if(!el) return; el.classList.remove('hidden'); playFx('fxCork', .72); }
-function closeOverlay(sel){ const el=$(sel); if(!el || el.classList.contains('hidden')) return; el.classList.add('hidden'); playFx('fxAhhh', .68); }
+function closeOverlay(sel){ const el=$(sel); if(!el || el.classList.contains('hidden')) return false; el.classList.add('hidden'); playFx('fxAhhh', .68); return true; }
 $('#helpButton').onclick=()=>openOverlay('#helpModal');
-$('#helpModal').onclick=()=>closeOverlay('#helpModal');
+$('#helpModal').onclick=()=>{ if(closeOverlay('#helpModal')) setTimeout(showKeybindingsPopup, 120); };
 $('#magnitudesButton').onclick=()=>openOverlay('#magnitudesModal');
 $('#magnitudesModal').onclick=e=>{ if(e.target.closest('a')) return; closeOverlay('#magnitudesModal'); };
 $('#magnitudesClose').onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeOverlay('#magnitudesModal'); };
@@ -1241,6 +1263,7 @@ document.addEventListener('pointermove', e=>{
   tip.style.left=`${left}px`; tip.style.top=`${top}px`; tip.style.transform=`translate(${tx}, ${ty})`;
 });
 let activeTipEl=null;
+function isMarketTipEl(el){ return !!(el && (el.id==='market' || el.querySelector?.('#market'))); }
 function refreshTooltip(){ if(activeTipEl && tip.classList.contains('show')) tip.innerHTML=tipHtml(activeTipEl.dataset.tip); }
 document.addEventListener('pointerover', e=>{ const el=e.target.closest('[data-tip]'); if(!el) return; activeTipEl=el; refreshTooltip(); tip.classList.add('show'); });
 document.addEventListener('pointerout', e=>{ if(e.target.closest('[data-tip]')){ activeTipEl=null; tip.classList.remove('show'); } });
@@ -1254,6 +1277,6 @@ recordMarketSample(Date.now(), true);
 initTiles();
 render();
 setInterval(tick, TICK_MS);
-setInterval(refreshTooltip, 1000);
+setInterval(()=>{ if(isMarketTipEl(activeTipEl)) refreshTooltip(); }, 1000);
 setInterval(()=>{ if(saveDirty) saveGame(); }, 20000);
 addEventListener('beforeunload', saveGame);
