@@ -169,7 +169,7 @@ function startMainLoop(){
   const audio=$('#mainLoop');
   if(!audio || musicStarted || state.musicEnabled === false) return;
   musicStarted = true;
-  audio.volume = .35;
+  audio.volume = .26;
   audio.play().catch(()=>{ musicStarted = false; });
 }
 function setMusicEnabled(enabled){
@@ -222,6 +222,7 @@ function showSplash(){
 function hideSplash(){
   const splash=$('#splashScreen');
   if(!splash || splash.classList.contains('hidden')) return;
+  playFx('fxCork', .72);
   startMainLoop();
   splash.classList.add('leaving');
   setTimeout(()=>splash.classList.add('hidden'), 520);
@@ -374,10 +375,38 @@ function marketSparklineHtml(){
   const vals=data.map(x=>Number(x.p)||state.market);
   const min=Math.min(...vals), max=Math.max(...vals), span=Math.max(.15,max-min);
   const points=vals.map((v,i)=>`${pad+(i/(Math.max(1,vals.length-1)))*(w-pad*2)},${h-pad-((v-min)/span)*(h-pad*2)}`).join(' ');
-  return `<svg class='market-chart' viewBox='0 0 ${w} ${h}' aria-label='histórico reciente'><polyline points='${points}'></polyline><text x='4' y='11'>histórico reciente</text><text x='${w-4}' y='${h-5}' text-anchor='end'>${min.toFixed(2)}–${max.toFixed(2)}€</text></svg>`;
+  return `<div class="market-spark"><svg class='market-chart' viewBox='0 0 ${w} ${h}' aria-label='histórico reciente'><polyline points='${points}'></polyline><text x='4' y='11'>histórico reciente</text></svg><span class="market-side"><b>${state.market.toFixed(2)}€</b><em>rango ${min.toFixed(2)}–${max.toFixed(2)}€</em></span></div>`;
 }
 function maltedWarning(t){ return t.status==='filled' && t.heated && (t.stable || 0) > MALT_KILNED_GRACE/2; }
-function notice(msg){ alert(msg); }
+const SCOT_MOODS = {
+  angry: ['img/escoces-angry.png','img/escoces-enfadado.png','img/escoces_angry.png','img/scot-angry.png'],
+  explain: ['img/escoces-explicando.png','img/escoces_explicando.png','img/scot-explaining.png'],
+  warn: ['img/escoces-advirtiendo.png','img/escoces_warning.png','img/scot-warning.png'],
+  sad: ['img/escoces-sad.png','img/escoces-triste.png','img/escoces_sad.png','img/scot-sad.png'],
+  happy: ['img/escoces-happy.png','img/scot-happy.png']
+};
+function scotImg(mood='explain'){ return (SCOT_MOODS[mood] || SCOT_MOODS.explain)[0]; }
+function popupCloseSound(){ playFx('fxAhhh', .68); }
+function gamePopup({title='Aviso', msg='', mood='explain', confirm=false, ok='Vale', cancel='Cancelar'}={}){
+  const root=$('#gamePopup'); if(!root){ if(confirm) return Promise.resolve(window.confirm(msg)); noticeFallback(msg); return Promise.resolve(true); }
+  playFx('fxCork', .72);
+  return new Promise(resolve=>{
+    const img=scotImg(mood);
+    root.innerHTML=`<div class="game-popup-card ${mood}">
+      <button class="game-popup-close" type="button" aria-label="Cerrar">×</button>
+      <img class="game-popup-character" src="${img}" alt="" onerror="this.hidden=true">
+      <div class="game-popup-copy"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(msg)}</p><div class="game-popup-actions"><button class="pixel-btn small ok" type="button">${escapeHtml(ok)}</button>${confirm?`<button class="pixel-btn small danger cancel" type="button">${escapeHtml(cancel)}</button>`:''}</div></div>
+    </div>`;
+    root.classList.remove('hidden');
+    const done=answer=>{ root.classList.add('hidden'); root.innerHTML=''; popupCloseSound(); resolve(answer); };
+    root.querySelector('.ok')?.addEventListener('click', e=>{ e.stopPropagation(); done(true); });
+    root.querySelector('.cancel')?.addEventListener('click', e=>{ e.stopPropagation(); done(false); });
+    root.querySelector('.game-popup-close')?.addEventListener('click', e=>{ e.stopPropagation(); done(false); });
+    root.addEventListener('click', e=>{ if(e.target===root) done(false); }, {once:true});
+  });
+}
+function noticeFallback(msg){ alert(msg); }
+function notice(msg, mood='explain', title='Aviso'){ return gamePopup({title, msg, mood}); }
 function tipHtml(text){
   const [main, note] = String(text || '').split('||');
   const lines = main.split(/\s*·\s*|\n+/).map(x=>x.trim()).filter(Boolean);
@@ -630,7 +659,8 @@ Volumen líquido: ${(b.volume||0).toFixed(1)}% (${Math.floor(liquidL)}l / ${barr
 }
 
 function buyBarrel(type){
-  const def=BARREL_TYPES[type]; if(!def || state.coins<def.cost) return;
+  const def=BARREL_TYPES[type]; if(!def) return;
+  if(state.coins<def.cost){ notice(`Necesitas ${def.cost} k€ para comprar barricas de ${def.label}.`, 'explain', 'No hay dinero'); return; }
   state.coins-=def.cost;
   state.barrels.push(newBarrel(type, 24 + (state.barrels.length%4)*185, 56 + Math.floor(state.barrels.length/4)*118));
   playFx('fxCashRegister', .72);
@@ -638,16 +668,16 @@ function buyBarrel(type){
 }
 
 function buyEquipment(kind){
-  if(state.coins < EQUIPMENT_COST){ notice(`Necesitas ${EQUIPMENT_COST} k€ para comprar este equipo.`); return; }
+  if(state.coins < EQUIPMENT_COST){ notice(`Necesitas ${EQUIPMENT_COST} k€ para comprar este equipo.`, 'explain', 'No hay dinero'); return; }
   if(kind==='vat'){
     const idx=state.vats.findIndex((v,i)=>i>0 && !isVatActive(v,i));
-    if(idx<0){ notice('No queda espacio para más tinas.'); return; }
+    if(idx<0){ notice('No queda espacio para más tinas.', 'explain'); return; }
     state.coins -= EQUIPMENT_COST;
     state.vats[idx] = newVat(true);
     playFx('fxCashRegister', .72);
   } else if(kind==='still'){
     const idx=state.stills.findIndex((s,i)=>i>0 && !isStillActive(s,i));
-    if(idx<0){ notice('No queda espacio para más alambiques.'); return; }
+    if(idx<0){ notice('No queda espacio para más alambiques.', 'explain'); return; }
     state.coins -= EQUIPMENT_COST;
     state.stills[idx] = newStill(true);
     playFx('fxCashRegister', .72);
@@ -669,6 +699,7 @@ function handleDrop(target,data,e){
   if(target.classList.contains('field-tile') && data.drag==='seed'){
     const t=state.field[+target.dataset.i];
     if(t.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:0, dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); }
+    else if(t.status==='empty') notice('No tienes semillas suficientes. Compra semillas en el menú principal.', 'explain', 'Sin semillas');
   }
   if(target.classList.contains('malt-tile') && data.drag==='crop'){
     const dst=state.malt[+target.dataset.i], src=state.field[+data.source];
@@ -746,8 +777,8 @@ function makeBarrel(stillIndex,e,data){
 function addSpiritToBarrel(stillIndex, id){
   const s=state.stills[stillIndex], b=state.barrels.find(x=>x.id===id);
   if(!s || !b || s.output<=0) return;
-  if(s.outputAbv<40){ notice('El destilado tiene menos de 40° ABV. Mínimo debe tener 40°; haz una nueva destilación antes de meterlo en barrica.'); return; }
-  if(s.outputRuns<2){ notice('Este destilado necesita una nueva destilación antes de pasar a barrica.'); return; }
+  if(s.outputAbv<40){ notice('El destilado tiene menos de 40° ABV. Mínimo debe tener 40°; haz una nueva destilación antes de meterlo en barrica.', 'angry', 'No se puede embarricar'); return; }
+  if(s.outputRuns<2){ notice('Este destilado necesita una nueva destilación antes de pasar a barrica.', 'explain', 'Falta una pasada'); return; }
   const oldLitres=barrelLiquidL(b), availableL=barrelCapacityL(b)-oldLitres;
   if(availableL<=0) return;
   const sourceL=stillOutLitres(s);
@@ -786,17 +817,18 @@ function transferBarrelToBarrel(fromId,toId){
   to.lineage=mergeLineage(to.lineage||[], from.lineage||[], [{stage:'trasiego_barril', from:from.type||'bourbon', to:to.type||'bourbon', litres:moveL}]);
   to.volume=barrelPctFromL(to, toL+moveL);
   from.volume=barrelPctFromL(from, fromL-moveL);
+  playFx('fxBubblesDrop', .62);
   if(from.volume<.1) Object.assign(from,{volume:0,age:0,abv:0,quality:100,peatPpm:0,components:[],lineage:[]});
 }
 function moveBarrel(id,e,data){
   const b=state.barrels.find(x=>x.id===id); if(!b || !e) return;
   Object.assign(b, localDropPoint($('#aging'), e, data));
 }
-function discardBarrel(id){
+async function discardBarrel(id){
   const i=state.barrels.findIndex(b=>b.id===id); if(i<0) return;
   const b=state.barrels[i];
-  if((b.barrelQuality||100)>=90){ notice('Sólo se descartan aquí barriles antiguos con Q menor de 90.'); return; }
-  if(confirm('¿Descartar este pack de barriles antiguos? Se perderá también cualquier líquido que contenga.')){ state.barrels.splice(i,1); markDirty(); render(); saveGame(); }
+  if((b.barrelQuality||100)>=90){ notice('Sólo se descartan aquí barriles antiguos con Q menor de 90.', 'explain'); return; }
+  if(await gamePopup({title:'Descartar barriles', msg:'¿Descartar este pack de barriles antiguos? Se perderá también cualquier líquido que contenga.', mood:'warn', confirm:true, ok:'Descartar'})){ state.barrels.splice(i,1); markDirty(); render(); saveGame(); }
 }
 function bottleOptions(abv){
   const max=Math.floor(abv||0);
@@ -806,22 +838,23 @@ function bottleOptions(abv){
 }
 function bottleBarrel(id,e,data){
   const b=state.barrels.find(x=>x.id===id); if(!b || (b.volume||0)<=0) return;
-  if(b.abv < 40){ notice('Para embotellar whisky legalmente debe tener al menos 40° ABV.'); return; }
-  if(b.age < 3){ notice('Aún no puede embotellarse como whisky escocés auténtico: necesita al menos 3 años de envejecimiento.'); return; }
+  if(b.abv < 40){ notice('Para embotellar whisky legalmente debe tener al menos 40° ABV.', 'angry', 'Demasiado flojo'); return; }
+  if(b.age < 3){ notice('Aún no puede embotellarse como whisky escocés auténtico: necesita al menos 3 años de envejecimiento.', 'angry', 'Demasiado joven'); return; }
   const p=e ? localDropPoint($('#bottling'), e, data) : {x:18+state.boxes.length*95,y:20};
   openBottleDialog(b,p);
 }
 function openBottleDialog(b,p){
   const opts=bottleOptions(b.abv); if(!opts.length) return;
   const old=$('#bottleModal'); old?.remove();
+  playFx('fxCork', .72);
   const modal=document.createElement('div'); modal.id='bottleModal'; modal.className='bottle-modal';
   modal.innerHTML=`<div class="bottle-card-modal"><h3>Embotellar</h3><p>Elige grado ABS final</p><input id="bottleAbvRange" type="range" min="0" max="${opts.length-1}" step="1" value="${opts.length-1}"><strong id="bottleAbvLabel"></strong><div><button id="bottleOk" class="pixel-btn small" type="button">Embotellar</button><button id="bottleCancel" class="pixel-btn small danger" type="button">Cancelar</button></div></div>`;
   document.body.appendChild(modal);
   const input=$('#bottleAbvRange'), label=$('#bottleAbvLabel');
   const update=()=>{ const abv=opts[+input.value]; label.textContent=abv>=46 ? `${abv}° cask strength` : `${abv}°`; };
   input.oninput=update; update();
-  $('#bottleCancel').onclick=()=>modal.remove();
-  $('#bottleOk').onclick=()=>{ finishBottleBarrel(b.id, opts[+input.value], p); modal.remove(); markDirty(); render(); saveGame(); };
+  $('#bottleCancel').onclick=()=>{ modal.remove(); playFx('fxAhhh', .68); };
+  $('#bottleOk').onclick=()=>{ finishBottleBarrel(b.id, opts[+input.value], p); modal.remove(); playFx('fxAhhh', .58); markDirty(); render(); saveGame(); };
 }
 function finishBottleBarrel(id,targetAbv,p={x:18+state.boxes.length*95,y:20}){
   const b=state.barrels.find(x=>x.id===id); if(!b || (b.volume||0)<=0 || b.age<3 || targetAbv<40 || targetAbv>b.abv) return;
@@ -1100,8 +1133,19 @@ document.addEventListener('click', e=>{
   const heat=e.target.closest('.heat-tile'); if(heat) heatMalt(heat.dataset.i);
   const yeast=e.target.closest('.yeast-btn'); if(yeast){ const v=state.vats[+yeast.dataset.i]; if(v?.volume>0 && !v.rotten){ v.yeast=true; v.warned=false; v.idle=0; markDirty(); render(); } }
   const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; markDirty(); render(); } }
-  const empty=e.target.closest('.empty-still-btn'); if(empty){ const s=state.stills[+empty.dataset.i]; if(s && (!s.input || confirm('¿Vaciar la entrada izquierda del alambique?'))){ clearStillInput(s); markDirty(); render(); } }
+  const empty=e.target.closest('.empty-still-btn'); if(empty){ emptyStillInput(+empty.dataset.i); }
 });
+
+async function emptyStillInput(i){
+  const s=state.stills[i]; if(!s) return;
+  if(!s.input || await gamePopup({title:'Vaciar alambique', msg:'¿Vaciar la entrada izquierda del alambique?', mood:'warn', confirm:true, ok:'Vaciar'})){
+    clearStillInput(s); markDirty(); render(); saveGame();
+  }
+}
+function toggleStillFire(i){
+  const s=state.stills[i]; if(!s || !isStillActive(s,i)) return;
+  s.fire=!s.fire; markDirty(); render(); saveGame();
+}
 
 function debugFill(){
   state.coins = rnd(80,180); state.seeds = Math.floor(rnd(20,80));
@@ -1141,7 +1185,7 @@ function debugFill(){
 
 
 document.addEventListener('click', e=>{ const buy=e.target.closest('.barrel-buy'); if(buy){ e.preventDefault(); buyBarrel(buy.dataset.type); } const eq=e.target.closest('.equipment-buy'); if(eq){ e.preventDefault(); buyEquipment(eq.dataset.equipment); } });
-$('#buySeeds').onclick=()=>{ if(state.coins>=SEED_PACK_COST){ state.coins-=SEED_PACK_COST; state.seeds+=SEED_PACK_KG; playFx('fxCashRegister', .72); markDirty(); render(); }};
+$('#buySeeds').onclick=()=>{ if(state.coins>=SEED_PACK_COST){ state.coins-=SEED_PACK_COST; state.seeds+=SEED_PACK_KG; playFx('fxCashRegister', .72); markDirty(); render(); } else notice(`Necesitas ${SEED_PACK_COST} k€ para comprar semillas.`, 'explain', 'No hay dinero'); };
 $('#distilleryName').addEventListener('input', e=>{ state.distilleryName=e.target.value || 'Miarma Distillery'; markDirty(); });
 $('#editName').onclick=()=>{ nameEditing=true; render(); $('#distilleryName').focus(); $('#distilleryName').select(); };
 function acceptName(){ nameEditing=false; state.distilleryName=$('#distilleryName').value.trim() || 'Miarma Distillery'; markDirty(); render(); saveGame(); }
@@ -1149,12 +1193,17 @@ $('#acceptName').onclick=acceptName;
 $('#distilleryName').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); acceptName(); }});
 document.addEventListener('keydown', e=>{
   const editing = e.target.closest('input, textarea, select') || nameEditing;
-  if(e.key==='Escape'){ e.preventDefault(); $('#hud').classList.toggle('collapsed'); return; }
+  if(e.key==='Escape'){ e.preventDefault(); $('#hud').classList.contains('collapsed') ? showHud() : hideHud(); return; }
   if(editing || e.ctrlKey || e.metaKey || e.altKey) return;
   if(e.key==='º'){ e.preventDefault(); setSpeedStep((state.speedStep||0)-1); render(); return; }
   if(e.key==='1'){ e.preventDefault(); setSpeedStep(0); render(); return; }
   if(e.key==='2'){ e.preventDefault(); setSpeedStep((state.speedStep||0)+1); render(); return; }
-  if(e.key==='3'){ e.preventDefault(); setSpeedStep(9); render(); }
+  if(e.key==='3'){ e.preventDefault(); setSpeedStep(9); render(); return; }
+  if(e.key==='4'){ e.preventDefault(); setSpeedStep(9); render(); return; }
+  const fireKey={f:0,g:1,h:2,j:3}[e.key.toLowerCase()];
+  if(fireKey!==undefined){ e.preventDefault(); toggleStillFire(fireKey); return; }
+  if(e.key.toLowerCase()==='m'){ e.preventDefault(); setMusicEnabled(state.musicEnabled === false); saveGame(); return; }
+  if(e.key.toLowerCase()==='x'){ e.preventDefault(); state.fxEnabled = state.fxEnabled === false; refreshAudioToggles(); markDirty(); saveGame(); }
 });
 $('#speedSlider').addEventListener('input', e=>{ setSpeedStep(Number(e.target.value)); });
 $('#speedReset').onclick=()=>{ setSpeedStep(0); render(); };
@@ -1163,13 +1212,19 @@ $('#debugFill').onclick=debugFill;
 $('#toggleDebugView').onclick=()=>{ state.debugQuality=!state.debugQuality; $('#toggleDebugView').classList.toggle('on', state.debugQuality); markDirty(); render(); };
 $('#toggleMusic').onclick=()=>{ setMusicEnabled(state.musicEnabled === false); saveGame(); };
 $('#toggleFx').onclick=()=>{ state.fxEnabled = state.fxEnabled === false; refreshAudioToggles(); markDirty(); saveGame(); };
-$('#hudIcon').onclick=()=>{ $('#hud').classList.toggle('collapsed'); };
-$('#helpButton').onclick=()=>$('#helpModal').classList.remove('hidden');
-$('#helpModal').onclick=()=>$('#helpModal').classList.add('hidden');
-$('#magnitudesButton').onclick=()=>$('#magnitudesModal').classList.remove('hidden');
-$('#magnitudesModal').onclick=()=>$('#magnitudesModal').classList.add('hidden');
-$('#resetGame').onclick=()=>{
-  if(confirm('¿Reiniciar la partida y borrar el guardado local de Miarma Distillery?')){
+function showHud(){ $('#hud').classList.remove('collapsed'); playFx('fxCork', .72); }
+function hideHud(){ $('#hud').classList.add('collapsed'); playFx('fxAhhh', .68); }
+$('#hudIcon').onclick=()=>{ $('#hud').classList.contains('collapsed') ? showHud() : hideHud(); };
+function openOverlay(sel){ const el=$(sel); if(!el) return; el.classList.remove('hidden'); playFx('fxCork', .72); }
+function closeOverlay(sel){ const el=$(sel); if(!el || el.classList.contains('hidden')) return; el.classList.add('hidden'); playFx('fxAhhh', .68); }
+$('#helpButton').onclick=()=>openOverlay('#helpModal');
+$('#helpModal').onclick=()=>closeOverlay('#helpModal');
+$('#magnitudesButton').onclick=()=>openOverlay('#magnitudesModal');
+$('#magnitudesModal').onclick=e=>{ if(e.target.closest('a')) return; closeOverlay('#magnitudesModal'); };
+$('#magnitudesClose').onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeOverlay('#magnitudesModal'); };
+addEventListener('message', e=>{ if(e.data==='close-magnitudes') closeOverlay('#magnitudesModal'); });
+$('#resetGame').onclick=async()=>{
+  if(await gamePopup({title:'Reset', msg:'¿Reiniciar la partida y borrar el guardado local de Miarma Distillery?', mood:'warn', confirm:true, ok:'Reset'})){
     localStorage.removeItem(STORAGE_KEY); state=defaultState(); markDirty(); render(); saveGame(); showSplash();
   }
 };
@@ -1185,8 +1240,10 @@ document.addEventListener('pointermove', e=>{
   if(top + h > innerHeight){ top = e.clientY - padY; ty = '-100%'; }
   tip.style.left=`${left}px`; tip.style.top=`${top}px`; tip.style.transform=`translate(${tx}, ${ty})`;
 });
-document.addEventListener('pointerover', e=>{ const el=e.target.closest('[data-tip]'); if(!el) return; tip.innerHTML=tipHtml(el.dataset.tip); tip.classList.add('show'); });
-document.addEventListener('pointerout', e=>{ if(e.target.closest('[data-tip]')) tip.classList.remove('show'); });
+let activeTipEl=null;
+function refreshTooltip(){ if(activeTipEl && tip.classList.contains('show')) tip.innerHTML=tipHtml(activeTipEl.dataset.tip); }
+document.addEventListener('pointerover', e=>{ const el=e.target.closest('[data-tip]'); if(!el) return; activeTipEl=el; refreshTooltip(); tip.classList.add('show'); });
+document.addEventListener('pointerout', e=>{ if(e.target.closest('[data-tip]')){ activeTipEl=null; tip.classList.remove('show'); } });
 addEventListener('blur', () => startBackgroundSim());
 addEventListener('focus', () => finishBackgroundSim());
 document.addEventListener('visibilitychange', () => document.hidden ? startBackgroundSim() : finishBackgroundSim());
@@ -1197,5 +1254,6 @@ recordMarketSample(Date.now(), true);
 initTiles();
 render();
 setInterval(tick, TICK_MS);
+setInterval(refreshTooltip, 1000);
 setInterval(()=>{ if(saveDirty) saveGame(); }, 20000);
 addEventListener('beforeunload', saveGame);

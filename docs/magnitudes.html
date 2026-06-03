@@ -9,7 +9,7 @@
     :root{--ink:#241911;--cream:#ffe7b5;--gold:#e2a64b;--line:rgba(255,231,181,.16)}
     *{box-sizing:border-box} body{margin:0;padding:12px;background:transparent;color:var(--cream);font:12.6px/1.31 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden}
     main{max-width:960px;margin:auto;padding:8px 10px}
-    h1{margin:0 0 6px;color:var(--gold);font-size:20px;text-shadow:2px 2px #000}.summary{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.pill{background:#6f4729;border-radius:8px;padding:3px 7px;color:#fff3cf;font-weight:900}
+    h1{margin:0 0 6px;color:var(--gold);font-size:20px;text-shadow:2px 2px #000}.summary{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 8px}.pill{background:#6f4729;border-radius:8px;padding:3px 7px;color:#fff3cf;font-weight:900}.arrow{color:#e2a64b;font-weight:900;text-shadow:1px 1px #000}
     table{width:100%;border-collapse:separate;border-spacing:0;background:rgba(0,0,0,.12);border:1px solid var(--line);border-radius:12px;overflow:hidden} th,td{border:0;border-bottom:1px solid var(--line);padding:6px 9px;vertical-align:middle} tr:last-child td{border-bottom:0} th{color:#fff4ce;background:rgba(226,166,75,.18);text-align:left} th:first-child{border-top-left-radius:11px} th:last-child{border-top-right-radius:11px} tr:last-child td:first-child{border-bottom-left-radius:11px} tr:last-child td:last-child{border-bottom-right-radius:11px} td.game{color:#fff3cf;font-weight:900}.metric{display:flex;align-items:center;gap:10px;font-weight:900;color:#fff4ce}.icon{width:46px;height:46px;object-fit:contain;image-rendering:auto;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.3))}a{color:#8fd7ff;text-decoration:none}.note{margin:8px 0 0;color:#d7c4a4;font-size:11.5px}.note span{display:block;margin-top:3px}
   </style>
 </head>
@@ -18,8 +18,11 @@
   <h1>⚖️ Magnitudes comparadas</h1>
   <div class="summary">
     <span class="pill">8 parcelas → 16.000 l wash</span>
+    <span class="arrow">→</span>
     <span class="pill">2 tandas × 8.000 l</span>
+    <span class="arrow">→</span>
     <span class="pill">2.000 l @ 63,5%</span>
+    <span class="arrow">→</span>
     <span class="pill">10 barriles Bourbon</span>
   </div>
 
@@ -70,8 +73,18 @@
     <span><strong>LPA</strong> = litros de alcohol puro = litros × ABV / 100.</span>
     <span><strong>ABV/AVB</strong> = grado alcohólico por volumen.</span>
     <span><strong>Semillas</strong>: 20 kg por parcela (≈190 kg/ha).</span>
+    <span><strong>Grist</strong> = malta molida lista para macerar.</span>
+    <span><strong>Wash</strong> = mosto fermentado, parecido a una cerveza fuerte, antes de destilar.</span>
+    <span><strong>Wash still</strong> = primer alambique: convierte wash en <strong>low wines</strong>.</span>
+    <span><strong>Low wines</strong> (no “new wines”) = destilado intermedio de primera pasada, normalmente ~20–30% ABV.</span>
+    <span><strong>Spirit still</strong> = segundo alambique: refina los low wines hasta <strong>new make</strong>.</span>
+    <span><strong>New make</strong> = destilado transparente recién salido, antes de barrica.</span>
+    <span><strong>Cask strength</strong> = whisky embotellado con su grado natural de barrica, sin rebajar apenas con agua.</span>
   </p>
 </main>
-<script>document.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener noreferrer'});</script>
+<script>
+document.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener noreferrer'});
+document.addEventListener('click', e=>{ if(!e.target.closest('a')) parent.postMessage('close-magnitudes','*'); });
+</script>
 </body>
 </html>

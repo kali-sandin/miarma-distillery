@@ -11,8 +11,10 @@
   <audio id="mainLoop" src="audio/main_loop.mp3" loop preload="auto"></audio>
   <audio id="fxDropGrain" src="fx/fx-drop_grain.mp3" preload="auto"></audio>
   <audio id="fxBubblesDrop" src="fx/bubbles-drop.mp3" preload="auto"></audio>
+  <audio id="fxAhhh" src="fx/ahhh.mp3" preload="auto"></audio>
   <audio id="fxCashRegister" src="fx/cash_register.mp3" preload="auto"></audio>
   <audio id="fxChicharrasCicada" src="fx/chicharras-cicada.mp3" preload="auto"></audio>
+  <audio id="fxCork" src="fx/cork.mp3" preload="auto"></audio>
   <audio id="fxFireLong" src="fx/fire-long.mp3" preload="auto"></audio>
   <audio id="fxFlameShort" src="fx/flame-short.mp3" preload="auto"></audio>
   <audio id="fxNewBottles" src="fx/new-bottles.mp3" preload="auto"></audio>
@@ -78,7 +80,8 @@ Botón x1: vuelve a velocidad base.">
     <button id="office" class="office-hotspot" data-tip="Mansión/oficina. El panel general está superpuesto aquí abajo.">Oficina</button>
     <button id="hudIcon" class="hud-icon" type="button" data-tip="Mostrar u ocultar panel de información y menú.">☰</button>
     <div id="helpModal" class="help-modal hidden" role="dialog" aria-modal="true"><img src="img/ayuda.png" alt="Ayuda de Miarma Distillery" /></div>
-    <div id="magnitudesModal" class="reference-modal hidden" role="dialog" aria-modal="true"><iframe src="docs/magnitudes.html" title="Magnitudes de referencia" loading="lazy"></iframe></div>
+    <div id="magnitudesModal" class="reference-modal hidden" role="dialog" aria-modal="true"><button id="magnitudesClose" class="modal-close" type="button" aria-label="Cerrar referencia">×</button><iframe src="docs/magnitudes.html" title="Magnitudes de referencia" loading="lazy"></iframe></div>
+    <div id="gamePopup" class="game-popup hidden" role="dialog" aria-modal="true"></div>
     <div id="tooltip" role="status"></div>
   </main>
   <script src="js/game.js"></script>
