@@ -784,3 +784,513 @@ body::after {
   18% { opacity:1; }
   100% { transform:translateY(0); opacity:1; }
 }
+
+/* 2026-06-04 evening bottle archive + requested polish */
+body {
+  background:#000 !important;
+  background-image:none !important;
+  box-shadow:none !important;
+}
+body::after { display:none !important; }
+#game::before {
+  inset:-30px !important;
+  background:
+    linear-gradient(90deg, #000 0%, rgba(9,11,5,.96) 12%, rgba(60,56,16,.45) 23%, transparent 42%, transparent 58%, rgba(55,51,14,.42) 77%, rgba(8,10,5,.96) 88%, #000 100%),
+    linear-gradient(180deg, #000 0%, rgba(8,10,5,.96) 12%, rgba(67,60,17,.43) 23%, transparent 42%, transparent 58%, rgba(55,47,13,.40) 77%, rgba(8,8,4,.96) 88%, #000 100%) !important;
+  filter:blur(12px) saturate(1.05) !important;
+  opacity:.98;
+}
+#aging { top:553px !important; height:341px !important; }
+#bottling { top:553px !important; height:267px !important; }
+.resource-stat span { font-size:34px !important; line-height:1 !important; }
+.resource-stat strong { font-size:15px !important; }
+.bottle-stat { border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; padding:0; }
+.bottle-stat:hover span { transform:scale(1.12); filter:drop-shadow(0 0 8px rgba(255,230,140,.8)); }
+#toggleDebugView { font-size:42px !important; width:52px !important; height:42px !important; }
+.field-tile.needs-water,
+.malt-tile.needs-water { cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 2C10 10 6 15 6 21a10 10 0 0 0 20 0c0-6-4-11-10-19z' fill='%236dccff' stroke='%2300182b' stroke-width='2'/%3E%3Cpath d='M11 22c1 4 5 6 9 4' fill='none' stroke='%23e8fbff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 10 28, pointer !important; }
+.malt-smoke {
+  position:absolute;
+  left:50%;
+  top:18px;
+  width:130px;
+  height:150px;
+  transform:translateX(-50%);
+  pointer-events:none;
+  overflow:visible;
+  z-index:11;
+  contain:layout paint;
+}
+.malt-smoke::before,
+.malt-smoke::after,
+.malt-smoke i {
+  content:'';
+  position:absolute;
+  left:28px;
+  bottom:4px;
+  width:74px;
+  height:96px;
+  opacity:0;
+  background:
+    radial-gradient(ellipse at 48% 82%, rgba(22,15,10,.64) 0 13%, transparent 30%),
+    radial-gradient(ellipse at 52% 58%, rgba(83,55,28,.48) 0 16%, transparent 34%),
+    radial-gradient(ellipse at 44% 34%, rgba(34,26,18,.42) 0 15%, transparent 34%),
+    radial-gradient(ellipse at 55% 15%, rgba(105,78,42,.30) 0 13%, transparent 31%);
+  filter:blur(2.4px) saturate(1.12);
+  mix-blend-mode:multiply;
+  animation:maltSmokeFloat 4.2s ease-in-out infinite;
+  will-change:transform, opacity;
+}
+.malt-smoke::after { left:46px; bottom:12px; width:96px; height:126px; animation-duration:5.1s; animation-delay:1.05s; }
+.malt-smoke i:nth-child(1) { left:14px; bottom:18px; width:82px; height:112px; animation-duration:4.8s; animation-delay:2.1s; }
+.malt-smoke i:nth-child(2) { left:38px; bottom:0; width:58px; height:82px; animation-duration:3.8s; animation-delay:.45s; }
+@keyframes maltSmokeFloat {
+  0% { transform:translate3d(0,28px,0) scale(.58) rotate(-3deg); opacity:0; }
+  16% { opacity:.58; }
+  42% { transform:translate3d(-4px,-10px,0) scale(1.05) rotate(3deg); opacity:.48; }
+  72% { transform:translate3d(6px,-44px,0) scale(1.32) rotate(-2deg); opacity:.28; }
+  100% { transform:translate3d(0,-82px,0) scale(1.62) rotate(4deg); opacity:0; }
+}
+.peat-icon.on::before,
+.peat-icon.on::after { display:none !important; }
+.truck-sprite.leaving { animation:truckLeave 3.2s cubic-bezier(.28,.02,.82,.62) forwards !important; }
+.truck-sprite.returning { animation:truckReturn 3.6s cubic-bezier(.18,.82,.28,1) forwards !important; }
+.bottle-history-side {
+  position:absolute;
+  right:-142px;
+  top:0;
+  z-index:18;
+  border:0;
+  border-radius:8px;
+  background:rgba(36,25,17,.86);
+  color:#ffe7b5;
+  text-shadow:1px 1px #000;
+  font:900 14px ui-monospace, monospace;
+  padding:8px 11px;
+  cursor:pointer;
+  box-shadow:0 4px 12px rgba(0,0,0,.28);
+}
+.bottle-history-side:hover { filter:brightness(1.16); }
+.bottle-history-modal { position:fixed; inset:0; z-index:32000; display:grid; place-items:center; background:rgba(0,0,0,.68); }
+.bottle-history-window { position:relative; width:min(1180px, calc(100vw - 48px)); max-height:calc(100vh - 48px); overflow:hidden; display:grid; grid-template-rows:auto auto minmax(0,1fr); gap:12px; border-radius:18px; background:linear-gradient(145deg, rgba(63,43,28,.98), rgba(22,15,10,.99)); color:#ffe7b5; padding:20px; box-shadow:0 26px 90px rgba(0,0,0,.65); }
+.bottle-history-window header { display:flex; align-items:center; gap:14px; padding-right:58px; }
+.bottle-history-window header img { width:74px; height:96px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(4px 5px 0 rgba(0,0,0,.28)); }
+.bottle-history-window h3 { margin:0; color:#e2a64b; font-size:28px; text-shadow:2px 2px #000; }
+.bottle-history-window p { margin:3px 0 0; color:#d9c39f; }
+.bottle-history-toolbar { display:flex; gap:10px; }
+.bottle-history-toolbar input,
+.bottle-history-toolbar select { border:0; border-radius:8px; background:#ffe7b5; color:#2b2117; padding:10px 12px; font:900 14px ui-monospace, monospace; }
+.bottle-history-toolbar input { flex:1; }
+#bottleHistoryList { overflow:auto; display:grid; gap:10px; padding-right:4px; }
+.bottle-history-card { display:grid; grid-template-columns:82px minmax(0,1fr) 150px; gap:14px; align-items:center; padding:12px; border-radius:14px; background:rgba(255,231,181,.085); box-shadow:inset 0 0 0 1px rgba(255,231,181,.08); }
+.bottle-history-card > img { width:74px; height:104px; object-fit:contain; image-rendering:pixelated; }
+.bottle-history-main h4 { margin:0 0 6px; color:#fff3cf; font-size:18px; }
+.bottle-history-kpis { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.bottle-history-kpis b { background:rgba(0,0,0,.28); border-radius:999px; padding:4px 8px; color:#87e2ff; }
+.comp-timeline > div { display:flex; width:100%; height:16px; overflow:hidden; border-radius:7px; background:#2d2117; box-shadow:inset 0 0 0 1px rgba(255,240,190,.18); }
+.comp-timeline > div span { display:block; min-width:4px; box-shadow:inset 0 1px rgba(255,240,190,.35); }
+.comp-timeline p { display:flex; flex-wrap:wrap; gap:7px 10px; margin:6px 0; color:#d9c39f; }
+.comp-timeline small i { display:inline-block; width:10px; height:10px; margin-right:4px; vertical-align:-1px; }
+.comp-timeline em { color:#b9b0a4; font-style:normal; }
+.bottle-history-main ul { margin:8px 0 0; padding-left:18px; color:#ffe7b5; line-height:1.25; }
+.bottle-history-price { text-align:right; align-self:stretch; display:flex; flex-direction:column; justify-content:center; gap:5px; color:#fff3cf; }
+.bottle-history-price strong { color:#98f29a; font-size:16px; }
+.bottle-history-price span { color:#d9c39f; }
+.bottle-history-empty { padding:28px; text-align:center; color:#d9c39f; background:rgba(255,231,181,.06); border-radius:14px; }
+
+/* 2026-06-04 late polish: truck/smoke/history refinements */
+#office { opacity:.01; cursor:pointer; }
+#toggleDebugView {
+  font-size:30px !important;
+  width:auto !important;
+  height:34px !important;
+  line-height:34px !important;
+  padding:0 5px !important;
+}
+.stealth-control,
+.heat-tile,
+.yeast-btn,
+.fire-btn,
+.empty-still-btn {
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  outline:0 !important;
+  opacity:1 !important;
+}
+.stealth-control .control-label,
+.yeast-btn,
+.heat-tile > span,
+.fire-btn .control-label { color:transparent !important; text-shadow:none !important; font-size:0 !important; }
+.fire-btn > span:first-child { color:#ffe7b5 !important; font-size:24px !important; text-shadow:1px 1px #000 !important; }
+.empty-still-btn .empty-icon { display:inline-block; color:#ffe7b5 !important; font-size:24px !important; text-shadow:1px 1px #000 !important; transform:rotate(-45deg); transform-origin:50% 58%; }
+.yeast-btn::before { content:'' !important; }
+.heat-tile { width:28px; height:26px; }
+.malt-controls { overflow:visible; }
+.peat-icon { position:relative; overflow:visible !important; }
+.peat-icon > span:first-child { position:relative; z-index:3; }
+.malt-smoke {
+  position:absolute !important;
+  left:50% !important;
+  bottom:18px !important;
+  top:auto !important;
+  width:126px !important;
+  height:150px !important;
+  transform:translateX(calc(-50% + (var(--smoke-pump, 0) * 0px))) translateZ(0) !important;
+  pointer-events:none !important;
+  overflow:visible !important;
+  z-index:2 !important;
+  contain:none !important;
+}
+.malt-smoke::before,
+.malt-smoke::after,
+.malt-smoke i {
+  left:50% !important;
+  bottom:0 !important;
+  transform-origin:50% 100%;
+}
+@keyframes maltSmokeFloat {
+  0% { transform:translate3d(-50%,18px,0) scale(.58) rotate(-2deg); opacity:0; }
+  16% { opacity:.58; }
+  42% { transform:translate3d(-54%,-12px,0) scale(1.05) rotate(2deg); opacity:.48; }
+  72% { transform:translate3d(-42%,-48px,0) scale(1.32) rotate(-2deg); opacity:.28; }
+  100% { transform:translate3d(-38%,-86px,0) scale(1.62) rotate(4deg); opacity:0; }
+}
+.truck-sprite.leaving { animation:truckLeave 3.6s cubic-bezier(.18,.02,.76,.88) forwards !important; }
+.truck-sprite.returning { animation:truckReturn 4.4s cubic-bezier(.18,.72,.36,1) forwards !important; }
+@keyframes truckLeave {
+  0% { transform:translateY(0); opacity:1; }
+  42% { transform:translateY(30px); opacity:1; }
+  100% { transform:translateY(125vh); opacity:0; }
+}
+@keyframes truckReturn {
+  0% { transform:translateY(125vh); opacity:0; }
+  24% { opacity:1; }
+  100% { transform:translateY(0); opacity:1; }
+}
+.bottle-history-side {
+  right:10px !important;
+  top:8px !important;
+  z-index:18 !important;
+  padding:3px 8px !important;
+  border-radius:0 !important;
+  background:rgba(36,25,17,.72) !important;
+  font:900 12px ui-monospace, monospace !important;
+}
+.bottle-history-modal,
+.bottle-history-modal * {
+  user-select:none !important;
+  cursor:default !important;
+}
+.bottle-history-toolbar input { cursor:text !important; user-select:text !important; }
+.bottle-history-window { width:min(1260px, calc(100vw - 48px)) !important; }
+.bottle-history-window header img { width:96px !important; height:126px !important; }
+.bottle-history-card { grid-template-columns:112px minmax(0,1fr) 160px !important; align-items:stretch !important; }
+.bottle-history-card > img { width:106px !important; height:148px !important; align-self:center; }
+.bottle-history-main h4 { font-size:20px !important; }
+.bottle-history-kpis { gap:9px !important; margin-bottom:10px !important; }
+.bottle-history-kpis b { font-size:18px !important; padding:7px 10px !important; color:#fff3cf !important; background:rgba(0,0,0,.34) !important; }
+.comp-timeline { margin:6px 0 8px; }
+.comp-time-axis { display:flex; justify-content:space-between; color:#b9b0a4; font-size:10px; margin-bottom:2px; }
+.comp-row { position:relative; height:10px; margin:0; background:rgba(0,0,0,.30); box-shadow:inset 0 0 0 1px rgba(255,240,190,.06); }
+.comp-row span { position:absolute; top:0; bottom:0; min-width:3px; box-shadow:inset 0 1px rgba(255,240,190,.35); }
+.comp-timeline > div:first-child:not(.comp-time-axis) { height:auto; }
+.comp-timeline p { margin:6px 0 0 !important; font-size:11px; }
+.bottle-history-lower { display:grid; grid-template-columns:132px minmax(0,1fr); gap:12px; align-items:stretch; margin-top:8px; }
+.bottle-history-barrels { display:flex; flex-wrap:wrap; align-content:flex-start; gap:4px; padding:7px; border-radius:10px; background:rgba(0,0,0,.18); }
+.bottle-history-barrels img { width:50px; height:50px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(2px 3px 0 rgba(0,0,0,.35)); }
+.bottle-history-main ul {
+  margin:0 !important;
+  padding:10px 12px 10px 28px !important;
+  min-height:96px;
+  border-radius:12px;
+  color:#3d2b19 !important;
+  background:linear-gradient(145deg, #f6dfac, #e9c988) !important;
+  box-shadow:inset 0 0 0 2px rgba(103,65,28,.18), 4px 5px 0 rgba(0,0,0,.18);
+  font:italic 12px/1.25 'Comic Sans MS', 'Segoe Print', cursive !important;
+}
+.bottle-history-main li { margin:0 0 4px; }
+.bottle-history-price { font-size:14px; }
+.bottle-history-price strong { font-size:18px !important; }
+#bottleHistoryList { overscroll-behavior:contain; }
+.malt-smoke i:nth-child(1),
+.malt-smoke i:nth-child(2) { left:50% !important; bottom:0 !important; }
+
+/* 2026-06-04 correction pass: restore controls, robust smoke, popup/area fixes */
+/* Restaurar textos/iconos: sin borde fantasma, pero visibles */
+.heat-tile,
+.yeast-btn,
+.fire-btn,
+.empty-still-btn {
+  border:0 !important;
+  box-shadow:none !important;
+  background:transparent !important;
+  color:#ffe7b5 !important;
+  text-shadow:1px 1px #000 !important;
+  opacity:1 !important;
+  outline:0 !important;
+  font-size:14px !important;
+}
+.heat-tile { width:30px !important; height:28px !important; font-size:24px !important; line-height:28px !important; }
+.heat-tile > span { color:#ffe7b5 !important; font-size:24px !important; text-shadow:1px 1px #000 !important; }
+.yeast-btn { font-size:14px !important; min-width:104px; }
+.fire-btn { font-size:14px !important; min-width:72px; }
+.fire-btn::before, .empty-still-btn::before, .yeast-btn::before { content:'' !important; }
+.empty-still-btn { min-width:30px !important; width:30px !important; padding:0 !important; }
+.empty-still-btn .empty-icon { display:block !important; color:#ffe7b5 !important; font-size:24px !important; text-shadow:1px 1px #000 !important; transform:rotate(-45deg) !important; transform-origin:50% 58%; }
+
+/* Zonas alambique: entrada 5px izquierda +10px abajo; salida +10px abajo y visible en debug */
+.still-drop { top:37px !important; height:112px !important; }
+.still-drop.in { left:31px !important; width:84px !important; }
+.still-drop.out { top:37px !important; left:auto !important; right:8px !important; width:54px !important; }
+#game.debug-zones .still-drop.out,
+#game.debug-zones .still-drop.in {
+  outline:2px solid rgba(109,184,197,.55) !important;
+  outline-offset:-2px !important;
+  box-shadow:inset 0 0 0 2px rgba(109,184,197,.28) !important;
+  background-color:rgba(80,210,255,.08) !important;
+}
+
+/* Humo: una capa por tile, fuera del botón, fase temporal global para que no se congele aunque render() recree DOM */
+.peat-icon.on::before,
+.peat-icon.on::after { display:none !important; content:none !important; }
+#malting .tile { overflow:visible !important; }
+.malt-smoke {
+  position:absolute !important;
+  left:calc(50% + 18px) !important;
+  bottom:54px !important;
+  top:auto !important;
+  width:118px !important;
+  height:148px !important;
+  transform:translateX(-50%) translateZ(0) !important;
+  pointer-events:none !important;
+  overflow:visible !important;
+  z-index:5 !important;
+  contain:none !important;
+}
+.malt-smoke::before,
+.malt-smoke::after,
+.malt-smoke i {
+  content:'' !important;
+  position:absolute !important;
+  left:50% !important;
+  bottom:0 !important;
+  width:58px !important;
+  height:76px !important;
+  opacity:0;
+  background:
+    radial-gradient(ellipse at 48% 82%, rgba(22,15,10,.64) 0 13%, transparent 30%),
+    radial-gradient(ellipse at 52% 58%, rgba(83,55,28,.48) 0 16%, transparent 34%),
+    radial-gradient(ellipse at 44% 34%, rgba(34,26,18,.42) 0 15%, transparent 34%),
+    radial-gradient(ellipse at 55% 15%, rgba(105,78,42,.30) 0 13%, transparent 31%) !important;
+  filter:blur(2.2px) saturate(1.1) !important;
+  mix-blend-mode:multiply;
+  will-change:transform, opacity;
+  animation:maltSmokeGlobal 4200ms ease-in-out infinite !important;
+  animation-delay:calc(var(--smoke-ms, 0) * -1ms) !important;
+}
+.malt-smoke::after { width:72px !important; height:96px !important; animation-duration:5100ms !important; animation-delay:calc(var(--smoke-ms, 0) * -1ms - 900ms) !important; }
+.malt-smoke i:nth-child(1) { width:66px !important; height:90px !important; animation-duration:4700ms !important; animation-delay:calc(var(--smoke-ms, 0) * -1ms - 1700ms) !important; }
+.malt-smoke i:nth-child(2) { width:46px !important; height:64px !important; animation-duration:3600ms !important; animation-delay:calc(var(--smoke-ms, 0) * -1ms - 400ms) !important; }
+.malt-smoke i:nth-child(3) { width:54px !important; height:72px !important; animation-duration:5600ms !important; animation-delay:calc(var(--smoke-ms, 0) * -1ms - 2500ms) !important; }
+@keyframes maltSmokeGlobal {
+  0% { transform:translate3d(-50%,16px,0) scale(.55) rotate(-2deg); opacity:0; }
+  18% { opacity:.58; }
+  45% { transform:translate3d(-54%,-16px,0) scale(1.04) rotate(2deg); opacity:.44; }
+  72% { transform:translate3d(-42%,-54px,0) scale(1.28) rotate(-1deg); opacity:.26; }
+  100% { transform:translate3d(-36%,-88px,0) scale(1.55) rotate(3deg); opacity:0; }
+}
+
+/* Popups: X clicable y ESC ya lo gestiona JS */
+.game-popup-close,
+.bottle-history-window .game-popup-close { cursor:pointer !important; }
+
+/* Botón histórico: fuera del área de tienda, coherente con botones de barriles */
+.bottle-history-side {
+  right:8px !important;
+  top:-40px !important;
+  z-index:30 !important;
+  border:0 !important;
+  border-radius:8px !important;
+  background:rgba(36,25,17,.86) !important;
+  color:#ffe7b5 !important;
+  text-shadow:1px 1px #000 !important;
+  font:900 14px ui-monospace, monospace !important;
+  padding:7px 10px !important;
+  box-shadow:0 4px 12px rgba(0,0,0,.28) !important;
+  cursor:pointer !important;
+}
+
+/* Histórico: lote encima de imagen, KPIs centrados/mayores, papel blanco, barras con texto dentro */
+.bottle-history-card { grid-template-columns:118px minmax(0,1fr) 160px !important; }
+.bottle-history-cover { display:grid; grid-template-rows:auto 1fr; justify-items:center; align-items:center; gap:4px; }
+.bottle-history-cover h4 { margin:0; color:#fff3cf; font-size:18px; text-shadow:2px 2px #000; text-align:center; }
+.bottle-history-cover img { width:110px !important; height:150px !important; object-fit:contain; image-rendering:pixelated; }
+.bottle-history-card > img { display:none !important; }
+.bottle-history-main { display:grid; align-content:start; }
+.bottle-history-kpis { justify-content:center !important; gap:10px !important; margin:0 0 10px !important; }
+.bottle-history-kpis b { font-size:20px !important; padding:8px 11px !important; }
+.comp-row { height:16px !important; margin:0 !important; border-radius:0 !important; overflow:hidden; }
+.comp-row span { display:flex !important; align-items:center; min-width:3px; overflow:hidden; }
+.comp-row span em { display:block; width:100%; padding:0 5px; color:#111 !important; font:900 10px/16px ui-monospace, monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px rgba(255,255,255,.25); }
+.bottle-history-main ul {
+  border-radius:0 !important;
+  background:#fffaf0 !important;
+  color:#262018 !important;
+  box-shadow:inset 0 0 0 1px rgba(60,40,20,.18), 4px 5px 0 rgba(0,0,0,.16) !important;
+  font:italic 12px/1.28 'Segoe Print', 'Comic Sans MS', cursive !important;
+}
+
+/* Fondo exterior: degradado irregular desde borde de finca a negro, sin tapar el PNG */
+body { background:#000 !important; box-shadow:none !important; }
+body::after {
+  display:block !important;
+  content:'';
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 48%, rgba(73,70,8,.08) 62%, rgba(29,30,5,.34) 76%, rgba(0,0,0,.92) 100%),
+    radial-gradient(ellipse at 8% 18%, rgba(117,101,24,.18), transparent 28%),
+    radial-gradient(ellipse at 93% 76%, rgba(80,64,18,.20), transparent 30%),
+    radial-gradient(ellipse at 48% 102%, rgba(92,66,22,.18), transparent 24%);
+  filter:blur(10px) saturate(1.08);
+}
+#game::before {
+  inset:-110px !important;
+  z-index:0 !important;
+  background:
+    radial-gradient(ellipse at 50% -4%, rgba(128,116,38,.42), rgba(74,78,24,.24) 28%, transparent 56%),
+    radial-gradient(ellipse at 50% 104%, rgba(90,62,24,.42), rgba(55,48,16,.28) 26%, transparent 58%),
+    radial-gradient(ellipse at -4% 50%, rgba(86,104,38,.38), rgba(46,68,27,.28) 28%, transparent 58%),
+    radial-gradient(ellipse at 104% 50%, rgba(77,69,24,.38), rgba(43,48,17,.28) 28%, transparent 58%),
+    linear-gradient(90deg, #000 0%, rgba(45,52,18,.80) 9%, rgba(91,90,27,.24) 18%, transparent 28%, transparent 72%, rgba(74,69,22,.24) 82%, rgba(24,29,11,.84) 91%, #000 100%),
+    linear-gradient(180deg, #000 0%, rgba(69,64,20,.78) 9%, rgba(113,98,29,.23) 18%, transparent 28%, transparent 72%, rgba(55,44,17,.25) 82%, rgba(20,18,8,.84) 91%, #000 100%) !important;
+  filter:blur(22px) saturate(1.15) !important;
+  opacity:1 !important;
+}
+
+/* Camión: salida sin salto de aceleración; retorno se mantiene */
+.truck-sprite.leaving { animation:truckLeave 3.8s linear forwards !important; }
+@keyframes truckLeave {
+  0% { transform:translateY(0); opacity:1; }
+  10% { transform:translateY(3px); opacity:1; }
+  22% { transform:translateY(12px); opacity:1; }
+  38% { transform:translateY(32px); opacity:1; }
+  58% { transform:translateY(88px); opacity:1; }
+  78% { transform:translateY(46vh); opacity:.82; }
+  100% { transform:translateY(125vh); opacity:0; }
+}
+
+/* 2026-06-04 follow-up: distillation controls, bottle archive metrics/timeline, smoother truck, wider peat smoke */
+/* Still buttons centered: fuego izquierda, cubo derecha */
+.still-unit .fire-btn {
+  left:calc(50% - 22px) !important;
+  right:auto !important;
+  bottom:2px !important;
+  transform:translateX(-100%) !important;
+  min-width:auto !important;
+  width:auto !important;
+  padding:0 3px !important;
+  font-size:14px !important;
+  line-height:26px !important;
+}
+.still-unit .empty-still-btn {
+  left:calc(50% + 22px) !important;
+  right:auto !important;
+  bottom:2px !important;
+  transform:none !important;
+  min-width:30px !important;
+  width:30px !important;
+  padding:0 !important;
+  line-height:26px !important;
+}
+
+/* Wider horizontal peat smoke while keeping origin at peat icon */
+.malt-smoke { width:150px !important; left:calc(50% + 18px) !important; }
+@keyframes maltSmokeGlobal {
+  0% { transform:translate3d(-50%,16px,0) scale(.55) rotate(-3deg); opacity:0; }
+  16% { opacity:.58; }
+  34% { transform:translate3d(-66%,-12px,0) scale(.96) rotate(3deg); opacity:.45; }
+  55% { transform:translate3d(-38%,-36px,0) scale(1.18) rotate(-3deg); opacity:.34; }
+  78% { transform:translate3d(-72%,-66px,0) scale(1.38) rotate(2deg); opacity:.20; }
+  100% { transform:translate3d(-28%,-92px,0) scale(1.62) rotate(5deg); opacity:0; }
+}
+
+/* Much smoother truck acceleration, same end travel */
+.truck-sprite.leaving { animation:truckLeave 4.6s linear forwards !important; }
+@keyframes truckLeave {
+  0% { transform:translateY(0); opacity:1; }
+  8% { transform:translateY(1px); opacity:1; }
+  16% { transform:translateY(4px); opacity:1; }
+  24% { transform:translateY(10px); opacity:1; }
+  32% { transform:translateY(19px); opacity:1; }
+  40% { transform:translateY(34px); opacity:1; }
+  48% { transform:translateY(56px); opacity:1; }
+  56% { transform:translateY(88px); opacity:1; }
+  64% { transform:translateY(136px); opacity:.98; }
+  72% { transform:translateY(210px); opacity:.94; }
+  80% { transform:translateY(330px); opacity:.84; }
+  88% { transform:translateY(55vh); opacity:.62; }
+  100% { transform:translateY(125vh); opacity:0; }
+}
+
+/* Bottle archive metrics: no rounded backgrounds, tighter vertical space, explanatory tooltips */
+.bottle-history-kpis {
+  justify-content:center !important;
+  gap:16px !important;
+  margin:0 0 6px !important;
+  align-items:center !important;
+}
+.bottle-history-kpis b {
+  background:transparent !important;
+  border-radius:0 !important;
+  padding:0 !important;
+  box-shadow:none !important;
+  color:#fff3cf !important;
+  text-shadow:2px 2px #000 !important;
+  font-size:22px !important;
+  line-height:1.05 !important;
+  cursor:help !important;
+}
+.bottle-history-toolbar select { min-width:190px; }
+
+/* Timeline axis as labels/ticks only, not a bar */
+.comp-time-axis {
+  position:relative !important;
+  height:18px !important;
+  display:block !important;
+  margin:0 0 2px !important;
+  border:0 !important;
+  background:transparent !important;
+}
+.comp-time-axis b {
+  position:absolute;
+  top:0;
+  transform:translateX(-50%);
+  color:#b9b0a4;
+  font:900 10px/12px ui-monospace, monospace;
+  white-space:nowrap;
+}
+.comp-time-axis b::before {
+  content:'';
+  position:absolute;
+  left:50%;
+  top:12px;
+  width:1px;
+  height:6px;
+  background:rgba(255,231,181,.36);
+}
+.comp-time-axis b:first-child { transform:translateX(0); }
+.comp-time-axis b:last-child { transform:translateX(-100%); }
+.comp-row { height:17px !important; }
+.comp-row span em { font-size:11px !important; line-height:17px !important; }
+.comp-timeline p { display:none !important; }
+
+/* Keep paper notes white and square */
+.bottle-history-main ul {
+  background:#fffdf7 !important;
+  border-radius:0 !important;
+  color:#201b15 !important;
+}
