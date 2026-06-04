@@ -1,16 +1,56 @@
 const STORAGE_KEY = 'miarma-distillery-state-v3';
 const SPLASH_KEY = 'sim-distillery-splash-seen-v1';
+const HAMBURGER_HINT_KEY = 'miarma-hamburger-hint-seen-v1';
 const FIELD_TILES = 20;
 const MALT_TILES = 4;
 const VAT_COUNT = 4;
 const STILL_COUNT = 4;
 
+let baseScale = 1;
+let gameZoom = 1;
+let stageOffsetX = 0;
+let stageOffsetY = 0;
+const clampStage = (n,a,b)=>Math.max(a,Math.min(b,n));
+const stageScale = () => baseScale * gameZoom;
+function clampStageOffset(x, y){
+  const scale = stageScale();
+  const sw = 1920 * scale, sh = 1080 * scale;
+  const minX = Math.min(0, innerWidth - sw), minY = Math.min(0, innerHeight - sh);
+  return {
+    x: sw <= innerWidth ? (innerWidth - sw) / 2 : clampStage(x, minX, 0),
+    y: sh <= innerHeight ? (innerHeight - sh) / 2 : clampStage(y, minY, 0)
+  };
+}
+function applyStageTransform(){
+  const p = clampStageOffset(stageOffsetX, stageOffsetY);
+  stageOffsetX = p.x; stageOffsetY = p.y;
+  document.documentElement.style.setProperty('--scale', stageScale().toString());
+  document.documentElement.style.setProperty('--offset-x', `${stageOffsetX}px`);
+  document.documentElement.style.setProperty('--offset-y', `${stageOffsetY}px`);
+}
 const fitStage = () => {
-  const scale = Math.min(innerWidth / 1920, innerHeight / 1080, 1);
-  document.documentElement.style.setProperty('--scale', scale.toString());
-  document.documentElement.style.setProperty('--offset-x', `${(innerWidth - 1920 * scale) / 2}px`);
-  document.documentElement.style.setProperty('--offset-y', `${(innerHeight - 1080 * scale) / 2}px`);
+  const oldScale = stageScale();
+  const cx = innerWidth / 2, cy = innerHeight / 2;
+  const worldX = (cx - stageOffsetX) / oldScale;
+  const worldY = (cy - stageOffsetY) / oldScale;
+  baseScale = Math.min(innerWidth / 1920, innerHeight / 1080, 1);
+  const nextScale = stageScale();
+  stageOffsetX = cx - worldX * nextScale;
+  stageOffsetY = cy - worldY * nextScale;
+  applyStageTransform();
 };
+function setGameZoom(nextZoom, anchorX=innerWidth/2, anchorY=innerHeight/2){
+  nextZoom = Math.round(clampStage(nextZoom, 1, 3) * 100) / 100;
+  if(Math.abs(nextZoom - gameZoom) < .001) return;
+  const oldScale = stageScale();
+  const worldX = (anchorX - stageOffsetX) / oldScale;
+  const worldY = (anchorY - stageOffsetY) / oldScale;
+  gameZoom = nextZoom;
+  const nextScale = stageScale();
+  stageOffsetX = anchorX - worldX * nextScale;
+  stageOffsetY = anchorY - worldY * nextScale;
+  applyStageTransform();
+}
 addEventListener('resize', fitStage);
 fitStage();
 
@@ -65,6 +105,9 @@ const DISTILL_TAKE_L_PER_TICK = 4;
 const DISTILL_WATER_TAKE_L_PER_TICK = 7;
 const MARKET_HISTORY_SAMPLE_MS = 1000;
 const MARKET_HISTORY_MAX = 90;
+const MARKET_MIN = 3;
+const MARKET_MAX = 5;
+const MARKET_MID = (MARKET_MIN + MARKET_MAX) / 2;
 const DISTILLATION_TARGETS = {
   1: { abv: LOW_WINES_ABV_TARGET, recovery: .93, label: 'low wines' },
   2: { abv: NEW_MAKE_ABV_TARGET, recovery: .948, label: 'new make' },
@@ -90,8 +133,8 @@ const FERMENT_OPTIMAL_END = 90;
 const FERMENT_ROTTEN_AT = 98;
 const MALT_DRY_SECONDS = 7;
 const MALT_KILNED_GRACE = 4800;
-const PLANT_IMAGES = { sprout: 'img/avena_recien_plantada.png', green: 'img/avena_joven.png', mature: 'img/avena_madura.png', dry: 'img/avena_seca.png' };
-const MALT_IMAGES = { wet: 'img/avena_germinando.png', water1: 'img/avena_germinando_1.png', water2: 'img/avena_germinando_2.png', bad: 'img/avena_germinando_estropeada.png', heated: 'img/avena_germinando_malteada.png' };
+const PLANT_IMAGES = { sprout: 'img/cebada_recien_plantada.png', green: 'img/cebada_joven.png', mature: 'img/cebada_madura.png', dry: 'img/cebada_seca.png' };
+const MALT_IMAGES = { wet: 'img/cebada_germinando.png', water1: 'img/cebada_germinando_1.png', water2: 'img/cebada_germinando_2.png', bad: 'img/cebada_germinando_estropeada.png', heated: 'img/cebada_germinando_malteada.png' };
 const bottleImage = b => b.age >= 18 ? 'img/bottles_18.png' : (b.age >= 12 ? 'img/bottles_12.png' : 'img/bottles_no_age.png');
 const BARREL_TYPES = {
   bourbon: { label:'Bourbon', wood:'Roble americano', litres:200, cost:3, image:'img/barril_bourbon.png' },
@@ -119,9 +162,12 @@ const defaultState = () => ({
   coins: 10,
   seeds: 0,
   bottles: 0,
-  market: 3.5,
+  market: MARKET_MID,
   marketPhase: Math.random()*10,
   marketTrend: 0,
+  marketTarget: MARKET_MID,
+  marketVelocity: 0,
+  marketVolatility: .018,
   marketTrendUntil: Date.now(),
   marketHistory: [{t: Date.now(), p: 3.5}],
   marketHistoryAt: Date.now(),
@@ -144,6 +190,28 @@ let pointerActive = false;
 let renderPending = false;
 let suppressNextClick = false;
 let suppressClickTimer = null;
+let stagePan = null;
+let debugToolsVisible = false;
+let truckBusy = false;
+let currentTruck = null;
+let truckTimerIds = [];
+let konamiIndex = 0;
+const KONAMI_SEQUENCE = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a','Enter'];
+function handleKonamiKey(e){
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  const expected = KONAMI_SEQUENCE[konamiIndex];
+  if(key === expected){
+    konamiIndex += 1;
+    if(konamiIndex === KONAMI_SEQUENCE.length){
+      konamiIndex = 0;
+      debugToolsVisible = !debugToolsVisible;
+      $('#game')?.classList.toggle('debug-tools-visible', debugToolsVisible);
+    }
+    return true;
+  }
+  konamiIndex = key === KONAMI_SEQUENCE[0] ? 1 : 0;
+  return false;
+}
 
 function normaliseLoaded(s){
   const fresh = defaultState();
@@ -155,9 +223,13 @@ function normaliseLoaded(s){
   merged.barrels = Array.isArray(s.barrels) && s.barrels.length ? s.barrels.map((b,i)=>{ const nb={...newBarrel(b.type || 'bourbon'), ...b, count:b.count || BARREL_PACK_SIZE, barrelQuality:b.barrelQuality || 100, lineage:Array.isArray(b.lineage)?b.lineage:[], components:Array.isArray(b.components)?b.components:[], x: Number.isFinite(b.x)?b.x:20+i*110, y: Number.isFinite(b.y)?b.y:48}; nb.components=normalizeComponents(nb, barrelLiquidL(nb)); return nb; }) : defaultBarrels();
   merged.boxes = Array.isArray(s.boxes) ? s.boxes.map((b,i)=>{ const box={...b, components:Array.isArray(b.components)?b.components:[], x: Number.isFinite(b.x)?b.x:18+i*95, y: Number.isFinite(b.y)?b.y:20}; box.components=normalizeComponents(box, Math.max(0,(Number(box.bottles)||0)*BOTTLE_LITRES), 'Botellas existentes'); return box; }) : [];
   merged.speedStep = 0;
-  merged.marketHistory = Array.isArray(s.marketHistory) ? s.marketHistory.map(x=>({t:Number(x.t)||Date.now(), p:clamp(Number(x.p)||merged.market, 2, 5)})).slice(-MARKET_HISTORY_MAX) : [{t:Date.now(), p:merged.market}];
+  merged.marketHistory = Array.isArray(s.marketHistory) ? s.marketHistory.map(x=>({t:Number(x.t)||Date.now(), p:clamp(Number(x.p)||merged.market, MARKET_MIN, MARKET_MAX)})).slice(-MARKET_HISTORY_MAX) : [{t:Date.now(), p:merged.market}];
   merged.marketHistoryAt = Number(s.marketHistoryAt) || Date.now();
+  merged.market = clamp(Number(merged.market)||MARKET_MID, MARKET_MIN, MARKET_MAX);
   merged.marketTrend = Number(s.marketTrend) || 0;
+  merged.marketTarget = clamp(Number(s.marketTarget) || merged.market || MARKET_MID, MARKET_MIN, MARKET_MAX);
+  merged.marketVelocity = clamp(Number(s.marketVelocity) || 0, -.12, .12);
+  merged.marketVolatility = clamp(Number(s.marketVolatility) || .012, .004, .026);
   merged.marketTrendUntil = Number(s.marketTrendUntil) || Date.now();
   merged.debugQuality = !!merged.debugQuality;
   merged.musicEnabled = s.musicEnabled !== false;
@@ -193,6 +265,12 @@ function playFx(id, volume=.78){
   fx.volume=volume;
   fx.play().catch(()=>{});
   fx.addEventListener('ended', ()=>fx.remove(), {once:true});
+}
+const SCOT_RUMBLING_FX = ['fxEscocesRumbling1','fxEscocesRumbling2','fxEscocesRumbling3'];
+function playScotVoice(mood='explain'){
+  if(mood === 'angry') return playFx('fxEscocesGrumpy', .82);
+  const id = SCOT_RUMBLING_FX[Math.floor(Math.random()*SCOT_RUMBLING_FX.length)];
+  playFx(id, .56);
 }
 const LOOP_FX_IDS = ['fxChicharrasCicada', 'fxFireLong', 'fxRottenFlies'];
 function setLoopFx(id, active, volume=.45){
@@ -258,7 +336,13 @@ function qualityCurve(value, start, mid, end){
   return 80;
 }
 function cropQuality(t){ return qualityCurve(t.growth, FIELD_HARVEST_START, FIELD_OPTIMAL_MID, FIELD_OPTIMAL_END); }
-function maltQuality(t){ return qualityCurve(t.germ, MALT_HARVEST_START, MALT_OPTIMAL_MID, MALT_OPTIMAL_END); }
+function maltQuality(t){
+  const g = Number(t?.germ || 0);
+  if(g < MALT_HARVEST_START) return 0;
+  if(g < MALT_OPTIMAL_START) return 80 + (g - MALT_HARVEST_START) / (MALT_OPTIMAL_START - MALT_HARVEST_START) * 20;
+  if(g <= MALT_OPTIMAL_END) return 100;
+  return clamp(100 - (g - MALT_OPTIMAL_END) / (100 - MALT_OPTIMAL_END) * 20, 80, 100);
+}
 function fermentQuality(v){
   const f = Number(v?.ferment || 0);
   if(f <= FERMENT_OPTIMAL_END) return qualityCurve(f, FERMENT_OPTIMAL_START, FERMENT_OPTIMAL_MID, FERMENT_OPTIMAL_END);
@@ -358,15 +442,20 @@ function clearStillOutput(s){ Object.assign(s,{output:0, outputAbv:0, outputQual
 function recordMarketSample(now=Date.now(), force=false){
   if(!Array.isArray(state.marketHistory)) state.marketHistory=[];
   if(force || !state.marketHistory.length || now-(state.marketHistoryAt||0)>=MARKET_HISTORY_SAMPLE_MS){
-    state.marketHistory.push({t:now, p:Number(state.market)||3.5});
+    state.marketHistory.push({t:now, p:clamp(Number(state.market)||MARKET_MID, MARKET_MIN, MARKET_MAX)});
     state.marketHistory=state.marketHistory.slice(-MARKET_HISTORY_MAX);
     state.marketHistoryAt=now;
   }
 }
 function updateMarketTrend(now=Date.now()){
   if(now >= (state.marketTrendUntil || 0)){
-    state.marketTrend = rnd(-.62, .62);
-    state.marketTrendUntil = now + rnd(12000, 42000);
+    const r = Math.random();
+    state.marketTarget = r < .24 ? rnd(MARKET_MIN + .02, MARKET_MIN + .25)
+      : r > .76 ? rnd(MARKET_MAX - .25, MARKET_MAX - .02)
+      : rnd(MARKET_MIN + .20, MARKET_MAX - .20);
+    state.marketTrend = rnd(-.006, .006);
+    state.marketVolatility = rnd(.010, .030);
+    state.marketTrendUntil = now + rnd(7000, 26000);
   }
 }
 function marketSparklineHtml(){
@@ -386,10 +475,12 @@ const SCOT_MOODS = {
   happy: ['img/escoces-happy.png','img/scot-happy.png']
 };
 function scotImg(mood='explain'){ return (SCOT_MOODS[mood] || SCOT_MOODS.explain)[0]; }
-function popupCloseSound(){ playFx('fxAhhh', .68); }
-function gamePopup({title='Aviso', msg='', html='', mood='explain', confirm=false, ok='Vale', cancel='Cancelar'}={}){
+function popupCloseSound(id='fxAhhh', volume=.68){ if(id) playFx(id, volume); }
+function gamePopup({title='Aviso', msg='', html='', mood='explain', confirm=false, ok='Vale', cancel='Cancelar', closeFx='fxAhhh', closeOnAnyClick=false}={}){
   const root=$('#gamePopup'); if(!root){ if(confirm) return Promise.resolve(window.confirm(msg)); noticeFallback(msg); return Promise.resolve(true); }
+  if(root.parentElement !== document.body) document.body.appendChild(root);
   playFx('fxCork', .72);
+  playScotVoice(mood);
   return new Promise(resolve=>{
     const img=scotImg(mood);
     const body = html || `<p>${escapeHtml(msg)}</p>`;
@@ -399,11 +490,11 @@ function gamePopup({title='Aviso', msg='', html='', mood='explain', confirm=fals
       <div class="game-popup-copy"><h3>${escapeHtml(title)}</h3>${body}<div class="game-popup-actions"><button class="pixel-btn small ok" type="button">${escapeHtml(ok)}</button>${confirm?`<button class="pixel-btn small danger cancel" type="button">${escapeHtml(cancel)}</button>`:''}</div></div>
     </div>`;
     root.classList.remove('hidden');
-    const done=answer=>{ root.classList.add('hidden'); root.innerHTML=''; popupCloseSound(); resolve(answer); };
+    const done=answer=>{ root.classList.add('hidden'); root.innerHTML=''; popupCloseSound(closeFx, .68); resolve(answer); };
     root.querySelector('.ok')?.addEventListener('click', e=>{ e.stopPropagation(); done(true); });
     root.querySelector('.cancel')?.addEventListener('click', e=>{ e.stopPropagation(); done(false); });
     root.querySelector('.game-popup-close')?.addEventListener('click', e=>{ e.stopPropagation(); done(false); });
-    root.addEventListener('click', e=>{ if(e.target===root) done(false); }, {once:true});
+    root.onclick = e=>{ if(closeOnAnyClick || e.target===root) done(false); };
   });
 }
 function showKeybindingsPopup(){
@@ -416,15 +507,13 @@ function showKeybindingsPopup(){
         <b>f / g / h / j</b><span>Fuego alambiques 1 / 2 / 3 / 4</span>
         <b>m</b><span>Música on/off</span>
         <b>x</b><span>Efectos on/off</span>
-        <b>º</b><span>Bajar velocidad</span>
-        <b>1</b><span>Tiempo x1</span>
-        <b>2</b><span>Subir velocidad</span>
-        <b>3 / 4</b><span>Tiempo al máximo x10</span>
+        <b>º / 1 / 2 / 3 / 4</b><span>Tiempo: bajar / x1 / subir / x5 / x10</span>
         <b>Esc</b><span>Mostrar/ocultar menú principal</span>
         <b>Enter</b><span>Aceptar nombre si estás editándolo</span>
       </div>
     </div>`,
-    ok:'Vale'
+    ok:'Vale',
+    closeOnAnyClick:true
   });
 }
 function noticeFallback(msg){ alert(msg); }
@@ -447,7 +536,7 @@ function markDropHints(data){
   if(data.drag==='malt') sel = '.vat-unit';
   if(data.drag==='wash') sel = '.still-drop.in';
   if(data.drag==='spirit') sel = '.still-drop.in, .barrel-card';
-  if(data.drag==='barrel') sel = '#aging, #bottling';
+  if(data.drag==='barrel') sel = '#aging, #bottling, #barrelDiscard';
   if(data.drag==='box') sel = '#bottling, #truckDock';
   if(sel) $$(sel).forEach(el=>el.classList.add('can-drop'));
 }
@@ -529,7 +618,7 @@ function renderField(){
       img.className='plant-img'; img.draggable=false;
       if(t.status==='dry'){ plant.className += ' dry'; img.src=PLANT_IMAGES.dry; img.alt='cultivo seco'; }
       else if(t.growth>=FIELD_HARVEST_START){ img.src=PLANT_IMAGES.mature; img.alt='cultivo maduro'; }
-      else if(t.growth>=35){ img.src=PLANT_IMAGES.green; img.alt='cultivo verde'; }
+      else if(t.growth>=20){ img.src=PLANT_IMAGES.green; img.alt='cultivo verde'; }
       else { img.src=PLANT_IMAGES.sprout; img.alt='cultivo recién plantado'; }
       plant.appendChild(img); el.appendChild(plant);
       if(t.status==='planted' && t.growth>=FIELD_HARVEST_START){
@@ -641,13 +730,11 @@ function renderCards(){
   shop.className='barrel-shop';
   shop.innerHTML=`<button class="barrel-buy" type="button" data-type="bourbon" data-tip="Comprar pack de ${BARREL_PACK_SIZE} barricas de Bourbon.\nRoble americano · 200l · ${BARREL_TYPES.bourbon.cost} k€.">+ 10 barricas de Bourbon ${BARREL_TYPES.bourbon.cost}k€</button><button class="barrel-buy" type="button" data-type="sherry" data-tip="Comprar pack de ${BARREL_PACK_SIZE} barricas de Jerez.\nRoble europeo · 500l · ${BARREL_TYPES.sherry.cost} k€.">+ 10 barricas de Jerez ${BARREL_TYPES.sherry.cost}k€</button>`;
   aging.appendChild(shop);
-  if(state.barrels.some(b=>(b.barrelQuality||100)<90)){
-    const discard=document.createElement('div');
-    discard.id='barrelDiscard'; discard.className='barrel-discard drop-target';
-    discard.dataset.tip='Descartar barriles viejos.\nSuelta aquí un pack con Q de barril menor de 90 para retirarlo.';
-    discard.textContent='🗑️ Descartar barriles Q<90';
-    aging.appendChild(discard);
-  }
+  const discard=document.createElement('div');
+  discard.id='barrelDiscard'; discard.className='barrel-discard drop-target';
+  discard.dataset.tip='Descartar barriles.\nSuelta aquí cualquier pack cuando quieras retirarlo; se perderá también el líquido que contenga.';
+  discard.textContent='🗑️ Barril 🖐️';
+  aging.appendChild(discard);
   state.barrels.forEach((b,i)=>{
     if(!Number.isFinite(b.x)) b.x=24+i*120; if(!Number.isFinite(b.y)) b.y=56;
     const type=BARREL_TYPES[b.type || 'bourbon'] || BARREL_TYPES.bourbon;
@@ -796,13 +883,30 @@ function makeBarrel(stillIndex,e,data){
   if(e) Object.assign(b, localDropPoint($('#aging'), e, data));
   addSpiritToBarrel(stillIndex, b.id);
 }
-function addSpiritToBarrel(stillIndex, id){
+function ageMixDiff(a,b){
+  const na = Number(a)||0, nb = Number(b)||0;
+  return Math.abs(na-nb);
+}
+async function confirmAgeMix(existingAge, incomingAge, context='líquidos'){
+  const diff = ageMixDiff(existingAge, incomingAge);
+  if(diff <= 3) return true;
+  return gamePopup({
+    title:'Mezclar líquidos de edades distintas',
+    mood:'warn',
+    confirm:true,
+    ok:'Aceptar',
+    cancel:'Cancelar',
+    msg:`Vas a mezclar ${context} con más de 3 años de diferencia (${existingAge.toFixed(1)}a y ${incomingAge.toFixed(1)}a). El lote resultante contará como la edad menor y puede perder valor. ¿Seguro que quieres hacerlo?`
+  });
+}
+async function addSpiritToBarrel(stillIndex, id){
   const s=state.stills[stillIndex], b=state.barrels.find(x=>x.id===id);
   if(!s || !b || s.output<=0) return;
   if(s.outputAbv<40){ notice('El destilado tiene menos de 40° ABV. Mínimo debe tener 40°; haz una nueva destilación antes de meterlo en barrica.', 'angry', 'No se puede embarricar'); return; }
   if(s.outputRuns<2){ notice('Este destilado necesita una nueva destilación antes de pasar a barrica.', 'explain', 'Falta una pasada'); return; }
   const oldLitres=barrelLiquidL(b), availableL=barrelCapacityL(b)-oldLitres;
   if(availableL<=0) return;
+  if(oldLitres>0 && !(await confirmAgeMix(Number(b.age)||0, 0, 'un destilado nuevo y whisky envejecido'))) return;
   const sourceL=stillOutLitres(s);
   const targetAbv=Math.min(s.outputAbv,CASK_FILL_ABV);
   const dilutedL=s.outputAbv>CASK_FILL_ABV ? sourceL * s.outputAbv / targetAbv : sourceL;
@@ -823,12 +927,14 @@ function addSpiritToBarrel(stillIndex, id){
   playFx('fxBubblesDrop', .62);
   playFx('fxWoodRelease', .52);
   clearStillOutput(s);
+  markDirty(); render(); saveGame();
 }
-function transferBarrelToBarrel(fromId,toId){
+async function transferBarrelToBarrel(fromId,toId){
   const from=state.barrels.find(x=>x.id===fromId), to=state.barrels.find(x=>x.id===toId);
   if(!from || !to || from===to || (from.volume||0)<=0) return;
   const fromL=barrelLiquidL(from), toL=barrelLiquidL(to), availableL=barrelCapacityL(to)-toL;
   const moveL=Math.min(fromL, availableL); if(moveL<=0) return;
+  if(toL>0 && !(await confirmAgeMix(Number(to.age)||0, Number(from.age)||0, 'dos barriles'))) return;
   const barrelFactor=(to.barrelQuality||100)/100;
   const movedComponents=splitComponents(from, fromL, moveL).map(c=>({...c, quality:qualityOrDefault(c.quality)*barrelFactor}));
   to.quality=weightedQuality(toL, to.quality, moveL, (from.quality||100)*barrelFactor);
@@ -841,6 +947,7 @@ function transferBarrelToBarrel(fromId,toId){
   from.volume=barrelPctFromL(from, fromL-moveL);
   playFx('fxBubblesDrop', .62);
   if(from.volume<.1) Object.assign(from,{volume:0,age:0,abv:0,quality:100,peatPpm:0,components:[],lineage:[]});
+  markDirty(); render(); saveGame();
 }
 function moveBarrel(id,e,data){
   const b=state.barrels.find(x=>x.id===id); if(!b || !e) return;
@@ -848,15 +955,25 @@ function moveBarrel(id,e,data){
 }
 async function discardBarrel(id){
   const i=state.barrels.findIndex(b=>b.id===id); if(i<0) return;
-  const b=state.barrels[i];
-  if((b.barrelQuality||100)>=90){ notice('Sólo se descartan aquí barriles antiguos con Q menor de 90.', 'explain'); return; }
-  if(await gamePopup({title:'Descartar barriles', msg:'¿Descartar este pack de barriles antiguos? Se perderá también cualquier líquido que contenga.', mood:'warn', confirm:true, ok:'Descartar'})){ state.barrels.splice(i,1); markDirty(); render(); saveGame(); }
+  if(await gamePopup({title:'Descartar barriles', msg:'¿Descartar este pack de barriles? Se perderá también cualquier líquido que contenga.', mood:'warn', confirm:true, ok:'Descartar'})){ state.barrels.splice(i,1); markDirty(); render(); saveGame(); }
 }
 function bottleOptions(abv){
   const max=Math.floor(abv||0);
-  const base=[40,43,45].filter(x=>x<=max);
-  for(let x=46;x<=max;x++) base.push(x);
+  const base=[40,43,45,46,48,50].filter(x=>x<=max);
+  for(let x=51;x<=max;x++) base.push(x);
   return [...new Set(base)];
+}
+function bottleOptionLabel(abv){
+  if(abv===43 || abv===45) return 'Export strength';
+  if(abv===46 || abv===48 || abv===50) return 'Premium / Non-chill strength';
+  if(abv>=55) return 'Cask Strength';
+  if(abv>=51) return 'High Proof';
+  return '';
+}
+function bottleScotMood(abv){
+  if(abv===40) return 'sad';
+  if(abv===43 || abv===45) return 'explain';
+  return 'happy';
 }
 function bottleBarrel(id,e,data){
   const b=state.barrels.find(x=>x.id===id); if(!b || (b.volume||0)<=0) return;
@@ -870,10 +987,10 @@ function openBottleDialog(b,p){
   const old=$('#bottleModal'); old?.remove();
   playFx('fxCork', .72);
   const modal=document.createElement('div'); modal.id='bottleModal'; modal.className='bottle-modal';
-  modal.innerHTML=`<div class="bottle-card-modal"><h3>Embotellar</h3><p>Elige grado ABS final</p><input id="bottleAbvRange" type="range" min="0" max="${opts.length-1}" step="1" value="${opts.length-1}"><strong id="bottleAbvLabel"></strong><div><button id="bottleOk" class="pixel-btn small" type="button">Embotellar</button><button id="bottleCancel" class="pixel-btn small danger" type="button">Cancelar</button></div></div>`;
+  modal.innerHTML=`<div class="bottle-card-modal"><img id="bottleScot" class="bottle-scot" src="${scotImg('happy')}" alt="" onerror="this.hidden=true"><div class="bottle-copy"><h3>Embotellar</h3><p>Elige grado ABV final</p><input id="bottleAbvRange" type="range" min="0" max="${opts.length-1}" step="1" value="${opts.length-1}"><strong id="bottleAbvLabel"></strong><div class="bottle-actions"><button id="bottleOk" class="pixel-btn small" type="button">Embotellar</button><button id="bottleCancel" class="pixel-btn small danger" type="button">Cancelar</button></div></div></div>`;
   document.body.appendChild(modal);
-  const input=$('#bottleAbvRange'), label=$('#bottleAbvLabel');
-  const update=()=>{ const abv=opts[+input.value]; label.textContent=abv>=46 ? `${abv}° cask strength` : `${abv}°`; };
+  const input=$('#bottleAbvRange'), label=$('#bottleAbvLabel'), scot=$('#bottleScot');
+  const update=()=>{ const abv=opts[+input.value], txt=bottleOptionLabel(abv); label.innerHTML=`${abv}°${txt ? ` <span>${txt}</span>` : ''}`; if(scot) scot.src=scotImg(bottleScotMood(abv)); };
   input.oninput=update; update();
   $('#bottleCancel').onclick=()=>{ modal.remove(); playFx('fxAhhh', .68); };
   $('#bottleOk').onclick=()=>{ finishBottleBarrel(b.id, opts[+input.value], p); modal.remove(); playFx('fxAhhh', .58); markDirty(); render(); saveGame(); };
@@ -896,12 +1013,50 @@ function moveBox(id,e,data){
   const b=state.boxes.find(x=>x.id===id); if(!b || !e) return;
   Object.assign(b, localDropPoint($('#bottling'), e, data));
 }
+const TRUCK_IMAGES = ['img/truck1.png','img/truck2.png','img/truck3.png','img/truck4.png'];
+function pickTruckImage(except=currentTruck){
+  const pool = TRUCK_IMAGES.filter(x=>x!==except);
+  return (pool.length ? pool : TRUCK_IMAGES)[Math.floor(Math.random()*(pool.length ? pool.length : TRUCK_IMAGES.length))];
+}
+function ensureTruckSprite(){
+  const dock=$('#truckDock'); if(!dock) return null;
+  let img=$('#truckSprite');
+  if(!img){
+    img=document.createElement('img'); img.id='truckSprite'; img.className='truck-sprite'; img.alt='camión'; img.draggable=false;
+    dock.appendChild(img);
+  }
+  if(!currentTruck) currentTruck=pickTruckImage(null);
+  img.src=currentTruck;
+  return img;
+}
+function clearTruckTimers(){ truckTimerIds.forEach(clearTimeout); truckTimerIds=[]; }
+function animateTruckSale(){
+  const img=ensureTruckSprite(); if(!img) return;
+  clearTruckTimers();
+  truckBusy = true;
+  img.classList.remove('returning','away');
+  void img.offsetWidth;
+  playFx('fxTruckStart', .82);
+  img.classList.add('leaving');
+  truckTimerIds.push(setTimeout(()=>{
+    img.classList.remove('leaving'); img.classList.add('away');
+    truckTimerIds.push(setTimeout(()=>{
+      const prev=currentTruck; currentTruck=pickTruckImage(prev);
+      img.src=currentTruck;
+      img.classList.remove('away'); img.classList.add('returning');
+      playFx('fxTruckReverse', .78);
+      truckTimerIds.push(setTimeout(()=>{ img.classList.remove('returning'); truckBusy=false; }, 1650));
+    }, 5000));
+  }, 1450));
+}
 function sellBox(id){
+  if(truckBusy){ notice('El camión está fuera repartiendo. Espera a que vuelva al muelle para vender otra caja.', 'explain', 'Camión fuera'); return; }
   const i=state.boxes.findIndex(b=>b.id===id); if(i<0) return;
   const b=state.boxes.splice(i,1)[0];
   const euros=b.bottles * Math.max(.1,b.age) * state.market * ((b.quality || 100)/100);
   state.coins += euros/1000; state.bottles -= b.bottles;
   playFx('fxCashRegister', .78);
+  animateTruckSale();
 }
 
 
@@ -915,7 +1070,8 @@ function render(){
   $('#seeds').textContent = `${state.seeds.toFixed(0)} Kg`;
   $('#bottles').textContent = `${state.bottles}`;
   $('#market').textContent = `${state.market.toFixed(2)} €`;
-  $('#resources').dataset.tip = `Recursos: 🪙 Monedas ${state.coins.toFixed(0)} k€ · 🌾 Semillas ${state.seeds.toFixed(0)} Kg (${SEED_KG_PER_PLOT} Kg/parcela) · 🍾 Botellas ${state.bottles} · 📈 Mercado ${state.market.toFixed(2)} € x botella x años`;
+  $('#resources').dataset.tip = `Recursos:\n🪙 Monedas ${state.coins.toFixed(0)} k€ · 🌾 Semillas ${state.seeds.toFixed(0)} Kg (${SEED_KG_PER_PLOT} Kg/parcela) · 🍾 Botellas ${state.bottles} · 📈 Mercado ${state.market.toFixed(2)} € x botella x años`;
+  $('#game').classList.toggle('debug-tools-visible', debugToolsVisible);
   $('#market').closest('.stat, .market')?.setAttribute('data-tip', `Precio de mercado: ${state.market.toFixed(2)} € x botella x años.\nLa calidad multiplica el precio: Q90 = x0.90.\n${marketSparklineHtml()}`);
   $('#speedSlider').value = state.speedStep;
   $('#speedLabel').textContent = speedLabel();
@@ -931,8 +1087,17 @@ function simulate(timeStep=1, speed=speedMultiplier()){
   const sp = Math.max(0, speed) * Math.max(0, timeStep);
   if(sp<=0) return;
   updateMarketTrend(Date.now());
-  state.marketPhase += 0.018 * sp;
-  state.market = clamp(3.5 + Math.sin(state.marketPhase)*1.05 + Math.sin(state.marketPhase*2.7)*0.38 + (state.marketTrend || 0) + (Math.random()-.5)*0.08, 2, 5);
+  const damp = Math.pow(.91, Math.min(sp, 30));
+  const target = clamp(Number(state.marketTarget) || MARKET_MID, MARKET_MIN, MARKET_MAX);
+  const drift = (target - state.market) * .015 * sp + (Number(state.marketTrend)||0) * sp;
+  const noise = (Math.random() + Math.random() - 1) * (Number(state.marketVolatility)||.016) * Math.sqrt(Math.max(.2, sp));
+  state.marketVelocity = clamp((Number(state.marketVelocity)||0) * damp + drift + noise, -.080, .080);
+  state.market = Number(state.market) + state.marketVelocity;
+  if(state.market < MARKET_MIN || state.market > MARKET_MAX){
+    state.market = clamp(state.market, MARKET_MIN, MARKET_MAX);
+    state.marketVelocity *= -.62;
+    state.marketTarget = rnd(MARKET_MIN + .08, MARKET_MAX - .08);
+  }
   recordMarketSample(Date.now());
   for(const t of state.field){
     if(t.status==='planted'){
@@ -1062,6 +1227,28 @@ function heatMalt(i){
   markDirty(); render(); saveGame();
 }
 
+function startStagePan(e){
+  if(e.button !== 1 || !e.target.closest('#game')) return false;
+  e.preventDefault(); e.stopPropagation();
+  stagePan = { pointerId:e.pointerId, x:e.clientX, y:e.clientY, startX:stageOffsetX, startY:stageOffsetY };
+  e.target.setPointerCapture?.(e.pointerId);
+  document.body.classList.add('stage-panning');
+  return true;
+}
+function moveStagePan(e){
+  if(!stagePan || e.pointerId !== stagePan.pointerId) return false;
+  e.preventDefault();
+  stageOffsetX = stagePan.startX + (e.clientX - stagePan.x);
+  stageOffsetY = stagePan.startY + (e.clientY - stagePan.y);
+  applyStageTransform();
+  return true;
+}
+function endStagePan(e){
+  if(!stagePan || (e?.pointerId !== undefined && e.pointerId !== stagePan.pointerId)) return false;
+  stagePan = null;
+  document.body.classList.remove('stage-panning');
+  return true;
+}
 function dragDataFrom(el){
   const type = el.dataset.drag;
   if(type==='seed' && state.seeds < SEED_KG_PER_PLOT) return null;
@@ -1074,7 +1261,15 @@ function makeGhost(data, source){
   else if(data.drag==='malt') ghost.innerHTML = `<img class="plant-img" src="${MALT_IMAGES.heated}" alt="malta">`;
   else if(data.drag==='wash') ghost.textContent = 'mosto';
   else if(data.drag==='spirit') ghost.textContent = 'dest.';
-  else { const clone=source.cloneNode(true); clone.classList.add('drag-ghost'); return clone; }
+  else {
+    const clone=source.cloneNode(true); clone.classList.add('drag-ghost');
+    const sc=scaleNow(), rect=source.getBoundingClientRect();
+    clone.style.setProperty('width', `${rect.width / sc}px`, 'important');
+    clone.style.setProperty('height', `${rect.height / sc}px`, 'important');
+    clone.style.transformOrigin='top left';
+    clone.style.transform=`scale(${sc})`;
+    return clone;
+  }
   return ghost;
 }
 function startDrag(e, source){
@@ -1086,6 +1281,8 @@ function startDrag(e, source){
   const rect = source.getBoundingClientRect();
   data.offsetX = (e.clientX - rect.left) / scaleNow();
   data.offsetY = (e.clientY - rect.top) / scaleNow();
+  data.offsetScreenX = e.clientX - rect.left;
+  data.offsetScreenY = e.clientY - rect.top;
   if(data.drag==='barrel' || data.drag==='box') playFx('fxWoodGrab', .58);
   markDropHints(data);
   const ghost = makeGhost(data, source);
@@ -1094,7 +1291,7 @@ function startDrag(e, source){
   dragging = {data, ghost, pointerId:e.pointerId, source, lastTarget:null, x:e.clientX, y:e.clientY, moved:false, card:source.classList.contains('card')};
   moveGhost(e.clientX, e.clientY);
 }
-function moveGhost(x,y){ if(!dragging) return; if(dragging.card){ dragging.ghost.style.transform='none'; dragging.ghost.style.left=`${x - dragging.data.offsetX*scaleNow()}px`; dragging.ghost.style.top=`${y - dragging.data.offsetY*scaleNow()}px`; } else { dragging.ghost.style.left=`${x}px`; dragging.ghost.style.top=`${y}px`; } }
+function moveGhost(x,y){ if(!dragging) return; if(dragging.card){ dragging.ghost.style.left=`${x - (Number(dragging.data.offsetScreenX)||0)}px`; dragging.ghost.style.top=`${y - (Number(dragging.data.offsetScreenY)||0)}px`; } else { dragging.ghost.style.left=`${x}px`; dragging.ghost.style.top=`${y}px`; } }
 function clearHover(){ dragging?.lastTarget?.classList.remove('hover'); if(dragging) dragging.lastTarget=null; }
 function updateDropHover(e){
   if(!dragging) return;
@@ -1121,6 +1318,7 @@ document.addEventListener('pointerup', () => setTimeout(()=>{ pointerActive = fa
 document.addEventListener('pointercancel', () => setTimeout(()=>{ pointerActive = false; if(renderPending) render(); }, 0), true);
 
 document.addEventListener('pointerdown', e=>{
+  if(startStagePan(e)) return;
   if(e.target.closest('button, input, label')) return;
   const dragSource = e.target.closest('[data-drag]');
   if(dragSource) return startDrag(e, dragSource);
@@ -1128,12 +1326,14 @@ document.addEventListener('pointerdown', e=>{
   if(maltTile) return waterMalt(maltTile, 100);
 });
 document.addEventListener('pointermove', e=>{
+  if(moveStagePan(e)) return;
   if(!dragging) return;
   if(Math.hypot(e.clientX-dragging.x, e.clientY-dragging.y)>10) dragging.moved=true;
   moveGhost(e.clientX,e.clientY); updateDropHover(e);
 });
-document.addEventListener('pointerup', endDrag);
-document.addEventListener('pointercancel', endDrag);
+document.addEventListener('pointerup', e=>{ if(endStagePan(e)) return; endDrag(e); });
+document.addEventListener('pointercancel', e=>{ if(endStagePan(e)) return; endDrag(e); });
+document.addEventListener('auxclick', e=>{ if(e.button===1 && e.target.closest('#game')) e.preventDefault(); });
 document.addEventListener('click', e=>{
   if(suppressNextClick){ suppressNextClick=false; clearTimeout(suppressClickTimer); e.preventDefault(); e.stopPropagation(); return; }
   if(e.target.closest('.clean, button, input')) return;
@@ -1207,20 +1407,21 @@ function debugFill(){
 
 
 document.addEventListener('click', e=>{ const buy=e.target.closest('.barrel-buy'); if(buy){ e.preventDefault(); buyBarrel(buy.dataset.type); } const eq=e.target.closest('.equipment-buy'); if(eq){ e.preventDefault(); buyEquipment(eq.dataset.equipment); } });
-$('#buySeeds').onclick=()=>{ if(state.coins>=SEED_PACK_COST){ state.coins-=SEED_PACK_COST; state.seeds+=SEED_PACK_KG; playFx('fxCashRegister', .72); markDirty(); render(); } else notice(`Necesitas ${SEED_PACK_COST} k€ para comprar semillas.`, 'explain', 'No hay dinero'); };
+$('#buySeeds').onclick=()=>{ if(state.coins + 1e-6 >= SEED_PACK_COST){ state.coins=Math.max(0, state.coins-SEED_PACK_COST); state.seeds+=SEED_PACK_KG; playFx('fxCashRegister', .72); markDirty(); render(); } else notice(`Necesitas ${SEED_PACK_COST} k€ para comprar semillas.`, 'explain', 'No hay dinero'); };
 $('#distilleryName').addEventListener('input', e=>{ state.distilleryName=e.target.value || 'Miarma Distillery'; markDirty(); });
 $('#editName').onclick=()=>{ nameEditing=true; render(); $('#distilleryName').focus(); $('#distilleryName').select(); };
 function acceptName(){ nameEditing=false; state.distilleryName=$('#distilleryName').value.trim() || 'Miarma Distillery'; markDirty(); render(); saveGame(); }
 $('#acceptName').onclick=acceptName;
 $('#distilleryName').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); acceptName(); }});
 document.addEventListener('keydown', e=>{
-  const editing = e.target.closest('input, textarea, select') || nameEditing;
-  if(e.key==='Escape'){ e.preventDefault(); $('#hud').classList.contains('collapsed') ? showHud() : hideHud(); return; }
+  const editing = e.target?.closest?.('input, textarea, select') || nameEditing;
   if(editing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if(handleKonamiKey(e)){ e.preventDefault(); return; }
+  if(e.key==='Escape'){ e.preventDefault(); $('#hud').classList.contains('collapsed') ? showHud() : hideHud(); return; }
   if(e.key==='º'){ e.preventDefault(); setSpeedStep((state.speedStep||0)-1); render(); return; }
   if(e.key==='1'){ e.preventDefault(); setSpeedStep(0); render(); return; }
   if(e.key==='2'){ e.preventDefault(); setSpeedStep((state.speedStep||0)+1); render(); return; }
-  if(e.key==='3'){ e.preventDefault(); setSpeedStep(9); render(); return; }
+  if(e.key==='3'){ e.preventDefault(); setSpeedStep(4); render(); return; }
   if(e.key==='4'){ e.preventDefault(); setSpeedStep(9); render(); return; }
   const fireKey={f:0,g:1,h:2,j:3}[e.key.toLowerCase()];
   if(fireKey!==undefined){ e.preventDefault(); toggleStillFire(fireKey); return; }
@@ -1230,43 +1431,74 @@ document.addEventListener('keydown', e=>{
 $('#speedSlider').addEventListener('input', e=>{ setSpeedStep(Number(e.target.value)); });
 $('#speedReset').onclick=()=>{ setSpeedStep(0); render(); };
 $('#speedSlider').addEventListener('wheel', e=>{ e.preventDefault(); setSpeedStep(Number(state.speedStep||0)+(e.deltaY<0?1:-1)); }, {passive:false});
+document.addEventListener('wheel', e=>{
+  if(e.target.closest?.('#speedSlider, #bottleAbvRange, .reference-modal:not(.hidden), .help-modal:not(.hidden), .game-popup:not(.hidden), .bottle-modal')) return;
+  e.preventDefault();
+  const dir = e.deltaY < 0 ? 1 : -1;
+  setGameZoom(gameZoom + dir * .22, e.clientX, e.clientY);
+}, {passive:false});
 $('#debugFill').onclick=debugFill;
 $('#toggleDebugView').onclick=()=>{ state.debugQuality=!state.debugQuality; $('#toggleDebugView').classList.toggle('on', state.debugQuality); markDirty(); render(); };
 $('#toggleMusic').onclick=()=>{ setMusicEnabled(state.musicEnabled === false); saveGame(); };
 $('#toggleFx').onclick=()=>{ state.fxEnabled = state.fxEnabled === false; refreshAudioToggles(); markDirty(); saveGame(); };
 function showHud(){ $('#hud').classList.remove('collapsed'); playFx('fxCork', .72); }
 function hideHud(){ $('#hud').classList.add('collapsed'); playFx('fxAhhh', .68); }
-$('#hudIcon').onclick=()=>{ $('#hud').classList.contains('collapsed') ? showHud() : hideHud(); };
+function clearHamburgerHint(){
+  try { localStorage.setItem(HAMBURGER_HINT_KEY, '1'); } catch(_){}
+  $('#hudIcon')?.classList.remove('menu-hint');
+}
+if(localStorage.getItem(HAMBURGER_HINT_KEY) !== '1') $('#hudIcon')?.classList.add('menu-hint');
+$('#hudIcon').onclick=()=>{ clearHamburgerHint(); $('#hud').classList.contains('collapsed') ? showHud() : hideHud(); };
 function openOverlay(sel){ const el=$(sel); if(!el) return; el.classList.remove('hidden'); playFx('fxCork', .72); }
-function closeOverlay(sel){ const el=$(sel); if(!el || el.classList.contains('hidden')) return false; el.classList.add('hidden'); playFx('fxAhhh', .68); return true; }
+function closeOverlay(sel, {silent=false, fx='fxAhhh'}={}){ const el=$(sel); if(!el || el.classList.contains('hidden')) return false; el.classList.add('hidden'); if(!silent) playFx(fx, .68); return true; }
 $('#helpButton').onclick=()=>openOverlay('#helpModal');
-$('#helpModal').onclick=()=>{ if(closeOverlay('#helpModal')) setTimeout(showKeybindingsPopup, 120); };
+$('#helpModal').onclick=()=>{ if(closeOverlay('#helpModal', {silent:true})) setTimeout(showKeybindingsPopup, 120); };
 $('#magnitudesButton').onclick=()=>openOverlay('#magnitudesModal');
 $('#magnitudesModal').onclick=e=>{ if(e.target.closest('a')) return; closeOverlay('#magnitudesModal'); };
 $('#magnitudesClose').onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeOverlay('#magnitudesModal'); };
 addEventListener('message', e=>{ if(e.data==='close-magnitudes') closeOverlay('#magnitudesModal'); });
 $('#resetGame').onclick=async()=>{
   if(await gamePopup({title:'Reset', msg:'¿Reiniciar la partida y borrar el guardado local de Miarma Distillery?', mood:'warn', confirm:true, ok:'Reset'})){
-    localStorage.removeItem(STORAGE_KEY); state=defaultState(); markDirty(); render(); saveGame(); showSplash();
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(HAMBURGER_HINT_KEY);
+    state=defaultState(); markDirty(); render(); saveGame();
+    $('#hudIcon')?.classList.add('menu-hint');
+    showSplash();
   }
 };
 
 const tip=$('#tooltip');
+['#helpModal','#magnitudesModal','#gamePopup'].forEach(sel=>{ const el=$(sel); if(el && el.parentElement !== document.body) document.body.appendChild(el); });
 document.body.appendChild(tip);
-document.addEventListener('pointermove', e=>{
-  const padX=10, padY=6;
-  const w=tip.offsetWidth || 260, h=tip.offsetHeight || 50;
-  let left = e.clientX + padX, top = e.clientY + padY;
-  let tx = '0', ty = '0';
-  if(left + w > innerWidth){ left = e.clientX - padX; tx = '-100%'; }
-  if(top + h > innerHeight){ top = e.clientY - padY; ty = '-100%'; }
-  tip.style.left=`${left}px`; tip.style.top=`${top}px`; tip.style.transform=`translate(${tx}, ${ty})`;
-});
 let activeTipEl=null;
+let activeTipRaw='';
 function isMarketTipEl(el){ return !!(el && (el.id==='market' || el.querySelector?.('#market'))); }
-function refreshTooltip(){ if(activeTipEl && tip.classList.contains('show')) tip.innerHTML=tipHtml(activeTipEl.dataset.tip); }
-document.addEventListener('pointerover', e=>{ const el=e.target.closest('[data-tip]'); if(!el) return; activeTipEl=el; refreshTooltip(); tip.classList.add('show'); });
-document.addEventListener('pointerout', e=>{ if(e.target.closest('[data-tip]')){ activeTipEl=null; tip.classList.remove('show'); } });
+function refreshTooltip(force=false){
+  if(!activeTipEl || !tip.classList.contains('show')) return;
+  const raw = activeTipEl.dataset.tip || '';
+  if(force || raw !== activeTipRaw || isMarketTipEl(activeTipEl)){
+    activeTipRaw = raw;
+    tip.innerHTML = tipHtml(raw);
+  }
+}
+function positionTooltip(x,y){
+  const padX=20, padY=20;
+  const w=tip.offsetWidth || 260, h=tip.offsetHeight || 50;
+  let left = x + padX, top = y + padY;
+  let tx = '0', ty = '0';
+  if(left + w > innerWidth){ left = x - padX; tx = '-100%'; }
+  if(top + h > innerHeight){ top = y - padY; ty = '-100%'; }
+  tip.style.left=`${left}px`; tip.style.top=`${top}px`; tip.style.transform=`translate(${tx}, ${ty})`;
+}
+function syncTooltipAt(x,y){
+  const el = document.elementFromPoint(x,y)?.closest?.('[data-tip]') || null;
+  if(el !== activeTipEl){ activeTipEl = el; activeTipRaw = ''; }
+  if(activeTipEl){ tip.classList.add('show'); refreshTooltip(true); }
+  else tip.classList.remove('show');
+}
+document.addEventListener('pointermove', e=>{ positionTooltip(e.clientX, e.clientY); syncTooltipAt(e.clientX, e.clientY); });
+document.addEventListener('pointerover', e=>{ const el=e.target.closest('[data-tip]'); if(!el) return; activeTipEl=el; activeTipRaw=''; refreshTooltip(true); tip.classList.add('show'); });
+document.addEventListener('pointerout', e=>{ if(e.target.closest('[data-tip]')){ activeTipEl=null; activeTipRaw=''; tip.classList.remove('show'); } });
 addEventListener('blur', () => startBackgroundSim());
 addEventListener('focus', () => finishBackgroundSim());
 document.addEventListener('visibilitychange', () => document.hidden ? startBackgroundSim() : finishBackgroundSim());
@@ -1275,6 +1507,7 @@ setupSplash();
 loadGame();
 recordMarketSample(Date.now(), true);
 initTiles();
+ensureTruckSprite();
 render();
 setInterval(tick, TICK_MS);
 setInterval(()=>{ if(isMarketTipEl(activeTipEl)) refreshTooltip(); }, 1000);
