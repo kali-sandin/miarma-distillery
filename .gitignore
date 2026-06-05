@@ -8,3 +8,6 @@ audio/main_loop_original.mp3
 img/*.xcf
 img/splash.png
 img/*_orig.*
+
+# Source/backup assets in nested folders
+img/**/*.xcf

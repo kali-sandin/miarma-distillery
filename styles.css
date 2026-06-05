@@ -1298,14 +1298,14 @@ body::after {
 /* 2026-06-05 last tanda: still controls, live fire, finca edge tiles, bottles layout */
 #fincaEdges { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
 #fincaEdges .edge { position:absolute; display:block; image-rendering:pixelated; background-repeat:repeat; background-size:auto; opacity:.98; }
-#fincaEdges .edge-u { left:257px; right:269px; top:0; height:122px; background-image:url('img/finca_U.jpg'); background-repeat:repeat-x; }
-#fincaEdges .edge-d { left:257px; right:269px; bottom:0; height:174px; background-image:url('img/finca_D.jpg'); background-repeat:repeat-x; }
-#fincaEdges .edge-l { left:0; top:122px; bottom:174px; width:257px; background-image:url('img/finca_L.jpg'); background-repeat:repeat-y; }
-#fincaEdges .edge-r { right:0; top:122px; bottom:174px; width:269px; background-image:url('img/finca_R.jpg'); background-repeat:repeat-y; }
-#fincaEdges .edge-lu { left:0; top:0; width:257px; height:122px; background-image:url('img/finca_LU.jpg'); }
-#fincaEdges .edge-ru { right:0; top:0; width:269px; height:122px; background-image:url('img/finca_RU.jpg'); }
-#fincaEdges .edge-ld { left:0; bottom:0; width:257px; height:174px; background-image:url('img/finca_LD.jpg'); }
-#fincaEdges .edge-rd { right:0; bottom:0; width:269px; height:174px; background-image:url('img/finca_RD.jpg'); }
+#fincaEdges .edge-u { left:257px; right:269px; top:0; height:122px; background-image:url('img/finca/finca_U.jpg'); background-repeat:repeat-x; }
+#fincaEdges .edge-d { left:257px; right:269px; bottom:0; height:174px; background-image:url('img/finca/finca_D.jpg'); background-repeat:repeat-x; }
+#fincaEdges .edge-l { left:0; top:122px; bottom:174px; width:257px; background-image:url('img/finca/finca_L.jpg'); background-repeat:repeat-y; }
+#fincaEdges .edge-r { right:0; top:122px; bottom:174px; width:269px; background-image:url('img/finca/finca_R.jpg'); background-repeat:repeat-y; }
+#fincaEdges .edge-lu { left:0; top:0; width:257px; height:122px; background-image:url('img/finca/finca_LU.jpg'); }
+#fincaEdges .edge-ru { right:0; top:0; width:269px; height:122px; background-image:url('img/finca/finca_RU.jpg'); }
+#fincaEdges .edge-ld { left:0; bottom:0; width:257px; height:174px; background-image:url('img/finca/finca_LD.jpg'); }
+#fincaEdges .edge-rd { right:0; bottom:0; width:269px; height:174px; background-image:url('img/finca/finca_RD.jpg'); }
 
 /* Still controls: cubo izquierda, fuego derecha, closer together */
 .still-unit .empty-still-btn {
@@ -1367,11 +1367,425 @@ body::after {
 /* Finca zoom-out tiles live outside the central map bounds */
 #fincaEdges { inset:0; z-index:0; overflow:visible !important; }
 #finca { z-index:1; }
-#fincaEdges .edge-u { left:0 !important; right:0 !important; top:-122px !important; height:122px !important; background-image:url('img/finca_U.jpg'); background-repeat:repeat-x !important; background-size:auto 122px !important; }
-#fincaEdges .edge-d { left:0 !important; right:0 !important; bottom:-174px !important; height:174px !important; background-image:url('img/finca_D.jpg'); background-repeat:repeat-x !important; background-size:auto 174px !important; }
-#fincaEdges .edge-l { left:-257px !important; top:0 !important; bottom:0 !important; width:257px !important; background-image:url('img/finca_L.jpg'); background-repeat:repeat-y !important; background-size:257px auto !important; }
-#fincaEdges .edge-r { right:-269px !important; top:0 !important; bottom:0 !important; width:269px !important; background-image:url('img/finca_R.jpg'); background-repeat:repeat-y !important; background-size:269px auto !important; }
-#fincaEdges .edge-lu { left:-257px !important; top:-122px !important; width:257px !important; height:122px !important; background-image:url('img/finca_LU.jpg'); }
-#fincaEdges .edge-ru { right:-269px !important; top:-122px !important; width:269px !important; height:122px !important; background-image:url('img/finca_RU.jpg'); }
-#fincaEdges .edge-ld { left:-257px !important; bottom:-174px !important; width:257px !important; height:174px !important; background-image:url('img/finca_LD.jpg'); }
-#fincaEdges .edge-rd { right:-269px !important; bottom:-174px !important; width:269px !important; height:174px !important; background-image:url('img/finca_RD.jpg'); }
+#fincaEdges .edge-u { left:0 !important; right:0 !important; top:-122px !important; height:122px !important; background-image:url('img/finca/finca_U.jpg'); background-repeat:repeat-x !important; background-size:auto 122px !important; }
+#fincaEdges .edge-d { left:0 !important; right:0 !important; bottom:-174px !important; height:174px !important; background-image:url('img/finca/finca_D.jpg'); background-repeat:repeat-x !important; background-size:auto 174px !important; }
+#fincaEdges .edge-l { left:-257px !important; top:0 !important; bottom:0 !important; width:257px !important; background-image:url('img/finca/finca_L.jpg'); background-repeat:repeat-y !important; background-size:257px auto !important; }
+#fincaEdges .edge-r { right:-269px !important; top:0 !important; bottom:0 !important; width:269px !important; background-image:url('img/finca/finca_R.jpg'); background-repeat:repeat-y !important; background-size:269px auto !important; }
+#fincaEdges .edge-lu { left:-257px !important; top:-122px !important; width:257px !important; height:122px !important; background-image:url('img/finca/finca_LU.jpg'); }
+#fincaEdges .edge-ru { right:-269px !important; top:-122px !important; width:269px !important; height:122px !important; background-image:url('img/finca/finca_RU.jpg'); }
+#fincaEdges .edge-ld { left:-257px !important; bottom:-174px !important; width:257px !important; height:174px !important; background-image:url('img/finca/finca_LD.jpg'); }
+#fincaEdges .edge-rd { right:-269px !important; bottom:-174px !important; width:269px !important; height:174px !important; background-image:url('img/finca/finca_RD.jpg'); }
+
+
+/* 2026-06-05 tope pass: moved finca assets, scaled non-repeating frame, roofs overlay, splash preload, bottle hover, still heat glow */
+#fincaEdges {
+  --bleed-x: 5760px;
+  --bleed-y: 3240px;
+  --top-h: 204px;
+  --bottom-h: 292px;
+  --left-w: 430px;
+  --right-w: 450px;
+  position:absolute !important;
+  inset:calc(-1 * var(--bleed-y)) calc(-1 * var(--bleed-x)) !important;
+  z-index:0 !important;
+  overflow:hidden !important;
+  pointer-events:none !important;
+  background-image:url('img/finca/finca_C.jpg') !important;
+  background-size:1920px 1080px !important;
+  background-position:center center !important;
+  background-repeat:repeat !important;
+}
+#fincaEdges::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(to bottom, #000 0, transparent 76px) top/100% 100% no-repeat,
+    linear-gradient(to top, #000 0, transparent 76px) bottom/100% 100% no-repeat,
+    linear-gradient(to right, #000 0, transparent 76px) left/100% 100% no-repeat,
+    linear-gradient(to left, #000 0, transparent 76px) right/100% 100% no-repeat;
+}
+#fincaEdges .edge { position:absolute !important; display:block !important; image-rendering:pixelated; opacity:1 !important; pointer-events:none !important; }
+#fincaEdges .edge-u,
+#fincaEdges .edge-d { left:0 !important; right:0 !important; background-position:center bottom !important; background-repeat:repeat !important; }
+#fincaEdges .edge-u { top:0 !important; height:var(--bleed-y) !important; background-image:url('img/finca/finca_U.jpg') !important; background-size:1920px var(--top-h) !important; }
+#fincaEdges .edge-d { bottom:0 !important; height:var(--bleed-y) !important; background-image:url('img/finca/finca_D.jpg') !important; background-size:1920px var(--bottom-h) !important; background-position:center top !important; }
+#fincaEdges .edge-l,
+#fincaEdges .edge-r { top:var(--bleed-y) !important; bottom:var(--bleed-y) !important; background-repeat:repeat !important; }
+#fincaEdges .edge-l { left:0 !important; width:var(--bleed-x) !important; background-image:url('img/finca/finca_L.jpg') !important; background-size:var(--left-w) 1080px !important; background-position:right center !important; }
+#fincaEdges .edge-r { right:0 !important; width:var(--bleed-x) !important; background-image:url('img/finca/finca_R.jpg') !important; background-size:var(--right-w) 1080px !important; background-position:left center !important; }
+#fincaEdges .edge-lu,
+#fincaEdges .edge-ru,
+#fincaEdges .edge-ld,
+#fincaEdges .edge-rd { width:var(--bleed-x) !important; height:var(--bleed-y) !important; background-repeat:repeat !important; }
+#fincaEdges .edge-lu { left:0 !important; top:0 !important; background-image:url('img/finca/finca_LU.jpg') !important; background-size:var(--left-w) var(--top-h) !important; background-position:right bottom !important; }
+#fincaEdges .edge-ru { right:0 !important; top:0 !important; background-image:url('img/finca/finca_RU.jpg') !important; background-size:var(--right-w) var(--top-h) !important; background-position:left bottom !important; }
+#fincaEdges .edge-ld { left:0 !important; bottom:0 !important; background-image:url('img/finca/finca_LD.jpg') !important; background-size:var(--left-w) var(--bottom-h) !important; background-position:right top !important; }
+#fincaEdges .edge-rd { right:0 !important; bottom:0 !important; background-image:url('img/finca/finca_RD.jpg') !important; background-size:var(--right-w) var(--bottom-h) !important; background-position:left top !important; }
+#finca { z-index:1 !important; }
+#fincaRoofs {
+  position:absolute;
+  left:257px;
+  top:122px;
+  width:1146px;
+  height:645px;
+  z-index:2;
+  object-fit:fill;
+  image-rendering:pixelated;
+  pointer-events:none;
+  opacity:1;
+  transition:opacity .28s ease;
+}
+#fincaRoofs.hidden-roofs { opacity:0; pointer-events:none; }
+.splash-loader {
+  position:absolute;
+  left:50%;
+  bottom:46px;
+  width:min(560px, calc(100vw - 46px));
+  transform:translateX(-50%);
+  z-index:5;
+  display:grid;
+  gap:8px;
+  padding:12px 14px;
+  border:3px solid rgba(255,218,130,.78);
+  background:rgba(22,13,8,.76);
+  box-shadow:0 0 26px rgba(255,100,24,.26), 6px 6px 0 rgba(0,0,0,.35);
+  color:#fff0c8;
+  text-shadow:2px 2px #000;
+  font:900 14px ui-monospace, monospace;
+  pointer-events:none;
+}
+.splash-loader-label { display:flex; justify-content:space-between; align-items:center; gap:14px; }
+.splash-bar { height:18px; border:3px solid #241911; background:#170d08; overflow:hidden; }
+.splash-bar i { display:block; width:0%; height:100%; background:linear-gradient(90deg,#7d2e14,#ff7b1c,#ffe36d); box-shadow:0 0 18px rgba(255,124,28,.85); transition:width .12s linear; }
+.splash-loader small { color:#d8c29d; font-size:12px; text-align:center; }
+.splash-screen:not(.loading) .splash-loader { animation:splashReady .75s ease-in-out infinite alternate; }
+@keyframes splashReady { from{ filter:brightness(1); } to{ filter:brightness(1.18); } }
+.box-card { padding:0 !important; margin:0 !important; overflow:visible; }
+.box-card img,
+.bottle-history-cover img,
+.bottle-history-window header img {
+  padding:0 !important;
+  margin:0 !important;
+  transform-origin:50% 82%;
+}
+.box-card img { width:118px !important; height:118px !important; }
+.bottle-history-cover img:hover,
+.box-card:hover img {
+  image-rendering:auto;
+  animation:bottleOriginalWobble 1.25s ease-in-out infinite;
+  filter:drop-shadow(0 12px 12px rgba(0,0,0,.42)) drop-shadow(0 0 14px rgba(255,231,181,.55));
+}
+.bottle-history-cover img:hover { width:190px !important; height:423px !important; z-index:5; }
+.box-card:hover img { transform:scale(3.22); z-index:50; }
+@keyframes bottleOriginalWobble {
+  0%,100% { transform:scale(1) rotate(-1.2deg); }
+  50% { transform:scale(1.035) rotate(1.3deg); }
+}
+.box-card:hover img { animation:bottleBoxOriginalWobble 1.25s ease-in-out infinite; }
+@keyframes bottleBoxOriginalWobble {
+  0%,100% { transform:scale(3.22) rotate(-1.2deg); }
+  50% { transform:scale(3.34) rotate(1.3deg); }
+}
+.still-unit.fire-on .bar.tempv i {
+  box-shadow:0 0 8px rgba(255,36,20,.95), 0 0 16px rgba(255,86,0,.72), 0 0 25px rgba(255,0,0,.45) !important;
+  animation:tempFireGlow .58s ease-in-out infinite alternate;
+}
+@keyframes tempFireGlow {
+  0% { filter:brightness(1); box-shadow:0 0 6px rgba(255,36,20,.75), 0 0 12px rgba(255,86,0,.5); }
+  100% { filter:brightness(1.34); box-shadow:0 0 10px rgba(255,64,22,.95), 0 0 20px rgba(255,92,0,.78), 0 0 32px rgba(255,0,0,.42); }
+}
+.still-unit .empty-still-btn { left:calc(50% - 30px) !important; }
+.still-unit .fire-btn { left:calc(50% - 1px) !important; font-size:16px !important; min-width:34px !important; height:32px !important; }
+.fire-btn > span:first-child { font-size:30px !important; line-height:1 !important; }
+.empty-still-btn .empty-icon { font-size:30px !important; }
+
+/* Corrección hover real de botellas y glow permanente de temperatura */
+.bottle-history-card { overflow:visible !important; }
+.bottle-history-cover { overflow:visible !important; }
+.bottle-history-cover img {
+  width:132px !important;
+  height:293px !important;
+  padding:0 !important;
+  margin:0 !important;
+  transition:width .16s ease, height .16s ease, filter .16s ease;
+}
+.bottle-history-cover img:hover {
+  width:380px !important;
+  height:845px !important;
+  position:relative;
+  z-index:20;
+  animation:bottleOriginalWobble 1.25s ease-in-out infinite;
+}
+.still-unit .bar.tempv i {
+  animation:tempFireGlow .62s ease-in-out infinite alternate;
+  box-shadow:0 0 8px rgba(255,36,20,.95), 0 0 16px rgba(255,86,0,.62), 0 0 24px rgba(255,0,0,.36) !important;
+}
+#edgeViewportFade {
+  position:absolute;
+  z-index:0;
+  pointer-events:none;
+  --fade-size:92px;
+  background:
+    linear-gradient(to bottom, #000 0, transparent var(--fade-size)) top/100% 100% no-repeat,
+    linear-gradient(to top, #000 0, transparent var(--fade-size)) bottom/100% 100% no-repeat,
+    linear-gradient(to right, #000 0, transparent var(--fade-size)) left/100% 100% no-repeat,
+    linear-gradient(to left, #000 0, transparent var(--fade-size)) right/100% 100% no-repeat;
+}
+#fincaRoofs { transition:opacity .18s ease !important; }
+
+/* 2026-06-06 correction pass: roofs top, mirrored outer texture, help glow, boxes restored, bottle archive layout */
+#fincaEdges {
+  background-image:url('img/finca/generated/tile_C_pair.jpg') !important;
+  background-size:3840px 2160px !important;
+  background-position:center center !important;
+  background-repeat:repeat !important;
+}
+#fincaEdges .edge-u { background-image:url('img/finca/generated/tile_U_pair.jpg') !important; background-size:1920px 408px !important; background-position:center bottom !important; background-repeat:repeat !important; }
+#fincaEdges .edge-d { background-image:url('img/finca/generated/tile_D_pair.jpg') !important; background-size:1920px 584px !important; background-position:center top !important; background-repeat:repeat !important; }
+#fincaEdges .edge-l { background-image:url('img/finca/generated/tile_L_pair.jpg') !important; background-size:860px 1080px !important; background-position:right center !important; background-repeat:repeat !important; }
+#fincaEdges .edge-r { background-image:url('img/finca/generated/tile_R_pair.jpg') !important; background-size:900px 1080px !important; background-position:left center !important; background-repeat:repeat !important; }
+#fincaEdges .edge-lu { background-image:url('img/finca/generated/tile_LU_pair.jpg') !important; background-size:860px 408px !important; background-position:right bottom !important; background-repeat:repeat !important; }
+#fincaEdges .edge-ru { background-image:url('img/finca/generated/tile_RU_pair.jpg') !important; background-size:900px 408px !important; background-position:left bottom !important; background-repeat:repeat !important; }
+#fincaEdges .edge-ld { background-image:url('img/finca/generated/tile_LD_pair.jpg') !important; background-size:860px 584px !important; background-position:right top !important; background-repeat:repeat !important; }
+#fincaEdges .edge-rd { background-image:url('img/finca/generated/tile_RD_pair.jpg') !important; background-size:900px 584px !important; background-position:left top !important; background-repeat:repeat !important; }
+#fincaRoofs {
+  inset:0 auto auto 0 !important;
+  left:0 !important;
+  top:0 !important;
+  width:1920px !important;
+  height:1080px !important;
+  object-fit:fill !important;
+  z-index:40 !important;
+  pointer-events:none !important;
+}
+.splash-loader {
+  border:1px solid rgba(36,25,17,.82) !important;
+  box-shadow:0 0 18px rgba(0,0,0,.22), 4px 4px 0 rgba(0,0,0,.28) !important;
+}
+.pixel-btn.menu-hint,
+.hud-icon.menu-hint {
+  animation:menuHintGlow 1s ease-in-out infinite alternate !important;
+  filter:drop-shadow(0 0 6px rgba(255,225,94,.95)) drop-shadow(0 0 16px rgba(255,127,24,.72));
+}
+@keyframes menuHintGlow {
+  from { box-shadow:0 0 0 3px rgba(255,227,113,.25), 5px 5px 0 rgba(0,0,0,.32); transform:scale(1); }
+  to { box-shadow:0 0 0 5px rgba(255,227,113,.62), 0 0 22px rgba(255,142,36,.86), 5px 5px 0 rgba(0,0,0,.32); transform:scale(1.035); }
+}
+.still-unit .empty-still-btn {
+  left:calc(50% - 4px) !important;
+  transform:translateX(-100%) !important;
+  width:30px !important;
+  min-width:30px !important;
+}
+.still-unit .fire-btn {
+  left:calc(50% - 1px) !important;
+  transform:none !important;
+  min-width:72px !important;
+  height:32px !important;
+  width:auto !important;
+  padding:0 3px !important;
+  font-size:14px !important;
+  gap:3px !important;
+}
+.fire-btn .fire-icon { font-size:30px !important; line-height:1 !important; color:#ffe7b5 !important; text-shadow:1px 1px #000 !important; }
+.fire-btn .control-label { color:#ffe7b5 !important; text-shadow:1px 1px #000 !important; font-size:14px !important; line-height:26px !important; }
+.empty-still-btn .empty-icon { font-size:30px !important; }
+.box-card {
+  padding:5px !important;
+  margin:0 !important;
+  overflow:visible !important;
+  width:138px !important;
+  min-height:126px !important;
+  grid-template-columns:1fr !important;
+  grid-template-rows:26px 104px !important;
+  justify-items:center !important;
+}
+.box-card .box-text { grid-column:1 !important; grid-row:1 !important; justify-content:center !important; text-align:center !important; width:100% !important; }
+.box-card img { grid-column:1 !important; grid-row:2 !important; justify-self:center !important; width:104px !important; height:104px !important; padding:0 !important; margin:0 !important; transform:none !important; animation:none !important; image-rendering:pixelated !important; }
+.box-card:hover img { transform:none !important; animation:none !important; filter:drop-shadow(3px 3px #18140f) !important; }
+.bottle-history-card { grid-template-columns:170px minmax(0,1fr) 160px !important; overflow:visible !important; }
+.bottle-history-cover {
+  display:grid !important;
+  grid-template-columns:72px 96px !important;
+  grid-template-rows:214px !important;
+  align-items:center !important;
+  justify-items:center !important;
+  gap:0 !important;
+  overflow:visible !important;
+}
+.bottle-history-cover h4 {
+  grid-column:1 !important;
+  grid-row:1 !important;
+  align-self:center !important;
+  justify-self:end !important;
+  margin:0 8px 0 0 !important;
+  font-size:17px !important;
+  line-height:1.05 !important;
+  text-align:right !important;
+}
+.bottle-history-cover img {
+  grid-column:2 !important;
+  grid-row:1 !important;
+  width:96px !important;
+  height:214px !important;
+  align-self:stretch !important;
+  justify-self:center !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  transform-origin:50% 50% !important;
+  transition:filter .16s ease !important;
+}
+.bottle-history-cover img:hover {
+  width:96px !important;
+  height:214px !important;
+  transform-origin:50% 50% !important;
+  animation:bottleArchiveHoverWobble 1.18s ease-in-out infinite !important;
+  z-index:50 !important;
+  position:relative !important;
+}
+@keyframes bottleArchiveHoverWobble {
+  0%,100% { transform:scale(3.17) rotate(-1deg); }
+  50% { transform:scale(3.24) rotate(1deg); }
+}
+.bottle-history-lower { grid-template-columns:.8fr 1.2fr !important; gap:10px !important; }
+.bottle-history-main ul {
+  min-height:100% !important;
+  margin:0 !important;
+  padding:18px 24px 16px !important;
+  list-style:none !important;
+  background:transparent url('img/finca/etiqueta.png') center/100% 100% no-repeat !important;
+  color:#241b13 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+.bottle-history-main li { list-style:none !important; margin:0 0 5px !important; padding:0 !important; }
+.bottle-history-price { text-align:center !important; align-items:center !important; justify-content:center !important; }
+.bottle-history-price strong { text-align:center !important; width:100% !important; }
+.liquid-swatch { display:inline-block; width:10px; height:10px; margin-right:4px; border:1px solid rgba(255,231,181,.55); vertical-align:-1px; }
+#fincaRoofs.roof-hidden { animation:roofsFadeOut .18s ease forwards !important; }
+#fincaRoofs.roof-visible { animation:roofsFadeIn .18s ease forwards !important; }
+@keyframes roofsFadeOut { from{ opacity:1; } to{ opacity:0; } }
+@keyframes roofsFadeIn { from{ opacity:0; } to{ opacity:1; } }
+
+/* 2026-06-06 requested polish: stable stills, flame temperature, bottle archive refinements */
+.still-unit .empty-still-btn { left:calc(50% - 16px) !important; }
+.still-unit .fire-btn { left:calc(50% - 13px) !important; }
+.empty-still-btn:hover .empty-icon { transform:rotate(-75deg) !important; }
+.still-unit .bar.tempv i {
+  position:relative !important;
+  overflow:visible !important;
+  background:linear-gradient(90deg,#9b0802 0%,#ff2c13 32%,#ffd25d 58%,#ff3418 78%,#8f0903 100%) !important;
+  box-shadow:0 0 8px rgba(255,48,18,.95), 0 0 18px rgba(255,113,22,.9), 0 0 34px rgba(255,0,0,.62) !important;
+  animation:tempFlameCore .34s ease-in-out infinite alternate !important;
+}
+.still-unit .bar.tempv i::before,
+.still-unit .bar.tempv i::after {
+  content:'';
+  position:absolute;
+  left:-5px;
+  right:-5px;
+  top:-10px;
+  bottom:-3px;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 48% 0%, rgba(255,244,98,.95) 0 9%, rgba(255,130,22,.74) 20%, transparent 44%),
+    radial-gradient(ellipse at 30% 22%, rgba(255,77,18,.72), transparent 38%),
+    radial-gradient(ellipse at 72% 38%, rgba(255,42,10,.68), transparent 42%);
+  filter:blur(2px) saturate(1.45);
+  mix-blend-mode:screen;
+  animation:tempFlameLick .42s ease-in-out infinite alternate;
+}
+.still-unit .bar.tempv i::after {
+  left:-8px;
+  right:-8px;
+  opacity:.66;
+  filter:blur(5px) saturate(1.7);
+  animation:tempFlameLick2 .67s ease-in-out infinite alternate-reverse;
+}
+@keyframes tempFlameCore {
+  from { filter:brightness(1.05) saturate(1.2); transform:skewX(-1deg); }
+  to { filter:brightness(1.45) saturate(1.7); transform:skewX(1deg); }
+}
+@keyframes tempFlameLick {
+  0% { transform:translateY(4px) scaleX(.82); opacity:.62; }
+  45% { transform:translateY(-4px) scaleX(1.14); opacity:1; }
+  100% { transform:translateY(-10px) scaleX(.96); opacity:.78; }
+}
+@keyframes tempFlameLick2 {
+  0% { transform:translateY(8px) scaleX(1.18); opacity:.3; }
+  100% { transform:translateY(-7px) scaleX(.84); opacity:.82; }
+}
+.bottle-history-window { overflow:visible !important; }
+#bottleHistoryList { overflow:visible !important; }
+.bottle-history-card { grid-template-columns:112px minmax(0,1fr) 160px !important; overflow:visible !important; position:relative; }
+.bottle-history-card:hover { z-index:80; }
+.bottle-history-cover {
+  grid-template-columns:1fr !important;
+  grid-template-rows:214px !important;
+  width:112px !important;
+  justify-items:center !important;
+  align-items:center !important;
+}
+.bottle-history-cover h4 { display:none !important; }
+.bottle-history-kpis { justify-content:flex-start !important; align-items:center !important; gap:14px !important; }
+.bottle-history-kpis .lot-label {
+  color:#fff3cf !important;
+  font-size:18px !important;
+  margin-right:-4px !important;
+  white-space:nowrap;
+}
+.bottle-history-kpis .quality-kpi {
+  color:#ffe16d !important;
+  filter:drop-shadow(0 0 5px rgba(255,207,56,.5));
+}
+.bottle-history-window header img { width:68px !important; height:86px !important; }
+.bottle-history-cover img {
+  width:96px !important;
+  height:214px !important;
+  --bottle-scale:1;
+  --bottle-tilt:0deg;
+  transform:scale(var(--bottle-scale)) rotate(var(--bottle-tilt)) !important;
+  transform-origin:50% 50% !important;
+  transition:transform .34s cubic-bezier(.18,.86,.2,1.05), filter .18s ease !important;
+  will-change:transform;
+}
+.bottle-history-cover img:hover {
+  width:96px !important;
+  height:214px !important;
+  --bottle-scale:3.17;
+  animation:bottleTiltLoose 1.43s ease-in-out infinite alternate !important;
+  z-index:120 !important;
+  position:relative !important;
+}
+@property --bottle-tilt { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+@keyframes bottleTiltLoose {
+  0% { --bottle-tilt:-1.1deg; }
+  37% { --bottle-tilt:.8deg; }
+  71% { --bottle-tilt:-.35deg; }
+  100% { --bottle-tilt:1.15deg; }
+}
+.comp-row span { position:absolute !important; overflow:hidden !important; display:flex !important; align-items:center !important; }
+.comp-row .comp-volume {
+  align-self:stretch;
+  flex:0 0 auto;
+  min-width:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff4c4;
+  background:linear-gradient(90deg, rgba(40,23,12,.72), rgba(255,245,164,.26));
+  border-right:1px solid rgba(255,245,180,.46);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);
+  font-style:normal;
+}
+.comp-row .comp-volume strong {
+  font:900 10px/17px ui-monospace, monospace;
+  color:#fff4c4;
+  text-shadow:1px 1px #000;
+  white-space:nowrap;
+  padding:0 4px;
+}
+.comp-row span > em { flex:1 1 auto; min-width:0; }
+.bottle-history-main ul { padding:18px 24px 16px 36px !important; }
