@@ -136,11 +136,11 @@ const MALT_KILNED_GRACE = 4800;
 const PLANT_IMAGES = { sprout: 'img/cebada_recien_plantada.png', green: 'img/cebada_joven.png', mature: 'img/cebada_madura.png', dry: 'img/cebada_seca.png' };
 const MALT_IMAGES = { wet: 'img/cebada_germinando.png', water1: 'img/cebada_germinando_1.png', water2: 'img/cebada_germinando_2.png', bad: 'img/cebada_germinando_estropeada.png', heated: 'img/cebada_germinando_malteada.png' };
 const bottleImage = b => b.age >= 18 ? 'img/bottles_18.png' : (b.age >= 12 ? 'img/bottles_12.png' : 'img/bottles_no_age.png');
-const BOTTLE_ART_COUNT = 20;
-const BOTTLE_ART_ORDER = [7,2,14,0,11,5,18,9,1,16,4,13,8,19,3,12,6,15,10,17];
+const BOTTLE_ART_COUNT = 35;
+const BOTTLE_ART_ORDER = Array.from({length:BOTTLE_ART_COUNT}, (_,i)=>i);
 const bottleArtForSeq = seq => `img/botella${String(BOTTLE_ART_ORDER[Math.max(0, (Number(seq)||1)-1) % BOTTLE_ART_COUNT]).padStart(2,'0')}.png`;
 const bottleArtImg = lot => lot?.image || bottleArtForSeq(lot?.seq || 1);
-const bottleArtFallback = `this.onerror=null;this.src='img/bottle1.png'`;
+const bottleArtFallback = `this.onerror=null;this.src='img/bottles_no_age.png'`;
 const BARREL_TYPES = {
   bourbon: { label:'Bourbon', wood:'Roble americano', litres:200, cost:3, image:'img/barril_bourbon.png' },
   sherry: { label:'Jerez', wood:'Roble europeo', litres:500, cost:8, image:'img/barril_sherry.png' }
@@ -350,9 +350,12 @@ function cropQuality(t){ return qualityCurve(t.growth, FIELD_HARVEST_START, FIEL
 function maltQuality(t){
   const g = Number(t?.germ || 0);
   if(g < MALT_HARVEST_START) return 0;
-  if(g < MALT_OPTIMAL_START) return 80 + (g - MALT_HARVEST_START) / (MALT_OPTIMAL_START - MALT_HARVEST_START) * 20;
-  if(g <= MALT_OPTIMAL_END) return 100;
-  return clamp(100 - (g - MALT_OPTIMAL_END) / (100 - MALT_OPTIMAL_END) * 20, 80, 100);
+  if(g < MALT_OPTIMAL_START) return clamp(42 + (g - MALT_HARVEST_START) / (MALT_OPTIMAL_START - MALT_HARVEST_START) * 43, 35, 85);
+  if(g <= MALT_OPTIMAL_END){
+    const dist=Math.abs(g-MALT_OPTIMAL_MID) / Math.max(MALT_OPTIMAL_MID-MALT_OPTIMAL_START, MALT_OPTIMAL_END-MALT_OPTIMAL_MID);
+    return clamp(100 - Math.pow(dist, 1.35) * 15, 85, 100);
+  }
+  return clamp(85 - (g - MALT_OPTIMAL_END) / (100 - MALT_OPTIMAL_END) * 45, 35, 85);
 }
 function fermentQuality(v){
   const f = Number(v?.ferment || 0);
@@ -455,17 +458,28 @@ function stablePick(seed, arr, count=1){
 }
 function tastingNotes(lot){
   const q=qualityOrDefault(lot.quality), peat=Number(lot.peatPpm)||0, age=Number(lot.age)||0;
-  const appearance=['Apariencia: oro viejo con destellos de miel y cobre.','Apariencia: ámbar claro, limpio, con lágrima lenta.','Apariencia: bronce de atardecer sevillano, sin ponerse intenso.','Apariencia: dorado pajizo, más elegante que presumido.'];
-  const nose=['Nariz: vainilla, cereal dulce, manzana asada y madera tostada.','Nariz: miel, naranja confitada, frutos secos y un guiño de cacao.','Nariz: caramelo, roble amable y especia de armario caro.','Nariz: parece serio, hasta que aparece una galleta escondida.'];
-  const palate=['Paladar: entrada dulce, cuerpo medio, especias y roble integrado.','Paladar: malta, caramelo salado, nuez y un punto de chocolate.','Paladar: cálido y redondo, con fruta seca y madera limpia.','Paladar: pide sillón, hielo opcional y cero reuniones.'];
-  const finish=['Final: medio-largo, especiado, con vainilla y cereal tostado.','Final: seco, amable, dejando roble, cacao y fruta madura.','Final: cálido, limpio y con ganas de repetir sin hacer drama.','Final: se va despacio, como camión cargado de gloria.'];
-  const peatNotes = peat<=0 ? [] : peat<18 ? ['Nariz: humo fino de chimenea lejana y brasa discreta.','Final: turba suave, más manta que incendio.'] : peat<45 ? ['Nariz: hoguera, cuero, salitre y ceniza limpia.','Paladar: turba marcada, madera tostada y un punto marino.'] : ['Nariz: tierra quemada por un vikingo pirómano.','Final: ceniza, brea elegante y campamento vikingo después de discutir.'];
-  const ageNotes = age<6 ? ['Apariencia: joven y brillante, todavía con nervio de novato.','Paladar: cereal vivo, vainilla joven y roble empezando a hablar.'] : age<12 ? ['Nariz: fruta seca, miel oscura y especias de barrica bien llevada.','Final: madera integrada, cálido, con paciencia de sobremesa.'] : ['Apariencia: ámbar profundo, de mirar dos veces.','Nariz: cuero viejo, fruta confitada, cacao seco y roble profundo.'];
-  const qualityNotes = q<55 ? ['Nariz: garrafa castigada por el destino, pero con autoestima.','Paladar: notas de matarratas industrial con ambición de sobremesa.','Final: ideal para tomar con cocacola. Pero sin el whisky.'] : q<75 ? ['Nariz: algo rústica, entre almacén noble y barril enfadado.','Final: regusto entre alquitrán educado y tierra mojada.'] : q>92 ? ['Paladar: fino, equilibrado, de esos que miran por encima del hombro.','Final: largo y limpio, como si alguien hubiera hecho los deberes.'] : [];
-  const notes=[...stablePick(lot.id+'base', [...appearance, ...nose, ...palate, ...finish], 1)];
-  const pool=[...appearance, ...nose, ...palate, ...finish, ...peatNotes, ...ageNotes, ...qualityNotes];
-  for(const n of stablePick(lot.id+'rest', pool, 8)){ if(!notes.includes(n)) notes.push(n); if(notes.length>=4) break; }
-  return notes.slice(0,4);
+  const byKind={
+    appearance:['Apariencia: oro viejo con destellos de miel y cobre.','Apariencia: ámbar claro, limpio, con lágrima lenta.','Apariencia: bronce de atardecer sevillano, sin ponerse intenso.','Apariencia: dorado pajizo, más elegante que presumido.'],
+    nose:['Nariz: vainilla, cereal dulce, manzana asada y madera tostada.','Nariz: miel, naranja confitada, frutos secos y un guiño de cacao.','Nariz: caramelo, roble amable y especia de armario caro.','Nariz: parece serio, hasta que aparece una galleta escondida.'],
+    palate:['Paladar: entrada dulce, cuerpo medio, especias y roble integrado.','Paladar: malta, caramelo salado, nuez y un punto de chocolate.','Paladar: cálido y redondo, con fruta seca y madera limpia.','Paladar: pide sillón, hielo opcional y cero reuniones.'],
+    finish:['Final: medio-largo, especiado, con vainilla y cereal tostado.','Final: seco, amable, dejando roble, cacao y fruta madura.','Final: cálido, limpio y con ganas de repetir sin hacer drama.','Final: se va despacio, como camión cargado de gloria.']
+  };
+  if(peat>0){
+    const peatByKind = peat<18 ? {nose:['Nariz: humo fino de chimenea lejana y brasa discreta.'], finish:['Final: turba suave, más manta que incendio.']}
+      : peat<45 ? {nose:['Nariz: hoguera, cuero, salitre y ceniza limpia.'], palate:['Paladar: turba marcada, madera tostada y un punto marino.']}
+      : {nose:['Nariz: tierra quemada por un vikingo pirómano.'], finish:['Final: ceniza, brea elegante y campamento vikingo después de discutir.']};
+    for(const [k,v] of Object.entries(peatByKind)) byKind[k].push(...v);
+  }
+  const ageByKind = age<6 ? {appearance:['Apariencia: joven y brillante, todavía con nervio de novato.'], palate:['Paladar: cereal vivo, vainilla joven y roble empezando a hablar.']}
+    : age<12 ? {nose:['Nariz: fruta seca, miel oscura y especias de barrica bien llevada.'], finish:['Final: madera integrada, cálido, con paciencia de sobremesa.']}
+    : {appearance:['Apariencia: ámbar profundo, de mirar dos veces.'], nose:['Nariz: cuero viejo, fruta confitada, cacao seco y roble profundo.']};
+  for(const [k,v] of Object.entries(ageByKind)) byKind[k].push(...v);
+  const qByKind = q<55 ? {nose:['Nariz: garrafa castigada por el destino, pero con autoestima.'], palate:['Paladar: notas de matarratas industrial con ambición de sobremesa.'], finish:['Final: ideal para tomar con cocacola. Pero sin el whisky.']}
+    : q<75 ? {nose:['Nariz: algo rústica, entre almacén noble y barril enfadado.'], finish:['Final: regusto entre alquitrán educado y tierra mojada.']}
+    : q>92 ? {palate:['Paladar: fino, equilibrado, de esos que miran por encima del hombro.'], finish:['Final: largo y limpio, como si alguien hubiera hecho los deberes.']}
+    : {};
+  for(const [k,v] of Object.entries(qByKind)) byKind[k].push(...v);
+  return ['appearance','nose','palate','finish'].map(k=>stablePick(`${lot.id}-${k}`, byKind[k], 1)[0]);
 }
 function bottleTimelineMaxAge(lots){
   return Math.max(.1, ...lots.flatMap(l=>[Number(l.age)||0, ...normalizeComponents(l, Math.max(0,(Number(l.bottles)||0)*BOTTLE_LITRES), 'Botellas históricas').map(c=>Number(c.age)||0)]));
@@ -486,7 +500,9 @@ function barrelTypesForLot(lot){
   return types.length ? types : ['bourbon'];
 }
 function barrelImagesHtml(lot){
-  return `<div class="bottle-history-barrels">${barrelTypesForLot(lot).map(t=>{ const def=BARREL_TYPES[t]||BARREL_TYPES.bourbon; return `<img src="${def.image}" alt="${escapeHtml(def.label)}" data-tip="${escapeHtml(def.label)} · ${escapeHtml(def.wood)}">`; }).join('')}</div>`;
+  const barrels=barrelTypesForLot(lot).map(t=>{ const def=BARREL_TYPES[t]||BARREL_TYPES.bourbon; return `<img src="${def.image}" alt="${escapeHtml(def.label)}" data-tip="${escapeHtml(def.label)} · ${escapeHtml(def.wood)}">`; }).join('');
+  const triple=(lot.lineage||[]).some(x=>Number(x.run)>=3 || /triple/i.test(String(x.kind||x.stage||'')) || Number(x.outputRuns)>=3) || (lot.components||[]).some(c=>Number(c.runs)>=3 || /triple/i.test(String(c.label||'')));
+  return `<div class="bottle-history-barrels">${barrels}${triple?`<img src="img/alambique.png" alt="triple destilación" data-tip="Triple destilación">`:''}</div>`;
 }
 let bottleHistorySort = 'chrono';
 function bottleSortValue(lot, key){
@@ -512,7 +528,7 @@ function renderBottleHistoryList(){
 function showBottleHistory(){
   let root=$('#bottleHistoryModal');
   if(!root){ root=document.createElement('div'); root.id='bottleHistoryModal'; root.className='bottle-history-modal hidden'; document.body.appendChild(root); }
-  root.innerHTML=`<div class="bottle-history-window"><button class="game-popup-close" type="button" aria-label="Cerrar">×</button><header><img src="img/bottle1.png" alt=""><div><h3>Archivo de botellas</h3><p>Histórico de lotes embotellados, vendidos o todavía en tienda.</p></div></header><div class="bottle-history-toolbar"><input id="bottleHistorySearch" type="search" placeholder="Buscar notas, Q, turba…"><select id="bottleHistorySort"><option value="chrono">Cronológico</option><option value="bottles">🍾 Botellas</option><option value="quality">⭐ Calidad</option><option value="age">🕰️ Años</option><option value="abv">🧪 Gradación</option><option value="peat">🪵 Turba ppm</option></select></div><section id="bottleHistoryList"></section></div>`;
+  root.innerHTML=`<div class="bottle-history-window"><button class="game-popup-close" type="button" aria-label="Cerrar">×</button><header><img src="img/botella00.png" onerror="${bottleArtFallback}" alt=""><div><h3>Archivo de botellas</h3><p>Histórico de lotes embotellados, vendidos o todavía en tienda.</p></div></header><div class="bottle-history-toolbar"><input id="bottleHistorySearch" type="search" placeholder="Buscar notas, Q, turba…"><select id="bottleHistorySort"><option value="chrono">Cronológico</option><option value="bottles">🍾 Botellas</option><option value="quality">⭐ Calidad</option><option value="age">🕰️ Años</option><option value="abv">🧪 Gradación</option><option value="peat">🪵 Turba ppm</option></select></div><section id="bottleHistoryList"></section></div>`;
   root.classList.remove('hidden');
   $('#bottleHistorySort').value=bottleHistorySort;
   $('#bottleHistorySort').onchange=e=>{ bottleHistorySort=e.target.value; renderBottleHistoryList(); };
@@ -601,14 +617,14 @@ function showKeybindingsPopup(){
     html:`<div class="keybindings-copy">
       <div class="keybind-icons"><img src="img/alambique.png" alt=""><span>🔥</span><img src="img/bottles_12.png" alt=""></div>
       <div class="keybind-grid">
-        <b>f / g / h / j</b><span>Fuego alambiques 1 / 2 / 3 / 4</span>
-        <b>m</b><span>Música on/off</span>
-        <b>x</b><span>Efectos on/off</span>
-        <b>º / 1 / 2 / 3 / 4</b><span>Tiempo: bajar / x1 / subir / x5 / x10</span>
-        <b>Esc</b><span>Mostrar/ocultar menú principal</span>
-        <b>b</b><span>Abrir archivo de botellas</span>
-        <b>Rueda ratón</b><span>Zoom sobre el mapa</span>
-        <b>Click central + arrastrar</b><span>Desplazar el mapa cuando hay zoom</span>
+        <b>f / g / h / j</b><i>🔥</i><span>Fuego alambiques 1 / 2 / 3 / 4</span>
+        <b>m</b><i>🎵</i><span>Música on/off</span>
+        <b>x</b><i>🔊</i><span>Efectos on/off</span>
+        <b>º / 1 / 2 / 3 / 4</b><i>⏱️</i><span>Tiempo: bajar / x1 / subir / x5 / x10</span>
+        <b>Esc</b><i>☰</i><span>Mostrar/ocultar menú principal</span>
+        <b>b</b><i>🍾</i><span>Abrir archivo de botellas</span>
+        <b>Rueda ratón</b><i>🔍</i><span>Zoom sobre el mapa</span>
+        <b>Click central + arrastrar</b><i>🖐️</i><span>Desplazar el mapa cuando hay zoom</span>
       </div>
     </div>`,
     ok:'Vale',
@@ -767,7 +783,7 @@ Turba: ${Math.round(t.peatPpm || 0)}ppm.||Arrástrala a una tina.`;
         controls.innerHTML = `<button class="pixel-btn heat-tile" type="button" data-i="${i}" data-tip="🔥 Calentar: seca la malta y detiene la germinación en este punto.">🔥</button><button class="peat-icon ${t.peat?'on':''}" type="button" data-i="${i}" data-tip="🪵 Turba: marca esta malta como ahumada antes de calentar.">🪵</button>`;
         el.appendChild(controls);
       }
-      if(t.peat && !t.heated && t.status!=='rotten') el.insertAdjacentHTML('beforeend', `<div class="malt-smoke" data-smoke-i="${i}" aria-hidden="true"><i></i><i></i><i></i></div>`);
+      if(t.peat && !t.heated && t.status!=='rotten') el.insertAdjacentHTML('beforeend', `<div class="malt-smoke" data-smoke-i="${i}" style="--smoke-seed:${(i*733)%4200}" aria-hidden="true"><i></i><i></i><i></i></div>`);
       if(state.debugQuality) el.insertAdjacentHTML('beforeend', qualityHtml(t.quality || 100, t.peatPpm || 0, t.lineage || []));
     }
     if(t.status==='rotten') addClean(el, () => Object.assign(t,{status:'empty',amount:0,germ:0,moisture:0,quality:100,peatPpm:0,lineage:[],heated:false,peat:false,dry:0,stable:0}));
@@ -798,7 +814,7 @@ Turba: ${Math.round(v.peatPpm || 0)}ppm.${warn?'||Atención: si no echas levadur
       ${v.rotten ? '<div class="vat-rot-overlay"><img src="img/tina_fermentacion_estropeada.png" alt="fermentación estropeada"></div>' : ''}
       ${warn ? '<div class="warning-overlay">⚠️</div>' : ''}
       <div class="bar vertical ranged ferment quality-gradient"><em style="height:${FERMENT_ROTTEN_AT-FERMENT_OPTIMAL_START}%;bottom:${FERMENT_OPTIMAL_START}%"></em><i style="height:${pct(v.ferment)};background:${qualityColor(q)}"></i><span class="bar-abv">Ferm ${abv.toFixed(1)}°</span></div>
-      ${v.rotten ? `<button class="pixel-btn small clean-vat-btn" type="button" data-i="${i}">Limpiar</button>` : (!v.yeast && v.volume>0 ? `<button class="pixel-btn small yeast-btn" type="button" data-i="${i}">Echar levadura</button>` : '')}
+      ${v.rotten ? `<button class="pixel-btn small clean-vat-btn" type="button" data-i="${i}">Limpiar</button>` : (!v.yeast && v.volume>0 ? `<button class="pixel-btn small yeast-btn" type="button" data-i="${i}">🧫 Echar levadura</button>` : '')}
     </div>`;
   }).join('');
 }
@@ -814,16 +830,16 @@ Entrada: ${s.input.toFixed(0)}% (${Math.round(s.input/100*STILL_INPUT_LITRES)}l)
 Salida: ${s.output.toFixed(1)}% (${Math.round(stillOutLitres(s))}l) / ${s.outputAbv.toFixed(0)}° ABV.
 Calor: ${heat}.
 Calidad: ${Math.round(s.output>0 ? qualityOrDefault(s.outputQuality) : qualityOrDefault(s.inputQuality))}.||1ª pasada: low wines ~${LOW_WINES_ABV_TARGET}°. 2ª pasada: new make ~${NEW_MAKE_ABV_TARGET}°. 3ª pasada opcional: triple destilado ~${THIRD_DISTILL_ABV_TARGET}°. Por encima de 100° arrastra agua: más volumen, menos ABV/calidad, nunca más LPA.`;
-    return `<div class="machine-unit still-unit ${isStillActive(s,i)?'':'inactive'}" data-i="${i}" data-tip="${tip}">
+    return `<div class="machine-unit still-unit ${s.fire?'fire-on':''} ${isStillActive(s,i)?'':'inactive'}" data-i="${i}" data-tip="${tip}">
       ${qualityHtml(s.output>0 ? s.outputQuality : s.inputQuality, s.output>0 ? s.outputPeatPpm : s.inputPeatPpm, s.output>0 ? s.outputLineage : s.inputLineage)}
       <div class="temp-chip">${s.temp.toFixed(0)}°C</div>
       <div class="bar vertical input"><i style="height:${pct(s.input)}"></i><span class="bar-abv">${s.inputAbv.toFixed(0)}°</span></div>
       <div class="bar vertical tempv"><em class="alcohol-zone" style="height:4%;bottom:58%"></em><b class="water-line" style="bottom:80%"></b><i style="height:${tempPct(s.temp)}"></i><span class="bar-abv">🌡️</span></div>
       <div class="still-visual"><img class="machine-sprite still-sprite" src="img/alambique.png" alt="alambique" draggable="false"><img class="machine-sprite still-sprite fire-gif ${s.fire?'':'hidden'}" src="img/alambique.gif" alt="fuego" draggable="false"></div>
-      <div class="bar vertical output"><i style="height:${pct(s.output)}"></i><span class="bar-abv">${s.outputAbv.toFixed(0)}°</span></div>
+      <div class="bar vertical output ${s.outputRuns>=3?'run3':''}"><i style="height:${pct(s.output)}"></i><span class="bar-abv">${s.outputAbv.toFixed(0)}°</span></div>
       <div class="still-drop in drop-target" data-still="${i}" data-zone="in" data-tip="Entrada del alambique: suelta mosto o destilado para segunda pasada."></div>
       <div class="still-drop out ${spiritReady?'ready-drag':''}" data-still="${i}" data-zone="out" ${spiritReady ? 'data-drag="spirit" data-label="destilado"' : ''} data-tip="Salida del alambique: arrastra de aquí a IN para segunda pasada o a barricas."></div>
-      <button class="pixel-btn small empty-still-btn" type="button" data-i="${i}" data-tip="Vaciar entrada.\nDescarta la entrada izquierda. Si la salida derecha queda por debajo de 40°, también la vacía para poder limpiar el atasco."><span class="empty-icon">🪣</span></button><button class="pixel-btn small fire-btn" type="button" data-i="${i}" data-tip="Fuego.\nEnciende o apaga el calentamiento.">🔥 ${s.fire?'Apagar':'Fuego'}</button>
+      <button class="pixel-btn small empty-still-btn" type="button" data-i="${i}" data-tip="Vaciar entrada.\nDescarta solo la entrada izquierda del alambique."><span class="empty-icon">🪣</span></button><button class="pixel-btn small fire-btn" type="button" data-i="${i}" data-tip="Fuego.\nEnciende o apaga el calentamiento.">🔥 ${s.fire?'Apagar':'Fuego'}</button>
     </div>`;
   }).join('');
 }
@@ -1252,7 +1268,7 @@ function simulate(timeStep=1, speed=speedMultiplier()){
     }
   }
   for(const s of state.stills){
-    s.temp = clamp(s.temp + (s.fire ? .54*sp : -.30*sp), TEMP_MIN, TEMP_MAX);
+    s.temp = clamp(s.temp + (s.fire ? .66*sp : -.38*sp), TEMP_MIN, TEMP_MAX);
     if(s.input>0 && s.temp>=ALCOHOL_BOIL){
       const waterRange = s.temp>=WATER_BOIL;
       const run=s.runs+1;
@@ -1483,16 +1499,11 @@ document.addEventListener('click', e=>{
 async function emptyStillInput(i){
   const s=state.stills[i]; if(!s) return;
   s.unlocked = true;
-  const clearBadOutput = (s.output||0)>0 && (s.outputAbv||0)<40;
   const hasInput = (s.input||0)>0;
-  if(!hasInput && !clearBadOutput) return;
-  const msg = clearBadOutput
-    ? '¿Vaciar la entrada izquierda y la salida derecha atascada por debajo de 40°?'
-    : '¿Vaciar la entrada izquierda del alambique?';
-  if(await gamePopup({title:'Vaciar alambique', msg, mood:'warn', confirm:true, ok:'Vaciar'})){
+  if(!hasInput) return;
+  if(await gamePopup({title:'Vaciar alambique', msg:'¿Vaciar la entrada izquierda del alambique?', mood:'warn', confirm:true, ok:'Vaciar'})){
     s.unlocked = true;
     clearStillInput(s);
-    if(clearBadOutput) clearStillOutput(s);
     s.unlocked = true;
     markDirty(); render(); saveGame();
   }
