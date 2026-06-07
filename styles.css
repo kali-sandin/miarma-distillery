@@ -1789,3 +1789,378 @@ body::after {
 }
 .comp-row span > em { flex:1 1 auto; min-width:0; }
 .bottle-history-main ul { padding:18px 24px 16px 36px !important; }
+
+/* 2026-06-07: bottle history scroll, liquid pie, stable temp bar, reset polish */
+.bottle-history-window {
+  overflow:hidden !important;
+  max-height:calc(100vh - 48px) !important;
+  min-height:0 !important;
+}
+#bottleHistoryList {
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  min-height:0 !important;
+  padding-right:8px !important;
+  overscroll-behavior:contain !important;
+}
+#bottleHistoryList::-webkit-scrollbar { width:12px; }
+#bottleHistoryList::-webkit-scrollbar-track { background:rgba(0,0,0,.28); border-radius:8px; }
+#bottleHistoryList::-webkit-scrollbar-thumb { background:#c38a43; border-radius:8px; border:2px solid rgba(36,25,17,.8); }
+.bottle-history-card { grid-template-columns:112px minmax(0,1fr) 160px !important; }
+.bottle-history-main { min-width:0 !important; }
+.bottle-history-lower {
+  grid-template-columns:54px minmax(0,.62fr) minmax(0,1.2fr) !important;
+  gap:8px !important;
+  align-items:stretch !important;
+  margin-top:2px !important;
+}
+.lot-liquid-pie {
+  align-self:center;
+  justify-self:center;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  position:relative;
+  background:conic-gradient(var(--pie));
+  box-shadow:inset 0 0 0 2px rgba(255,240,190,.32), 0 2px 7px rgba(0,0,0,.42);
+  cursor:help;
+}
+.lot-liquid-pie i {
+  position:absolute;
+  inset:13px;
+  border-radius:50%;
+  background:#2b2017;
+  box-shadow:inset 0 0 0 1px rgba(255,240,190,.22);
+}
+.lot-liquid-pie span {
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  color:#fff3cf;
+  font:900 8px/1 ui-monospace, monospace;
+  text-shadow:1px 1px #000;
+  white-space:nowrap;
+}
+.bottle-history-barrels { min-width:0 !important; padding:6px !important; }
+.bottle-history-main ul { min-width:0 !important; }
+.comp-timeline { display:none !important; }
+.still-unit .bar.tempv i {
+  animation:none !important;
+  transform:none !important;
+  filter:brightness(1.2) saturate(1.35) !important;
+}
+
+/* 2026-06-07 correction: restore age bars, remove only relative-volume subbars, larger pie */
+.comp-timeline { display:block !important; }
+.comp-row .comp-volume { display:none !important; }
+.comp-row span { position:absolute !important; overflow:hidden !important; display:flex !important; align-items:center !important; }
+.comp-row span > em { flex:1 1 auto; min-width:0; padding:0 6px !important; }
+.bottle-history-lower {
+  grid-template-columns:68px minmax(0,.56fr) minmax(0,1.2fr) !important;
+  gap:8px !important;
+}
+.lot-liquid-pie {
+  width:62px !important;
+  height:62px !important;
+  max-height:100% !important;
+}
+.lot-liquid-pie i { inset:18px !important; }
+.lot-liquid-pie span { font-size:9px !important; }
+
+/* 2026-06-07 achievements/reputation/speed gates/roof blocking */
+.stats-grid { grid-template-columns: repeat(5, 1fr) !important; }
+.distillery-stat { cursor:pointer; }
+.distillery-stat strong { color:#ffe16d; filter:drop-shadow(0 0 5px rgba(255,207,56,.55)); }
+.speed-control input[type="range"] {
+  background:linear-gradient(90deg, rgba(255,225,92,.38) 0 var(--speed-unlock, 61.5%), rgba(80,65,46,.55) var(--speed-unlock, 61.5%) 100%);
+}
+#game.roofs-active .zone,
+#game.roofs-active #office { pointer-events:none !important; }
+#game.roofs-active #fincaRoofs { pointer-events:auto !important; }
+.distillery-modal { position:fixed; inset:0; z-index:33000; display:grid; place-items:center; background:rgba(0,0,0,.68); }
+.distillery-modal.hidden { display:none; }
+.distillery-window { position:relative; width:min(1180px, calc(100vw - 48px)); max-height:calc(100vh - 48px); overflow:hidden; display:grid; grid-template-rows:auto auto auto minmax(0,1fr); gap:12px; border-radius:18px; background:linear-gradient(145deg, rgba(63,43,28,.98), rgba(22,15,10,.99)); color:#ffe7b5; padding:20px; box-shadow:0 26px 90px rgba(0,0,0,.65); }
+.distillery-window header { display:flex; align-items:center; gap:14px; padding-right:58px; }
+.trophy-mark { width:76px; height:76px; display:grid; place-items:center; font-size:52px; filter:drop-shadow(0 0 12px rgba(255,205,60,.6)); }
+.distillery-window h3 { margin:0; color:#e2a64b; font-size:28px; text-shadow:2px 2px #000; }
+.distillery-window p { margin:3px 0 0; color:#d9c39f; }
+.distillery-score-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.distillery-score-grid b { display:grid; gap:3px; padding:10px; background:rgba(255,231,181,.085); box-shadow:inset 0 0 0 1px rgba(255,231,181,.08); }
+.distillery-score-grid span { color:#cdb891; font-size:12px; }
+.distillery-score-grid strong { color:#fff3cf; font-size:21px; text-shadow:2px 2px #000; }
+.achievement-title { margin:4px 0 0; color:#ffe16d; text-shadow:2px 2px #000; }
+.achievement-list { overflow:auto; display:grid; gap:10px; padding-right:8px; overscroll-behavior:contain; }
+.achievement-card { display:grid; grid-template-columns:96px minmax(0,1fr) max-content; gap:12px; align-items:center; padding:12px; border-radius:14px; background:rgba(255,231,181,.075); box-shadow:inset 0 0 0 1px rgba(255,231,181,.08); }
+.achievement-card.locked .achievement-sticker img { filter:grayscale(1) brightness(.18) contrast(1.9) drop-shadow(0 0 2px rgba(255,231,181,.25)); opacity:.62; }
+.achievement-sticker { width:88px; height:88px; display:grid; place-items:center; }
+.achievement-sticker img { max-width:88px; max-height:88px; object-fit:contain; image-rendering:auto; filter:drop-shadow(0 8px 8px rgba(0,0,0,.42)); }
+.achievement-copy h4 { margin:0 0 4px; color:#fff3cf; font-size:18px; text-shadow:2px 2px #000; }
+.achievement-copy h4 small { color:#9ee28f; font-size:11px; margin-left:8px; }
+.achievement-copy p { margin:0 0 6px; color:#e8d5b4; line-height:1.25; }
+.achievement-copy dl { margin:0; display:grid; grid-template-columns:84px 1fr; gap:3px 8px; font-size:12px; }
+.achievement-copy dt { color:#e2a64b; font-weight:900; }
+.achievement-copy dd { margin:0; color:#fff3cf; }
+.force-achievement { white-space:nowrap; }
+/* Bottle archive zoom above modal/list clipping */
+.bottle-history-modal { overflow:visible !important; }
+.bottle-history-window { overflow:hidden !important; }
+.bottle-history-card:hover { z-index:1000 !important; }
+.bottle-history-cover img:hover { z-index:34000 !important; filter:drop-shadow(0 20px 24px rgba(0,0,0,.7)) drop-shadow(0 0 18px rgba(255,231,181,.7)) !important; }
+/* Larger lot liquid pie */
+.bottle-history-lower { grid-template-columns:82px minmax(0,.52fr) minmax(0,1.2fr) !important; }
+.lot-liquid-pie { width:76px !important; height:76px !important; }
+.lot-liquid-pie i { inset:22px !important; }
+.lot-liquid-pie span { font-size:12px !important; }
+/* visual smoothing for the temperature fill */
+.still-unit .bar.tempv i { transition:height .22s linear !important; }
+
+/* 2026-06-07 bottle hover escapes the scroll container */
+.bottle-history-cover img:hover {
+  position:fixed !important;
+  left:104px !important;
+  top:50% !important;
+  width:150px !important;
+  height:335px !important;
+  transform:translateY(-50%) scale(1.65) rotate(var(--bottle-tilt, 0deg)) !important;
+  z-index:36000 !important;
+  pointer-events:none !important;
+}
+
+/* 2026-06-08 polish: roofs/menu, achievement scroll/zoom, HUD layout */
+#hud {
+  left:48px !important;
+  width:407px !important;
+  min-height:calc(100% + 20px) !important;
+}
+#hudIcon, #office { z-index:80 !important; pointer-events:auto !important; }
+#game.roofs-active .zone { pointer-events:none !important; }
+#game.roofs-active #office { pointer-events:auto !important; }
+#game.roofs-active #fincaRoofs { pointer-events:none !important; }
+.stats-grid { grid-template-columns:repeat(5, minmax(0,1fr)) !important; gap:5px !important; }
+.stat, .market, .resource-stat {
+  display:grid !important;
+  grid-template-rows:auto auto !important;
+  grid-template-columns:1fr !important;
+  justify-items:center !important;
+  align-items:center !important;
+  gap:2px !important;
+  min-width:0 !important;
+}
+.resource-stat, button.resource-stat, .distillery-stat, .bottle-stat {
+  border:0 !important;
+  background:transparent !important;
+  color:inherit !important;
+  padding:0 !important;
+  box-shadow:none !important;
+  font:inherit !important;
+}
+.resource-stat span { font-size:30px !important; line-height:1 !important; }
+.resource-stat strong { font-size:12px !important; line-height:1.05 !important; text-align:center !important; white-space:normal !important; }
+.seed-inventory { cursor:grab; }
+.distillery-window { grid-template-rows:auto auto auto minmax(0,1fr) !important; min-height:0 !important; }
+.achievement-list {
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  min-height:0 !important;
+  max-height:100% !important;
+  padding-right:8px !important;
+  overscroll-behavior:contain !important;
+}
+.achievement-list::-webkit-scrollbar { width:12px; }
+.achievement-list::-webkit-scrollbar-track { background:rgba(0,0,0,.28); border-radius:8px; }
+.achievement-list::-webkit-scrollbar-thumb { background:#c38a43; border-radius:8px; border:2px solid rgba(36,25,17,.8); }
+.distillery-score-grid b { grid-template-columns:1fr !important; }
+.distillery-score-grid span { display:flex; gap:5px; align-items:center; justify-content:center; text-align:center; }
+.lot-achievement-stickers { display:flex; flex-wrap:wrap; gap:4px; align-items:center; justify-content:center; width:100%; margin-top:4px; }
+.lot-achievement-stickers img { max-width:34px !important; max-height:34px !important; object-fit:contain; filter:drop-shadow(0 3px 4px rgba(0,0,0,.45)); cursor:zoom-in; }
+.achievement-sticker img { cursor:zoom-in; }
+/* Native hover zoom disabled: JS pixel-aware overlay handles bottles/stickers without jump. */
+.bottle-history-cover img:hover,
+.box-card:hover img {
+  position:static !important;
+  width:96px !important;
+  height:214px !important;
+  transform:scale(1) rotate(0deg) !important;
+  animation:none !important;
+  z-index:auto !important;
+  pointer-events:auto !important;
+}
+.pixel-zoom-overlay {
+  position:fixed;
+  z-index:40000;
+  pointer-events:none;
+  object-fit:contain;
+  image-rendering:auto;
+  filter:drop-shadow(0 20px 24px rgba(0,0,0,.72)) drop-shadow(0 0 18px rgba(255,231,181,.72));
+  transform-origin:50% 50%;
+  animation:pixelZoomWobble 1.25s ease-in-out infinite alternate;
+}
+.pixel-zoom-overlay.hidden { display:none !important; }
+.pixel-zoom-overlay.sticker { filter:drop-shadow(0 16px 18px rgba(0,0,0,.66)) drop-shadow(0 0 16px rgba(255,231,181,.62)); }
+@keyframes pixelZoomWobble { from{ transform:rotate(-1deg); } to{ transform:rotate(1deg); } }
+.warning-overlay.malt-warning { top:18px !important; z-index:40 !important; font-size:32px !important; }
+/* Keep shop/box bottle icons normal; pixel overlay only targets history cover images via JS. */
+.box-card:hover img { width:104px !important; height:104px !important; transform:none !important; animation:none !important; }
+/* Strong modal scroll containment for achievements, same idea as bottle history. */
+.distillery-window {
+  height:min(86vh, 760px) !important;
+  max-height:86vh !important;
+  overflow:hidden !important;
+}
+.distillery-window > header,
+.distillery-score-grid,
+.achievement-title { flex:0 0 auto; }
+/* Correct HUD bottom growth: +20px padding, not viewport-sized min-height. */
+#hud { min-height:auto !important; padding-bottom:30px !important; }
+
+/* 2026-06-08 fix: office hotspot must not eat HUD clicks when menu is open. */
+#hud:not(.collapsed) { z-index:140 !important; pointer-events:auto !important; }
+#hud:not(.collapsed) ~ #office { pointer-events:none !important; z-index:1 !important; }
+#hud:not(.collapsed) ~ #hudIcon { z-index:150 !important; }
+.distillery-score-grid span {
+  display:grid !important;
+  grid-template-columns:auto minmax(0,1fr) !important;
+  gap:7px !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+.distillery-score-grid span i {
+  font-style:normal !important;
+  font-size:28px !important;
+  line-height:1 !important;
+  filter:drop-shadow(2px 2px #000);
+}
+.distillery-score-grid span em {
+  font-style:normal !important;
+  font-size:12px !important;
+  line-height:1.05 !important;
+}
+
+/* 2026-06-08 fix: real element zoom, no cloned overlay/spoilers. */
+.bottle-history-window, #bottleHistoryList, .bottle-history-card, .bottle-history-cover,
+.distillery-window, .achievement-list, .achievement-card, .achievement-sticker { overflow:visible !important; }
+.bottle-history-cover img,
+.achievement-card.unlocked .achievement-sticker img,
+.lot-achievement-stickers img {
+  transform-origin:center center !important;
+  transition:transform .12s ease, filter .12s ease !important;
+  will-change:transform;
+}
+.bottle-history-cover img.pixel-zoom-active.pixel-zoom-bottle {
+  transform:scale(1.98) rotate(-1deg) !important;
+  z-index:40020 !important;
+  position:relative !important;
+  filter:drop-shadow(0 20px 24px rgba(0,0,0,.72)) drop-shadow(0 0 18px rgba(255,231,181,.72)) !important;
+}
+.achievement-card.unlocked .achievement-sticker img.pixel-zoom-active.pixel-zoom-sticker,
+.lot-achievement-stickers img.pixel-zoom-active.pixel-zoom-sticker {
+  transform:scale(2.05) rotate(-1deg) !important;
+  z-index:40030 !important;
+  position:relative !important;
+  filter:drop-shadow(0 16px 18px rgba(0,0,0,.66)) drop-shadow(0 0 16px rgba(255,231,181,.62)) !important;
+}
+.achievement-card.locked .achievement-sticker img { cursor:default !important; }
+.pixel-zoom-overlay { display:none !important; }
+.achievement-unlock-popup { display:grid; grid-template-columns:116px minmax(0,1fr); gap:14px; align-items:center; }
+.achievement-unlock-img { width:108px; height:108px; object-fit:contain; filter:drop-shadow(0 12px 14px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(255,231,181,.5)); }
+.achievement-unlock-popup p { margin:0 0 8px; }
+
+/* 2026-06-08 fix: real element zoom, no cloned overlay/spoilers. */
+.bottle-history-window, #bottleHistoryList, .bottle-history-card, .bottle-history-cover,
+.distillery-window, .achievement-list, .achievement-card, .achievement-sticker { overflow:visible !important; }
+.bottle-history-cover img,
+.achievement-card.unlocked .achievement-sticker img,
+.lot-achievement-stickers img {
+  transform-origin:center center !important;
+  transition:transform .12s ease, filter .12s ease !important;
+  will-change:transform;
+}
+.bottle-history-cover img.pixel-zoom-active.pixel-zoom-bottle {
+  transform:scale(1.98) rotate(-1deg) !important;
+  z-index:40020 !important;
+  position:relative !important;
+  filter:drop-shadow(0 20px 24px rgba(0,0,0,.72)) drop-shadow(0 0 18px rgba(255,231,181,.72)) !important;
+}
+.achievement-card.unlocked .achievement-sticker img.pixel-zoom-active.pixel-zoom-sticker,
+.lot-achievement-stickers img.pixel-zoom-active.pixel-zoom-sticker {
+  transform:scale(2.05) rotate(-1deg) !important;
+  z-index:40030 !important;
+  position:relative !important;
+  filter:drop-shadow(0 16px 18px rgba(0,0,0,.66)) drop-shadow(0 0 16px rgba(255,231,181,.62)) !important;
+}
+.achievement-card.locked .achievement-sticker img { cursor:default !important; }
+.pixel-zoom-overlay { display:none !important; }
+.achievement-unlock-popup { display:grid; grid-template-columns:116px minmax(0,1fr); gap:14px; align-items:center; }
+.achievement-unlock-img { width:108px; height:108px; object-fit:contain; filter:drop-shadow(0 12px 14px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(255,231,181,.5)); }
+.achievement-unlock-popup p { margin:0 0 8px; }
+
+/* Keep modal scroll working after real-element zoom. */
+.bottle-history-window { overflow:hidden !important; }
+#bottleHistoryList { overflow-y:auto !important; overflow-x:hidden !important; }
+.distillery-window { overflow:hidden !important; }
+.achievement-list { overflow-y:auto !important; overflow-x:hidden !important; }
+.bottle-history-card, .bottle-history-cover, .achievement-card, .achievement-sticker { overflow:visible !important; }
+
+/* 2026-06-08 final fixes: only one edge-pair ring; finca_C repeats beyond it. */
+#fincaEdges {
+  background-image:url('img/finca/generated/tile_C_pair.jpg') !important;
+  background-size:3840px 2160px !important;
+  background-position:center center !important;
+  background-repeat:repeat !important;
+}
+#fincaEdges .edge-u {
+  left:0 !important; right:0 !important;
+  top:calc(var(--bleed-y) - 408px) !important;
+  height:408px !important;
+  background-image:url('img/finca/generated/tile_U_pair.jpg') !important;
+  background-size:1920px 408px !important;
+  background-position:center bottom !important;
+  background-repeat:repeat-x !important;
+}
+#fincaEdges .edge-d {
+  left:0 !important; right:0 !important;
+  top:calc(var(--bleed-y) + 1080px) !important;
+  bottom:auto !important;
+  height:584px !important;
+  background-image:url('img/finca/generated/tile_D_pair.jpg') !important;
+  background-size:1920px 584px !important;
+  background-position:center top !important;
+  background-repeat:repeat-x !important;
+}
+#fincaEdges .edge-l {
+  left:calc(var(--bleed-x) - 860px) !important;
+  top:var(--bleed-y) !important;
+  bottom:auto !important;
+  width:860px !important; height:1080px !important;
+  background-image:url('img/finca/generated/tile_L_pair.jpg') !important;
+  background-size:860px 1080px !important;
+  background-position:right center !important;
+  background-repeat:repeat-y !important;
+}
+#fincaEdges .edge-r {
+  left:calc(var(--bleed-x) + 1920px) !important;
+  right:auto !important;
+  top:var(--bleed-y) !important;
+  bottom:auto !important;
+  width:900px !important; height:1080px !important;
+  background-image:url('img/finca/generated/tile_R_pair.jpg') !important;
+  background-size:900px 1080px !important;
+  background-position:left center !important;
+  background-repeat:repeat-y !important;
+}
+#fincaEdges .edge-lu { left:calc(var(--bleed-x) - 860px) !important; top:calc(var(--bleed-y) - 408px) !important; width:860px !important; height:408px !important; background-image:url('img/finca/generated/tile_LU_pair.jpg') !important; background-size:860px 408px !important; background-position:right bottom !important; background-repeat:no-repeat !important; }
+#fincaEdges .edge-ru { left:calc(var(--bleed-x) + 1920px) !important; right:auto !important; top:calc(var(--bleed-y) - 408px) !important; width:900px !important; height:408px !important; background-image:url('img/finca/generated/tile_RU_pair.jpg') !important; background-size:900px 408px !important; background-position:left bottom !important; background-repeat:no-repeat !important; }
+#fincaEdges .edge-ld { left:calc(var(--bleed-x) - 860px) !important; bottom:auto !important; top:calc(var(--bleed-y) + 1080px) !important; width:860px !important; height:584px !important; background-image:url('img/finca/generated/tile_LD_pair.jpg') !important; background-size:860px 584px !important; background-position:right top !important; background-repeat:no-repeat !important; }
+#fincaEdges .edge-rd { left:calc(var(--bleed-x) + 1920px) !important; right:auto !important; bottom:auto !important; top:calc(var(--bleed-y) + 1080px) !important; width:900px !important; height:584px !important; background-image:url('img/finca/generated/tile_RD_pair.jpg') !important; background-size:900px 584px !important; background-position:left top !important; background-repeat:no-repeat !important; }
+
+/* Same-element zoom above every modal border, with gentle wobble. */
+.bottle-history-cover img.pixel-zoom-active,
+.achievement-card.unlocked .achievement-sticker img.pixel-zoom-active,
+.lot-achievement-stickers img.pixel-zoom-active {
+  transform:none !important;
+  animation:pixelRealZoomWobble 1.35s ease-in-out infinite alternate !important;
+  filter:drop-shadow(0 22px 26px rgba(0,0,0,.74)) drop-shadow(0 0 18px rgba(255,231,181,.72)) !important;
+  image-rendering:auto !important;
+}
+@keyframes pixelRealZoomWobble { from{ rotate:-1.1deg; } to{ rotate:1.1deg; } }

@@ -113,8 +113,8 @@ const WASH_ABV_TARGET = 9;
 const LOW_WINES_ABV_TARGET = 33.5;
 const NEW_MAKE_ABV_TARGET = 70;
 const THIRD_DISTILL_ABV_TARGET = 82;
-const DISTILL_TAKE_L_PER_TICK = 4;
-const DISTILL_WATER_TAKE_L_PER_TICK = 7;
+const DISTILL_TAKE_L_PER_TICK = 6;
+const DISTILL_WATER_TAKE_L_PER_TICK = 10;
 const MARKET_HISTORY_SAMPLE_MS = 1000;
 const MARKET_HISTORY_MAX = 90;
 const MARKET_MIN = 3;
@@ -316,8 +316,90 @@ const PRELOAD_IMAGE_ASSETS = [
 ];
 let preloadReady = false;
 let preloadStarted = false;
+let assetsPreloadedEver = false;
+let preloadPromise = null;
 let splashDismissRequested = false;
 const LIQUID_PALETTE = ['#ffe08a','#f6c65b','#e9a93f','#d98a2d','#c86b24','#f2b45a','#b85a1d','#ffd071'];
+const SPEED_BASE_MAX_STEP = 2; // x3 inicial; x5-x10 se desbloquean con logros.
+const ACHIEVEMENTS = [
+  {id:'first_whisky', name:'Mi primer Whisky', img:'img/logros/mi primer whisky.png', desc:'Parece fácil, ¡pero no lo es! Crear tu primer whisky pasando por cada fase del proceso midiendo meticulosamente cada decisión con dudas e incertidumbre... Y ver finalmente esas maravillosas primeras botellas... ¡Qué orgullo! Los inicios son siempre lo más difícil. A partir de aquí ¡lo tienes todo hecho!', condition:'Primera caja de botellas producida.', reward:'+10 reputación'},
+  {id:'rat_dignity', name:'Matarratas con dignidad', img:'img/logros/matarratas con dignidad.png', desc:'¿Estamos seguros de que este brebaje califica como Whisky? Espero que nuestros antepasados miren hacia otro lado...', condition:'Primera tanda de botellas con 60 < Q < 65.', reward:'+30 k€ · reputación -5'},
+  {id:'double_cask', name:'Double cask', img:'img/logros/double cask.png', desc:'Producir un whisky con diferentes matices y carácter no es fácil. Para paladares exigentes y snobs de las notas de cata.', condition:'Primera caja con líquidos de dos tipos de barrica diferentes, cada barrica al menos 3 años.', reward:'+10 reputación'},
+  {id:'triple_cask', name:'Triple cask', img:'img/logros/triple cask.png', desc:'¿Buscas algo más exótico? Si suelta taninos y aromas, ¡le metemos whisky a ver qué sale de ahí!', condition:'Primera caja con líquidos de tres tipos de barrica diferentes, cada barrica al menos 3 años.', reward:'+20 reputación'},
+  {id:'serious_business', name:'Serious business', img:'img/logros/serious business.png', desc:'Aquí ya dejamos de vender matarratas para cockteles, para adentrarnos en el terreno de los líquidos con solera y carisma que toda destilería seria debe ofrecer.', condition:'Primera tanda de más de 12 años.', reward:'Desbloquea tiempo x5 · +10 reputación'},
+  {id:'woody_taste', name:'Woody taste', img:'img/logros/woody taste.png', desc:'Mmm... La madera de la barrica se puede cortar con un cuchillo.', condition:'Serious business + tanda de más de 15 años.', reward:'Desbloquea tiempo x7 · +15 reputación'},
+  {id:'angels_share', name:'Angel’s share', img:'img/logros/angels share.png', desc:'¿Queda algo aún ahí dentro? ¿Lo rellenamos con cocacola para compensar?', condition:'Woody taste + tanda de más de 18 años.', reward:'Desbloquea tiempo x8 · +20 reputación'},
+  {id:'collectors_item', name:'Collectors item', img:'img/logros/collectors item.png', desc:'Este no se bebe, va directo a la vitrina.', condition:'Angel’s share + tanda de más de 30 años.', reward:'Desbloquea tiempo x10 · +30 reputación'},
+  {id:'max_q', name:'Max Q', img:'img/logros/max q.png', desc:'Nada de diluir a 40º, chill filtered, Non Age Statement o E-150a... ¡Aquí seleccionamos con lupa hasta el último grano de cebada para que todo sea perfecto!', condition:'Whisky mínimo 46º, 12 años, con Q > 97.', reward:'+20 reputación'},
+  {id:'triple_distillation', name:'Triple destilación', img:'img/logros/triple destilacion.png', desc:'¿En serio es necesario? ¿Otra vez?', condition:'Todo el líquido de la tanda ha sido triplemente destilado.', reward:'+20 reputación · +10 k€'},
+  {id:'monster_peat', name:'Monster Peat', img:'img/logros/monster peat.png', desc:'¡Cough cough! ¡Aggghhh! Esto es como masticar tierra quemada... ¡qué exquisita textura!', condition:'Crear botellas con turba entre 45 y 50 ppm.', reward:'+20 reputación'},
+  {id:'professional_distillery', name:'Destilería profesional', img:'img/logros/destileria profesional.png', desc:'¿Qué estás buscando? ...¡Lo tenemos!', condition:'Vender al menos una caja NAS, 10, 12, 15 y 18 años; además una sin turba, una con turba y una triple destilación.', reward:'+50 k€'},
+  {id:'solera', name:'Solera', img:'img/logros/solera.png', desc:'¡Eres todo un experto en ingeniería de la fermentación! No es fácil combinar 5 líquidos diferentes en un mismo proceso de fermentación en una misma tina. Like a pro.', condition:'Con levadura ya añadida, sumar al menos cuatro tandas nuevas de malta a la misma tina: 5 tandas en un proceso.', reward:'+1 tina de fermentación extra · +10 reputación'},
+  {id:'master_blender', name:'Master Blender', img:'img/logros/master blender.png', desc:'Un poquito de aquí... otra pizca de allá... me llevo una... No sé ni lo que estoy haciendo... ¡hip!', condition:'Crear una tanda de botellas con al menos 5 líquidos diferentes.', reward:'2 packs Bourbon + 2 packs Jerez · +10 k€'},
+  {id:'the_factory', name:'The factory', img:'img/logros/the factory.png', desc:'Aún no tenemos robots humanoides, pero... tampoco es que nos hagan falta a estas alturas, ¡lo tenemos todo totalmente automatizado! (¡menos las catas, por supuesto!)', condition:'Comprar todas las mejoras disponibles para la destilería.', reward:'Fin de juego actual: futura segunda destilería'}
+];
+const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map(a=>[a.id,a]));
+let suppressAchievements = false;
+function defaultDistillery(){ return {reputation:0, achievements:{}, stats:{lotsSold:0,bottlesSold:0,litresSold:0,maxBottlesLot:0,oldestSoldAge:0,maxBottlePrice:0, soldCategories:{nas:false,y10:false,y12:false,y15:false,y18:false,unpeated:false,peated:false,triple:false}}, debugStats:false, secondDistilleryUnlocked:false}; }
+function normalizeDistillery(d){ const fresh=defaultDistillery(), src=d||{}; return {...fresh, ...src, achievements:{...fresh.achievements, ...(src.achievements||{})}, stats:{...fresh.stats, ...(src.stats||{}), soldCategories:{...fresh.stats.soldCategories, ...(src.stats?.soldCategories||{})}}}; }
+function distillery(){ state.distillery = normalizeDistillery(state.distillery); return state.distillery; }
+function hasAchievement(id){ return !!distillery().achievements?.[id]; }
+function achievementMaxSpeedStep(){ const d=distillery(); if(d.achievements.collectors_item) return 9; if(d.achievements.angels_share) return 7; if(d.achievements.woody_taste) return 6; if(d.achievements.serious_business) return 4; return SPEED_BASE_MAX_STEP; }
+function addReputation(delta){ const d=distillery(); d.reputation = Math.round((Number(d.reputation)||0) + delta); }
+function awardAchievement(id){
+  if(suppressAchievements) return false;
+  const d=distillery(); if(d.achievements[id]) return false;
+  d.achievements[id] = {at:Date.now()};
+  const rewards={first_whisky:{rep:10}, rat_dignity:{rep:-5, coins:30}, double_cask:{rep:10}, triple_cask:{rep:20}, serious_business:{rep:10}, woody_taste:{rep:15}, angels_share:{rep:20}, collectors_item:{rep:30}, max_q:{rep:20}, triple_distillation:{rep:20, coins:10}, monster_peat:{rep:20}, professional_distillery:{coins:50}, solera:{rep:10, vat:true}, master_blender:{coins:10, barrels:true}, the_factory:{factory:true}};
+  const r=rewards[id]||{};
+  if(r.rep) addReputation(r.rep);
+  if(r.coins) state.coins += r.coins;
+  if(r.barrels){ state.barrels.push(newBarrel('bourbon',24+state.barrels.length*28,64), newBarrel('bourbon',54+state.barrels.length*28,64), newBarrel('sherry',84+state.barrels.length*28,64), newBarrel('sherry',114+state.barrels.length*28,64)); }
+  if(r.vat){ const v=state.vats.find(x=>!x.unlocked && !hasVatContents(x)); if(v) v.unlocked=true; }
+  if(r.factory) d.secondDistilleryUnlocked = true;
+  playFx('fxSuccess', .82);
+  const ach=ACH_BY_ID[id] || {name:id, reward:'', img:'img/logros/logros 1.png'};
+  gamePopup({
+    title:'🏆 Logro',
+    mood:'happy',
+    html:`<div class="achievement-unlock-popup"><img class="achievement-unlock-img" src="${ach.img}" alt="${escapeHtml(ach.name)}" onerror="this.src='img/logros/logros 1.png'"><div><p><b>Logro desbloqueado:</b> ${escapeHtml(ach.name)}</p><p><b>Premio:</b> ${escapeHtml(ach.reward || '')}</p></div></div>`,
+    ok:'¡Ole!'
+  });
+  return true;
+}
+function barrelTrailTypes(lot){ const set=new Set(); for(const c of normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Lote')) for(const t of (c.barrelTrail||[])) if(t) set.add(t); for(const x of (lot.lineage||[])){ const t=x.barrelType||x.to||x.from; if(t) set.add(t); } return [...set]; }
+function allComponentsTripleDistilled(lot){ const comps=normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Lote'); return comps.length>0 && comps.every(c=>Number(c.runs)>=3 || /3º|triple/i.test(String(c.label||''))); }
+function noteLotCreated(lot){
+  if(!lot) return;
+  const q=qualityOrDefault(lot.quality), age=Number(lot.age)||0, peat=Number(lot.peatPpm)||0, types=barrelTrailTypes(lot), comps=normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Lote');
+  const unlocked=[];
+  const got=id=>{ if(awardAchievement(id)) unlocked.push(id); };
+  if(q>=90) addReputation(2); else if(q>=80) addReputation(1); else if(q<80) addReputation(-1);
+  if(age>=18) addReputation(2); else if(age>=10) addReputation(1);
+  if(types.length>=2) addReputation(1);
+  got('first_whisky');
+  if(q>60 && q<65) got('rat_dignity');
+  if(types.length>=2 && comps.every(c=>Number(c.age)>=3)) got('double_cask');
+  if(types.length>=3 && comps.every(c=>Number(c.age)>=3)) got('triple_cask');
+  if(age>12) got('serious_business');
+  if(hasAchievement('serious_business') && age>15) got('woody_taste');
+  if(hasAchievement('woody_taste') && age>18) got('angels_share');
+  if(hasAchievement('angels_share') && age>30) got('collectors_item');
+  if(Number(lot.abv)>=46 && age>=12 && q>97) got('max_q');
+  if(allComponentsTripleDistilled(lot)) got('triple_distillation');
+  if(peat>=45 && peat<=50) got('monster_peat');
+  if(comps.length>=5) got('master_blender');
+  if((state.vats||[]).every(v=>v.unlocked) && (state.stills||[]).every(st=>st.unlocked) && (state.barrels||[]).length>=8) got('the_factory');
+  if(unlocked.length) lot.achievements=[...(lot.achievements||[]), ...unlocked.filter(id=>!(lot.achievements||[]).includes(id))];
+}
+function updateSoldStats(lot, euros=0){
+  const d=distillery(), st=d.stats, bottles=Number(lot.bottles)||0, age=Number(lot.age)||0, peat=Number(lot.peatPpm)||0, price=euros/Math.max(1,bottles);
+  st.lotsSold += 1; st.bottlesSold += bottles; st.litresSold += bottles*BOTTLE_LITRES; st.maxBottlesLot = Math.max(st.maxBottlesLot||0, bottles); st.oldestSoldAge=Math.max(st.oldestSoldAge||0, age); st.maxBottlePrice=Math.max(st.maxBottlePrice||0, price);
+  if(age<10) st.soldCategories.nas=true; if(age>=10) st.soldCategories.y10=true; if(age>=12) st.soldCategories.y12=true; if(age>=15) st.soldCategories.y15=true; if(age>=18) st.soldCategories.y18=true;
+  if(peat<=0) st.soldCategories.unpeated=true; if(peat>0) st.soldCategories.peated=true; if(allComponentsTripleDistilled(lot)) st.soldCategories.triple=true;
+  const c=st.soldCategories; if(c.nas&&c.y10&&c.y12&&c.y15&&c.y18&&c.unpeated&&c.peated&&c.triple) awardAchievement('professional_distillery');
+}
+function forceAchievement(id){ awardAchievement(id); markDirty(); render(); saveGame(); }
 function barrelCapacityL(b){ const def=BARREL_TYPES[b?.type || 'bourbon'] || BARREL_TYPES.bourbon; return def.litres * (b?.count || BARREL_PACK_SIZE); }
 function barrelLiquidL(b){ return (Number(b?.volume)||0) / 100 * barrelCapacityL(b); }
 function barrelPctFromL(b, litres){ return clamp((litres / barrelCapacityL(b)) * 100, 0, 100); }
@@ -350,6 +432,7 @@ const defaultState = () => ({
   marketTrendUntil: Date.now(),
   marketHistory: [{t: Date.now(), p: 3.5}],
   marketHistoryAt: Date.now(),
+  distillery: defaultDistillery(),
   debugQuality: false,
   musicEnabled: true,
   fxEnabled: true,
@@ -419,6 +502,7 @@ function normaliseLoaded(s){
   merged.marketVelocity = clamp(Number(s.marketVelocity) || 0, -.12, .12);
   merged.marketVolatility = clamp(Number(s.marketVolatility) || .012, .004, .026);
   merged.marketTrendUntil = Number(s.marketTrendUntil) || Date.now();
+  merged.distillery = normalizeDistillery(s.distillery);
   merged.debugQuality = !!merged.debugQuality;
   merged.musicEnabled = s.musicEnabled !== false;
   merged.fxEnabled = s.fxEnabled !== false;
@@ -498,24 +582,35 @@ function preloadImage(src){
   });
 }
 async function startAssetPreload(){
-  if(preloadStarted) return;
+  if(preloadPromise) return preloadPromise;
   preloadStarted = true;
   const assets=[...new Set(PRELOAD_IMAGE_ASSETS)];
   let done=0;
   setSplashProgress(0, assets.length || 1);
-  await Promise.all(assets.map(src=>preloadImage(src).then(r=>{ done += 1; setSplashProgress(done, assets.length); return r; })));
-  preloadReady = true;
-  $('#splashScreen')?.classList.remove('loading');
-  setSplashProgress(assets.length || 1, assets.length || 1);
-  if(splashDismissRequested) hideSplash();
+  preloadPromise = Promise.all(assets.map(src=>preloadImage(src).then(r=>{ done += 1; setSplashProgress(done, assets.length); return r; }))).then(()=>{
+    preloadReady = true;
+    assetsPreloadedEver = true;
+    $('#splashScreen')?.classList.remove('loading');
+    setSplashProgress(assets.length || 1, assets.length || 1);
+    if(splashDismissRequested) hideSplash();
+    return true;
+  });
+  return preloadPromise;
 }
 function showSplash(){
   const splash=$('#splashScreen');
   if(!splash) return;
   splashDismissRequested = false;
+  splash.classList.remove('hidden','leaving');
+  if(assetsPreloadedEver){
+    preloadReady = true;
+    preloadStarted = true;
+    splash.classList.remove('loading');
+    setSplashProgress(PRELOAD_IMAGE_ASSETS.length || 1, PRELOAD_IMAGE_ASSETS.length || 1);
+    return;
+  }
   preloadReady = false;
   preloadStarted = false;
-  splash.classList.remove('hidden','leaving');
   splash.classList.add('loading');
   startAssetPreload();
 }
@@ -546,9 +641,25 @@ function saveGame(){
   catch(err) { console.warn('No se pudo guardar la partida', err); }
 }
 function markDirty(){ saveDirty = true; }
+let speedLimitNoticeAt = 0;
 function speedMultiplier(){ const step = Number(state.speedStep || 0); return step >= 0 ? 1 + step : 1 / (1 - step); }
 function speedLabel(){ const m = speedMultiplier(); return m >= 1 ? `x${m.toFixed(0)}` : `/${Math.round(1/m)}`; }
-function setSpeedStep(step){ state.speedStep=clamp(Number(step)||0, -4, 9); $('#speedSlider').value=state.speedStep; $('#speedLabel').textContent=speedLabel(); markDirty(); }
+function setSpeedStep(step, {silent=false}={}){
+  const requested=clamp(Number(step)||0, -4, 9), max=achievementMaxSpeedStep();
+  const next=clamp(requested, -4, max);
+  if(requested>max && !silent){
+    const now=Date.now(), popupOpen=!!$('#gamePopup:not(.hidden)');
+    if(!popupOpen && now-speedLimitNoticeAt>1800){
+      speedLimitNoticeAt=now;
+      notice(`De momento el tiempo máximo está limitado a x${max+1}. El viejo escocés gruñe algo sobre logros, paciencia y no fermentar con prisas.`, 'explain', 'Tiempo bloqueado');
+    }
+  }
+  state.speedStep=next;
+  $('#speedSlider').value=state.speedStep;
+  $('#speedLabel').textContent=speedLabel();
+  $('#speedSlider')?.style.setProperty('--speed-unlock', `${((max+4)/13*100).toFixed(1)}%`);
+  markDirty();
+}
 function tempPct(n){ return pct((n - TEMP_MIN) / (TEMP_MAX - TEMP_MIN) * 100); }
 function qualityOrDefault(q, fallback=100){ const n=Number(q); return Number.isFinite(n) ? n : fallback; }
 function weightedQuality(oldVol, oldQ, addVol, addQ){ const o=qualityOrDefault(oldQ), a=qualityOrDefault(addQ); return oldVol>0 ? (o * oldVol + a * addVol) / (oldVol + addVol) : a; }
@@ -680,12 +791,12 @@ function tastingNotes(lot){
     nose:[
       'Nariz: vainilla, cereal dulce, manzana asada y madera tostada.','Nariz: miel, naranja confitada, frutos secos y un guiño de cacao.','Nariz: caramelo, roble amable y especia de armario caro.','Nariz: parece serio, hasta que aparece una galleta escondida.',
       'Nariz: pera madura, malta limpia, toffee y canela suave.','Nariz: pasas, nuez moscada, cáscara de naranja y roble seco.','Nariz: chocolate con leche, avellana, vainilla y fruta de hueso.','Nariz: flor seca, miel de brezo, manzana roja y cereal tostado.',
-      'Nariz: biblioteca antigua donde alguien ha escondido un bizcocho.','Nariz: feria medieval, barril noble y un señor vendiendo caramelo.','Nariz: sofá de cuero, chimenea y una galleta que no piensa compartir.','Nariz: huele a plan excelente después de cancelar una reunión.'
+      'Nariz: biblioteca antigua donde alguien ha escondido un bizcocho.','Nariz: feria medieval, barril noble y un señor vendiendo caramelo.','Nariz: sofá de cuero, biblioteca vieja y una galleta que no piensa compartir.','Nariz: huele a plan excelente después de cancelar una reunión.'
     ],
     palate:[
       'Paladar: entrada dulce, cuerpo medio, especias y roble integrado.','Paladar: malta, caramelo salado, nuez y un punto de chocolate.','Paladar: cálido y redondo, con fruta seca y madera limpia.','Paladar: pide sillón, hielo opcional y cero reuniones.',
       'Paladar: cremoso, con vainilla, pera, clavo suave y cereal tostado.','Paladar: frutos secos, naranja amarga, cacao y roble especiado.','Paladar: miel, manzana horneada, pimienta blanca y final de almendra.','Paladar: textura oleosa, dulce de leche, madera seca y fruta madura.',
-      'Paladar: entra con modales y sale haciendo air guitar.','Paladar: sabe a sobremesa larga y excusa perfecta para no fregar.','Paladar: abrazo de barrica con botas embarradas.','Paladar: una magdalena con doctorado en turba aplicada.'
+      'Paladar: entra con modales y sale haciendo air guitar.','Paladar: sabe a sobremesa larga y excusa perfecta para no fregar.','Paladar: abrazo de barrica con botas embarradas.','Paladar: una magdalena con doctorado en sobremesa aplicada.'
     ],
     finish:[
       'Final: medio-largo, especiado, con vainilla y cereal tostado.','Final: seco, amable, dejando roble, cacao y fruta madura.','Final: cálido, limpio y con ganas de repetir sin hacer drama.','Final: se va despacio, como camión cargado de gloria.',
@@ -694,9 +805,22 @@ function tastingNotes(lot){
     ]
   };
   if(peat>0){
-    const peatByKind = peat<18 ? {nose:['Nariz: humo fino de chimenea lejana y brasa discreta.'], finish:['Final: turba suave, más manta que incendio.']}
-      : peat<45 ? {nose:['Nariz: hoguera, cuero, salitre y ceniza limpia.'], palate:['Paladar: turba marcada, madera tostada y un punto marino.']}
-      : {nose:['Nariz: tierra quemada por un vikingo pirómano.'], finish:['Final: ceniza, brea elegante y campamento vikingo después de discutir.']};
+    const peatByKind = peat<15 ? {
+      nose:['Nariz: humo fino de chimenea lejana y brasa discreta.','Nariz: barbacoa apagada ayer, pero con modales.'],
+      finish:['Final: turba suave, más manta que incendio.','Final: un hilillo de humo que firma el acta y se va.']
+    } : peat<35 ? {
+      nose:['Nariz: hoguera, cuero, salitre y ceniza limpia.','Nariz: pescador escocés secando botas sobre una fogata filosófica.'],
+      palate:['Paladar: turba marcada, madera tostada y un punto marino.','Paladar: galleta de maltas servida en una pala de carbón elegante.'],
+      finish:['Final: ceniza dulce, brasa controlada y abrazo de manta ahumada.']
+    } : peat<55 ? {
+      nose:['Nariz: tierra quemada por un vikingo pirómano.','Nariz: hospital de campaña, algas, carbón y una vaca opinando desde Islay.','Nariz: extintor vacío, playa fría y orgullo familiar en peligro.'],
+      palate:['Paladar: alquitrán noble, limón chamuscado y drama marítimo.','Paladar: parece lamer una chimenea, pero una chimenea con pedigrí.'],
+      finish:['Final: ceniza, brea elegante y campamento vikingo después de discutir.','Final: humo que te manda un burofax desde el paladar.']
+    } : {
+      nose:['Nariz: volcán en una farmacia, botas mojadas y turba con antecedentes penales.','Nariz: el suelo de Escocia tostado en modo apocalipsis amable.'],
+      palate:['Paladar: masticas una hoguera y, contra todo pronóstico, quieres otra copa.','Paladar: torba nuclear, cuero, sal y una tos con denominación de origen.'],
+      finish:['Final: largo, oscuro y con sirenas antiniebla.','Final: deja la lengua como si hubiera sobrevivido a un ritual druida.']
+    };
     for(const [k,v] of Object.entries(peatByKind)) byKind[k].push(...v);
   }
   const ageByKind = age<6 ? {appearance:['Apariencia: joven y brillante, todavía con nervio de novato.'], palate:['Paladar: cereal vivo, vainilla joven y roble empezando a hablar.']}
@@ -713,6 +837,24 @@ function tastingNotes(lot){
 function bottleTimelineMaxAge(lots){
   return Math.max(.1, ...lots.flatMap(l=>[Number(l.age)||0, ...normalizeComponents(l, Math.max(0,(Number(l.bottles)||0)*BOTTLE_LITRES), 'Botellas históricas').map(c=>Number(c.age)||0)]));
 }
+function compositionPieHtml(lot){
+  const comps=normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Botellas históricas');
+  const total=comps.reduce((a,c)=>a+c.litres,0) || 1;
+  let from=0;
+  const stops=[];
+  const legend=[];
+  for(const c of comps){
+    const part=clamp(c.litres/total*100,0,100);
+    const to=from+part;
+    const color=c.color || liquidColor(c.id || c.label || String(from));
+    stops.push(`${color} ${from.toFixed(2)}% ${to.toFixed(2)}%`);
+    legend.push(`${escapeHtml(displayLiquidLabel(c.label))}: ${Math.round(part)}% (${Math.round(c.litres)}l)`);
+    from=to;
+  }
+  const tip=legend.join('||');
+  const style=`--pie:${stops.join(',') || '#6d4a25 0 100%'}`;
+  return `<div class="lot-liquid-pie" style="${style}" data-tip="${tip}"><i></i><span>${Math.round(total)}l</span></div>`;
+}
 function compositionTimelineHtml(lot, globalMaxAge){
   const comps=normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Botellas históricas');
   const total=comps.reduce((a,c)=>a+c.litres,0) || 1;
@@ -721,9 +863,8 @@ function compositionTimelineHtml(lot, globalMaxAge){
   const axis=`<div class="comp-time-axis">${ages.map(v=>`<b style="left:${clamp(v/maxAge*100,0,100).toFixed(1)}%">${v.toFixed(v%1?.1:0)}a</b>`).join('')}</div>`;
   const rows=comps.map(c=>{
     const age=clamp(Number(c.age)||0,0,maxAge), width=clamp(age/maxAge*100,2,100), volPct=clamp(c.litres/total*100,0,100);
-    const volLabel=`${Math.round(c.litres)}l · ${Math.round(volPct)}%`;
-    const label=`⭐${Math.round(qualityOrDefault(c.quality))} · 🕰️${age.toFixed(1)}a · 🧪${Math.round(c.abv||lot.abv||0)}° · 🪵${Math.round(c.peatPpm||0)}ppm`;
-    return `<div class="comp-row" data-tip="${escapeHtml(displayLiquidLabel(c.label))}: ${Math.round(c.litres/total*100)}% · ${escapeHtml(label)}"><span style="left:0%;width:${width.toFixed(1)}%;background:${c.color}"><i class="comp-volume" style="width:${volPct.toFixed(1)}%"><strong>${escapeHtml(volLabel)}</strong></i><em>${escapeHtml(label)}</em></span></div>`;
+    const label=`${displayLiquidLabel(c.label)} · ${Math.round(volPct)}% · ⭐${Math.round(qualityOrDefault(c.quality))} · 🕰️${age.toFixed(1)}a · 🧪${Math.round(c.abv||lot.abv||0)}° · 🪵${Math.round(c.peatPpm||0)}ppm`;
+    return `<div class="comp-row" data-tip="${escapeHtml(label)}"><span style="left:0%;width:${width.toFixed(1)}%;background:${c.color}"><em>${escapeHtml(label)}</em></span></div>`;
   }).join('');
   return `<div class="comp-timeline">${axis}${rows}</div>`;
 }
@@ -733,10 +874,37 @@ function barrelTypesForLot(lot){
   for(const x of (lot.lineage||[])){ const t=x.barrelType||x.to||x.from; if(t && !types.includes(t)) types.push(t); }
   return types.length ? types : ['bourbon'];
 }
+function lotAchievementStickersHtml(lot){
+  const ids=[...(lot.achievements||[])].filter(id=>ACH_BY_ID[id]);
+  if(!ids.length) return '';
+  return `<div class="lot-achievement-stickers">${ids.map(id=>`<img class="zoomable-sticker" src="${ACH_BY_ID[id].img}" alt="${escapeHtml(ACH_BY_ID[id].name)}" data-tip="Logro desbloqueado con este lote: ${escapeHtml(ACH_BY_ID[id].name)}" onerror="this.src='img/logros/logros 1.png'">`).join('')}</div>`;
+}
 function barrelImagesHtml(lot){
   const barrels=barrelTypesForLot(lot).map(t=>{ const def=BARREL_TYPES[t]||BARREL_TYPES.bourbon; return `<img src="${def.image}" alt="${escapeHtml(def.label)}" data-tip="${escapeHtml(def.label)} · ${escapeHtml(def.wood)}">`; }).join('');
   const triple=(lot.lineage||[]).some(x=>Number(x.run)>=3 || /triple/i.test(String(x.kind||x.stage||'')) || Number(x.outputRuns)>=3) || (lot.components||[]).some(c=>Number(c.runs)>=3 || /triple/i.test(String(c.label||'')));
-  return `<div class="bottle-history-barrels">${barrels}${triple?`<img src="img/alambique.png" alt="triple destilación" data-tip="Triple destilación">`:''}</div>`;
+  return `<div class="bottle-history-barrels">${barrels}${triple?`<img src="img/alambique.png" alt="triple destilación" data-tip="Triple destilación">`:''}${lotAchievementStickersHtml(lot)}</div>`;
+}
+function achievementCardHtml(a){
+  const got=hasAchievement(a.id), when=got ? new Date(distillery().achievements[a.id].at||Date.now()).toLocaleDateString('es-ES') : '';
+  return `<article class="achievement-card ${got?'unlocked':'locked'}"><div class="achievement-sticker"><img class="${got?'zoomable-sticker':''}" src="${a.img}" alt="${escapeHtml(a.name)}" onerror="this.src='img/logros/logros 1.png'"></div><div class="achievement-copy"><h4>${escapeHtml(a.name)}${got?` <small>Conseguido ${escapeHtml(when)}</small>`:''}</h4><p>${escapeHtml(a.desc)}</p><dl><dt>Condición</dt><dd>${escapeHtml(a.condition)}</dd><dt>Premio</dt><dd>${escapeHtml(a.reward)}</dd></dl></div>${debugToolsVisible?`<button class="pixel-btn small force-achievement" type="button" data-ach="${a.id}">Conseguir</button>`:''}</article>`;
+}
+function showDistilleryStats(){
+  let root=$('#distilleryModal');
+  if(!root){ root=document.createElement('div'); root.id='distilleryModal'; root.className='distillery-modal hidden'; document.body.appendChild(root); }
+  const d=distillery(), st=d.stats, got=Object.keys(d.achievements||{}).length;
+  root.innerHTML=`<div class="distillery-window"><button class="game-popup-close" type="button" aria-label="Cerrar">×</button><header><div class="trophy-mark">🏆</div><div><h3>${escapeHtml(state.distilleryName || 'Miarma Distillery')}</h3><p>Ficha de destilería, marcadores y logros.</p></div></header><section class="distillery-score-grid"><b><span><i>🏆</i><em>Reputación</em></span><strong>${Math.round(d.reputation||0)}</strong></b><b><span><i>📦</i><em>Lotes vendidos</em></span><strong>${Math.round(st.lotsSold||0)}</strong></b><b><span><i>🍾</i><em>Botellas vendidas</em></span><strong>${Math.round(st.bottlesSold||0)}</strong></b><b><span><i>🧪</i><em>Litros vendidos</em></span><strong>${(Number(st.litresSold)||0).toFixed(1)} l.</strong></b><b><span><i>🥃</i><em>Mayor lote</em></span><strong>${Math.round(st.maxBottlesLot||0)} bot.</strong></b><b><span><i>🕰️</i><em>Mayor edad</em></span><strong>${(Number(st.oldestSoldAge)||0).toFixed(1)}a</strong></b><b><span><i>💎</i><em>Botella más cara</em></span><strong>${(Number(st.maxBottlePrice)||0).toFixed(2)}€</strong></b><b><span><i>🏅</i><em>Logros</em></span><strong>${got}/${ACHIEVEMENTS.length}</strong></b></section><h4 class="achievement-title">Logros</h4><section class="achievement-list">${ACHIEVEMENTS.map(achievementCardHtml).join('')}</section></div>`;
+  root.classList.remove('hidden'); playFx('fxCork', .68);
+  root.querySelector('.game-popup-close').onclick=()=>{ root.classList.add('hidden'); playFx('fxAhhh', .58); };
+  root.onclick=e=>{ if(e.target===root){ root.classList.add('hidden'); playFx('fxAhhh', .58); } };
+}
+function makeDebugLot(seqOffset=0, overrides={}){
+  const id=uuid(), age=overrides.age ?? rnd(3,22), q=overrides.quality ?? rnd(62,99), peat=overrides.peatPpm ?? (Math.random()<.45?rnd(0,50):0), bottles=Math.floor(overrides.bottles ?? rnd(160,980));
+  const compCount=overrides.compCount || (Math.random()<.35?3:2), totalL=bottles*BOTTLE_LITRES;
+  const types=overrides.types || ['bourbon','sherry','mizunara'];
+  const comps=Array.from({length:compCount}, (_,i)=>({id:uuid(), label:i===2?'3º dest. exótico':(i?'Jerez viejo':'Bourbon base'), color:liquidColor(`${id}-${i}`), litres:totalL/compCount, age:Math.max(3, age-rnd(0,2)), abv:overrides.abv || rnd(43,58), quality:clamp(q+rnd(-5,4), 45, 100), peatPpm:peat, runs:overrides.triple?3:(i===0?2:3), barrelTrail:[types[i%types.length]]}));
+  const lot={id, seq:++state.bottleHistorySeq, bottledAt:Date.now()-seqOffset*86400000, bottles, age, abv:overrides.abv || rnd(43,58), quality:q, peatPpm:peat, components:comps, lineage:types.slice(0,compCount).map(t=>({stage:'debug_barrica', barrelType:t})), sold:!!overrides.sold, salePricePerBottle:0, saleTotal:0};
+  lot.image=chooseBottleArt(lot); if(lot.sold){ lot.salePricePerBottle=rnd(8,80); lot.saleTotal=lot.salePricePerBottle*bottles; lot.soldAt=Date.now()-seqOffset*86000000; }
+  return lot;
 }
 let bottleHistorySort = 'chrono';
 function bottleSortValue(lot, key){
@@ -755,7 +923,7 @@ function renderBottleHistoryList(){
   const filtered=lots.filter(l=>!q || `${l.seq} ${l.bottles} ${l.quality} ${l.peatPpm} ${l.age} ${tastingNotes(l).join(' ')}`.toLowerCase().includes(q));
   list.innerHTML = filtered.length ? filtered.map(l=>`<article class="bottle-history-card">
     <div class="bottle-history-cover"><img src="${bottleArtImg(l)}" onerror="${bottleArtFallback}" alt="botella" draggable="false"></div>
-    <div class="bottle-history-main"><div class="bottle-history-kpis"><b class="lot-label" data-tip="Número de lote embotellado.">Lote #${l.seq}</b><b data-tip="Botellas embotelladas en este lote.">🍾 ${l.bottles}</b><b class="quality-kpi" data-tip="Calidad media del lote.">⭐ Q ${Math.round(qualityOrDefault(l.quality))}</b><b data-tip="Edad del whisky más joven del lote.">🕰️ ${Math.floor(l.age||0)} años</b><b data-tip="Gradación alcohólica final.">🧪 ${Math.round(l.abv||0)}°</b><b data-tip="Contenido de turba del lote.">🪵 ${Math.round(l.peatPpm||0)}ppm</b></div>${compositionTimelineHtml(l,timelineMax)}<div class="bottle-history-lower">${barrelImagesHtml(l)}<ul>${tastingNotes(l).map(n=>`<li>${escapeHtml(n)}</li>`).join('')}</ul></div></div>
+    <div class="bottle-history-main"><div class="bottle-history-kpis"><b class="lot-label" data-tip="Número de lote embotellado.">Lote #${l.seq}</b><b data-tip="Botellas embotelladas en este lote.">🍾 ${l.bottles}</b><b class="quality-kpi" data-tip="Calidad media del lote.">⭐ Q ${Math.round(qualityOrDefault(l.quality))}</b><b data-tip="Edad del whisky más joven del lote.">🕰️ ${Math.floor(l.age||0)} años</b><b data-tip="Gradación alcohólica final.">🧪 ${Math.round(l.abv||0)}°</b><b data-tip="Contenido de turba del lote.">🪵 ${Math.round(l.peatPpm||0)}ppm</b></div>${compositionTimelineHtml(l,timelineMax)}<div class="bottle-history-lower">${compositionPieHtml(l)}${barrelImagesHtml(l)}<ul>${tastingNotes(l).map(n=>`<li>${escapeHtml(n)}</li>`).join('')}</ul></div></div>
     <div class="bottle-history-price">${l.sold?`<strong>${(l.salePricePerBottle||0).toFixed(2)}€ / bot.</strong><span>Total ${(l.saleTotal||0).toFixed(0)}€</span>`:'<strong>En tienda</strong>'}</div>
   </article>`).join('') : '<div class="bottle-history-empty">Aún no hay botellas embotelladas en el histórico.</div>';
 }
@@ -772,6 +940,8 @@ function showBottleHistory(){
   playFx('fxCork', .68); renderBottleHistoryList();
 }
 function closeTopPopupByEsc(){
+  const distilleryModal=$('#distilleryModal:not(.hidden)');
+  if(distilleryModal){ distilleryModal.querySelector('.game-popup-close')?.click(); return true; }
   const bottleHistory=$('#bottleHistoryModal:not(.hidden)');
   if(bottleHistory){ bottleHistory.querySelector('.game-popup-close')?.click(); return true; }
   const bottleModal=$('#bottleModal');
@@ -857,6 +1027,7 @@ function showKeybindingsPopup(){
         <b>º / 1 / 2 / 3 / 4</b><i>⏱️</i><span>Tiempo: bajar / x1 / subir / x5 / x10</span>
         <b>Esc</b><i>☰</i><span>Mostrar/ocultar menú principal</span>
         <b>b</b><i>🍾</i><span>Abrir archivo de botellas</span>
+        <b>l</b><i>🏆</i><span>Abrir ficha de destilería y logros</span>
         <b>Rueda ratón</b><i>🔍</i><span>Zoom sobre el mapa</span>
         <b>Click central + arrastrar</b><i>🖐️</i><span>Desplazar el mapa cuando hay zoom</span>
       </div>
@@ -993,7 +1164,8 @@ function renderMalt(){
     const i=+el.dataset.i, t=state.malt[i];
     el.classList.toggle('empty', t.status==='empty');
     el.classList.toggle('needs-water', t.status==='filled' && !t.heated && t.moisture <= 0);
-    el.innerHTML = `<div class="malt-capacity"><i style="height:${pct(((t.amount||0)/MALT_TILE_CAPACITY_KG)*100)}"></i></div>` + (t.status==='empty' ? '' : bars(t.moisture, t.germ, MALT_HARVEST_START, MALT_OPTIMAL_END - MALT_HARVEST_START, t.status==='rotten', 'quality'));
+    const capacityHtml = (Number(t.amount)||0) > 0 ? `<div class="malt-capacity"><i style="height:${pct(((t.amount||0)/MALT_TILE_CAPACITY_KG)*100)}"></i></div>` : '';
+    el.innerHTML = capacityHtml + (t.status==='empty' ? '' : bars(t.moisture, t.germ, MALT_HARVEST_START, MALT_OPTIMAL_END - MALT_HARVEST_START, t.status==='rotten', 'quality'));
     el.dataset.tip = maltTip(t);
     if(t.status==='filled' || t.status==='rotten'){
       const plant = document.createElement('div');
@@ -1001,7 +1173,7 @@ function renderMalt(){
       plant.innerHTML = `<img class="plant-img" src="${t.heated ? MALT_IMAGES.heated : MALT_IMAGES.wet}" alt="malta" draggable="false">`;
       const waterImg = maltWaterImage(t);
       if(waterImg) el.insertAdjacentHTML('beforeend', `<div class="malt-overlay"><img src="${waterImg}" alt="agua germinando"></div>`);
-      if(maltedWarning(t)) el.insertAdjacentHTML('beforeend', '<div class="warning-overlay malt-warning">⚠️</div>');
+      if(maltedWarning(t) || t.warned) el.insertAdjacentHTML('beforeend', '<div class="warning-overlay malt-warning">⚠️</div>');
       el.appendChild(plant);
       if(t.status==='filled' && t.heated && t.germ>=MALT_HARVEST_START){
         plant.className += ' token malt-token';
@@ -1196,6 +1368,8 @@ function addMaltToVat(vatIndex, source){
   v.quality=v.baseQuality;
   v.peatPpm=weightedValue(vatLitres(v), v.peatPpm, washLitres, t.peatPpm || 0);
   v.lineage=mergeLineage(v.lineage||[], t.lineage||[], [{stage:'malteado', q:t.quality||100, peat:t.peatPpm||0, maltKg, washLitres}]);
+  v.maltAdds = (Number(v.maltAdds)||0) + 1;
+  if(v.yeast){ v.soleraAddsAfterYeast = (Number(v.soleraAddsAfterYeast)||0) + 1; if(v.soleraAddsAfterYeast >= 5) awardAchievement('solera'); }
   v.ferment = v.volume ? v.ferment*(v.volume/(v.volume+add)) : 0;
   v.volume += add; v.rotten=false; v.warned=false; v.idle=0;
   Object.assign(t,{status:'empty',amount:0,germ:0,moisture:0,quality:100,peatPpm:0,lineage:[],heated:false,peat:false,dry:0,stable:0});
@@ -1278,7 +1452,7 @@ async function addSpiritToBarrel(stillIndex, id){
   const barrelFactor=(b.barrelQuality || 100)/100;
   const incomingQ=qualityOrDefault(s.outputQuality)*barrelFactor;
   const batchId=uuid();
-  const batchComponent={id:batchId, label:liquidLabel(`${s.outputRuns || 1}º dest.`, s.outputLineage), color:liquidColor(batchId), litres:addL, abv:targetAbv, quality:incomingQ, peatPpm:s.outputPeatPpm || 0, age:0, startedAtAge:0, barrelTrail:[b.type||'bourbon']};
+  const batchComponent={id:batchId, label:liquidLabel(`${s.outputRuns || 1}º dest.`, s.outputLineage), color:liquidColor(batchId), litres:addL, abv:targetAbv, quality:incomingQ, peatPpm:s.outputPeatPpm || 0, age:0, runs:s.outputRuns||0, startedAtAge:0, barrelTrail:[b.type||'bourbon']};
   b.age = oldLitres>0 ? Math.min(b.age || 0, 0) : 0;
   b.quality = weightedQuality(oldLitres, b.quality, addL, incomingQ);
   b.peatPpm = weightedValue(oldLitres, b.peatPpm, addL, s.outputPeatPpm || 0);
@@ -1307,6 +1481,7 @@ async function transferBarrelToBarrel(fromId,toId){
   to.lineage=mergeLineage(to.lineage||[], from.lineage||[], [{stage:'trasiego_barril', from:from.type||'bourbon', to:to.type||'bourbon', litres:moveL}]);
   to.volume=barrelPctFromL(to, toL+moveL);
   from.volume=barrelPctFromL(from, fromL-moveL);
+  from.barrelQuality=Math.max(0,(from.barrelQuality||100)-1);
   playFx('fxBubblesDrop', .62);
   if(from.volume<.1) Object.assign(from,{volume:0,age:0,abv:0,quality:100,peatPpm:0,components:[],lineage:[]});
   markDirty(); render(); saveGame();
@@ -1373,6 +1548,7 @@ function finishBottleBarrel(id,targetAbv,p={x:18+state.boxes.length*95,y:20}){
   const lot={...lotDraft, image};
   state.boxes.push({...lot, x:p.x, y:p.y});
   state.bottleHistory.unshift(lot);
+  noteLotCreated(lot);
   playFx('fxNewBottles', .82);
   state.bottles += bottles;
   b.barrelQuality=Math.max(0,(b.barrelQuality||100)-1);
@@ -1425,7 +1601,7 @@ function sellBox(id){
   const b=state.boxes.splice(i,1)[0];
   const euros=b.bottles * Math.max(.1,b.age) * state.market * ((b.quality || 100)/100);
   const hist=(state.bottleHistory||[]).find(x=>x.id===b.id);
-  if(hist){ hist.sold=true; hist.salePricePerBottle=euros/Math.max(1,b.bottles); hist.saleTotal=euros; hist.soldAt=Date.now(); }
+  if(hist){ hist.sold=true; hist.salePricePerBottle=euros/Math.max(1,b.bottles); hist.saleTotal=euros; hist.soldAt=Date.now(); updateSoldStats(hist, euros); }
   state.coins += euros/1000; state.bottles -= b.bottles;
   playFx('fxCashRegister', .78);
   animateTruckSale();
@@ -1439,15 +1615,17 @@ function render(){
   $('.name-field').classList.toggle('editing', nameEditing);
   $('#distilleryNameView').textContent = state.distilleryName;
   $('#distilleryName').value = state.distilleryName;
+  $('#reputation').textContent = `${Math.round(distillery().reputation||0)}`;
   $('#coins').textContent = `${state.coins.toFixed(0)} k€`;
   $('#seeds').textContent = `${state.seeds.toFixed(0)} Kg`;
   $('#bottles').textContent = `${state.bottles}`;
   $('#bottleStat')?.setAttribute('data-tip', '🍾 Botellas en tienda. Click para abrir el histórico completo de lotes embotellados.');
   $('#market').textContent = `${state.market.toFixed(2)} €`;
-  $('#resources').dataset.tip = `Recursos:\n🪙 Monedas ${state.coins.toFixed(0)} k€ · 🌾 Semillas ${state.seeds.toFixed(0)} Kg (${SEED_KG_PER_PLOT} Kg/parcela) · 🍾 Botellas ${state.bottles} · 📈 Mercado ${state.market.toFixed(2)} € x botella x años`;
+  $('#resources').dataset.tip = `Recursos:\n🏆 Reputación ${Math.round(distillery().reputation||0)} · 🪙 Monedas ${state.coins.toFixed(0)} k€ · 🌾 Semillas ${state.seeds.toFixed(0)} Kg (${SEED_KG_PER_PLOT} Kg/parcela) · 🍾 Botellas ${state.bottles} · 📈 Mercado ${state.market.toFixed(2)} € x botella x años`;
   $('#game').classList.toggle('debug-tools-visible', debugToolsVisible);
   $('#market').closest('.stat, .market')?.setAttribute('data-tip', `Precio de mercado: ${state.market.toFixed(2)} € x botella x años.\nLa calidad multiplica el precio: Q90 = x0.90.\n${marketSparklineHtml()}`);
   $('#speedSlider').value = state.speedStep;
+  $('#speedSlider')?.style.setProperty('--speed-unlock', `${((achievementMaxSpeedStep()+4)/13*100).toFixed(1)}%`);
   $('#speedLabel').textContent = speedLabel();
   $('#seedInventory').classList.toggle('disabled', state.seeds < SEED_KG_PER_PLOT);
   $('#game').classList.toggle('debug-zones', !!state.debugQuality);
@@ -1729,7 +1907,7 @@ document.addEventListener('click', e=>{
   const cleanVat=e.target.closest('.clean-vat-btn'); if(cleanVat){ e.preventDefault(); e.stopPropagation(); const v=state.vats[+cleanVat.dataset.i]; if(v?.rotten){ clearVat(v); markDirty(); render(); saveGame(); } return; }
   const peatIcon=e.target.closest('.peat-icon'); if(peatIcon){ e.preventDefault(); e.stopPropagation(); const t=state.malt[+peatIcon.dataset.i]; if(t && t.status==='filled' && !t.heated){ t.peat=!t.peat; markDirty(); render(); } return; }
   const heat=e.target.closest('.heat-tile'); if(heat) heatMalt(heat.dataset.i);
-  const yeast=e.target.closest('.yeast-btn'); if(yeast){ const v=state.vats[+yeast.dataset.i]; if(v?.volume>0 && !v.rotten){ v.yeast=true; v.warned=false; v.idle=0; markDirty(); render(); } }
+  const yeast=e.target.closest('.yeast-btn'); if(yeast){ const v=state.vats[+yeast.dataset.i]; if(v?.volume>0 && !v.rotten){ v.yeast=true; v.warned=false; v.idle=0; v.soleraAddsAfterYeast=0; v.maltAdds=Number(v.maltAdds)||0; markDirty(); render(); } }
   const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; markDirty(); render(); } }
   const empty=e.target.closest('.empty-still-btn'); if(empty){ emptyStillInput(+empty.dataset.i); }
 });
@@ -1783,12 +1961,33 @@ function debugFill(){
   state.barrels[0].components=normalizeComponents(state.barrels[0], barrelLiquidL(state.barrels[0]), 'Debug Bourbon');
   const bottles=Math.floor(rnd(300,900));
   state.boxes = [{id:uuid(), bottles, age:rnd(3,12), abv:rnd(40,55), quality:rnd(82,100), peatPpm:Math.random()<.4?rnd(0,60):0, lineage:[{stage:'debug_box'}], x:rnd(18,160), y:rnd(20,80)}]; state.boxes[0].image=chooseBottleArt(state.boxes[0]);
-  state.bottles = bottles;
+  const debugLots=[
+    makeDebugLot(1,{quality:92,age:12.5,peatPpm:0,sold:true}),
+    makeDebugLot(2,{quality:63,age:4.2,peatPpm:0,sold:true}),
+    makeDebugLot(3,{quality:98,age:18.5,peatPpm:48,triple:true,sold:true}),
+    makeDebugLot(4,{quality:87,age:7.5,peatPpm:22,compCount:5,sold:false}),
+    makeDebugLot(5,{quality:91,age:31,peatPpm:12,compCount:3,triple:true,sold:false})
+  ];
+  state.bottleHistory.unshift(...debugLots);
+  suppressAchievements = true;
+  for(const lot of debugLots.filter(x=>x.sold)) updateSoldStats(lot, lot.saleTotal||0);
+  suppressAchievements = false;
+  const b3=newBarrel('bourbon',360,72); Object.assign(b3,{volume:75, age:6.4, abv:54, quality:91, peatPpm:18, lineage:[{stage:'debug_triple_liquid', barrelType:'bourbon'}]});
+  b3.components=[0,1,2].map(i=>({id:uuid(), label:['Bourbon base','Jerez seco','3º dest. ahumado'][i], color:liquidColor(`debug3-${i}`), litres:barrelCapacityL(b3)*.25, age:6+i, abv:50+i*3, quality:88+i*3, peatPpm:i===2?45:10+i*6, runs:i===2?3:2, barrelTrail:[['bourbon'],['sherry'],['bourbon','sherry','mizunara']][i]}));
+  state.barrels.push(b3);
+  state.bottles = state.boxes.reduce((a,x)=>a+(Number(x.bottles)||0),0);
+  const d=distillery(); d.debugStats=true; d.stats.maxBottlePrice=Math.max(d.stats.maxBottlePrice||0, 123.45); d.stats.maxBottlesLot=Math.max(d.stats.maxBottlesLot||0, 1200);
   markDirty(); render(); saveGame();
 }
 
 
-document.addEventListener('click', e=>{ const buy=e.target.closest('.barrel-buy'); if(buy){ e.preventDefault(); buyBarrel(buy.dataset.type); } const eq=e.target.closest('.equipment-buy'); if(eq){ e.preventDefault(); buyEquipment(eq.dataset.equipment); } const hist=e.target.closest('#bottleHistorySide, #bottleStat'); if(hist){ e.preventDefault(); e.stopPropagation(); showBottleHistory(); } });
+document.addEventListener('click', e=>{
+  const ach=e.target.closest('.force-achievement'); if(ach){ e.preventDefault(); e.stopPropagation(); forceAchievement(ach.dataset.ach); showDistilleryStats(); return; }
+  const buy=e.target.closest('.barrel-buy'); if(buy){ e.preventDefault(); buyBarrel(buy.dataset.type); }
+  const eq=e.target.closest('.equipment-buy'); if(eq){ e.preventDefault(); buyEquipment(eq.dataset.equipment); }
+  const hist=e.target.closest('#bottleHistorySide, #bottleStat'); if(hist){ e.preventDefault(); e.stopPropagation(); showBottleHistory(); }
+  const dist=e.target.closest('#distilleryStat'); if(dist){ e.preventDefault(); e.stopPropagation(); showDistilleryStats(); }
+});
 $('#buySeeds').onclick=()=>{ if(state.coins + 1e-6 >= SEED_PACK_COST){ state.coins=Math.max(0, state.coins-SEED_PACK_COST); state.seeds+=SEED_PACK_KG; playFx('fxCashRegister', .72); markDirty(); render(); } else notice(`Necesitas ${SEED_PACK_COST} k€ para comprar semillas.`, 'explain', 'No hay dinero'); };
 $('#distilleryName').addEventListener('input', e=>{ state.distilleryName=e.target.value || 'Miarma Distillery'; markDirty(); });
 $('#editName').onclick=()=>{ nameEditing=true; render(); $('#distilleryName').focus(); $('#distilleryName').select(); };
@@ -1809,13 +2008,14 @@ document.addEventListener('keydown', e=>{
   if(fireKey!==undefined){ e.preventDefault(); toggleStillFire(fireKey); return; }
   if(e.key.toLowerCase()==='m'){ e.preventDefault(); setMusicEnabled(state.musicEnabled === false); saveGame(); return; }
   if(e.key.toLowerCase()==='b'){ e.preventDefault(); showBottleHistory(); return; }
+  if(e.key.toLowerCase()==='l'){ e.preventDefault(); showDistilleryStats(); return; }
   if(e.key.toLowerCase()==='x'){ e.preventDefault(); state.fxEnabled = state.fxEnabled === false; refreshAudioToggles(); markDirty(); saveGame(); }
 });
 $('#speedSlider').addEventListener('input', e=>{ setSpeedStep(Number(e.target.value)); });
 $('#speedReset').onclick=()=>{ setSpeedStep(0); render(); };
 $('#speedSlider').addEventListener('wheel', e=>{ e.preventDefault(); setSpeedStep(Number(state.speedStep||0)+(e.deltaY<0?1:-1)); }, {passive:false});
 document.addEventListener('wheel', e=>{
-  if(e.target.closest?.('#speedSlider, #bottleAbvRange, .reference-modal:not(.hidden), .help-modal:not(.hidden), .game-popup:not(.hidden), .bottle-modal, .bottle-history-modal:not(.hidden)')) return;
+  if(e.target.closest?.('#speedSlider, #bottleAbvRange, .reference-modal:not(.hidden), .help-modal:not(.hidden), .game-popup:not(.hidden), .bottle-modal, .bottle-history-modal:not(.hidden), .distillery-modal:not(.hidden)')) return;
   e.preventDefault();
   const dir = e.deltaY < 0 ? 1 : -1;
   setGameZoom(gameZoom + dir * .22, e.clientX, e.clientY);
@@ -1840,8 +2040,8 @@ function setRoofsVisible(visible){
   roof.classList.add('hidden-roofs','roof-hidden');
   roofFadeTimer = setTimeout(()=>{ if(roof.classList.contains('roof-hidden')) roof.style.display = 'none'; }, 220);
 }
-function showHud(){ $('#hud').classList.remove('collapsed'); setRoofsVisible(false); playFx('fxCork', .72); }
-function hideHud(){ $('#hud').classList.add('collapsed'); setRoofsVisible(true); playFx('fxAhhh', .68); }
+function showHud(){ $('#hud').classList.remove('collapsed'); $('#game')?.classList.remove('roofs-active'); setRoofsVisible(false); playFx('fxCork', .72); }
+function hideHud(){ $('#hud').classList.add('collapsed'); $('#game')?.classList.add('roofs-active'); setRoofsVisible(true); playFx('fxAhhh', .68); }
 function showHelpHintIfNeeded(){
   if(localStorage.getItem(HELP_HINT_KEY) !== '1') $('#helpButton')?.classList.add('menu-hint');
 }
@@ -1873,12 +2073,68 @@ $('#resetGame').onclick=async()=>{
     localStorage.removeItem(HAMBURGER_HINT_KEY);
     localStorage.removeItem(HELP_HINT_KEY);
     state=defaultState(); markDirty(); render(); saveGame();
+    hideHud();
     $('#hudIcon')?.classList.add('menu-hint');
     $('#helpButton')?.classList.remove('menu-hint');
     showSplash();
   }
 };
 
+let pixelZoomActive=null;
+const pixelCanvasCache=new WeakMap();
+function opaquePixelAt(img,e){
+  const r=img.getBoundingClientRect();
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  if(x<0||y<0||x>r.width||y>r.height) return false;
+  try{
+    let entry=pixelCanvasCache.get(img);
+    if(!entry || entry.src!==img.currentSrc){
+      const c=document.createElement('canvas'), ctx=c.getContext('2d', {willReadFrequently:true});
+      c.width=img.naturalWidth||1; c.height=img.naturalHeight||1; ctx.drawImage(img,0,0,c.width,c.height);
+      entry={src:img.currentSrc, c, ctx}; pixelCanvasCache.set(img,entry);
+    }
+    const px=Math.floor(x/r.width*entry.c.width), py=Math.floor(y/r.height*entry.c.height);
+    return entry.ctx.getImageData(px,py,1,1).data[3] > 24;
+  } catch(_) { return true; }
+}
+function clearRealPixelZoom(){
+  if(pixelZoomActive){
+    pixelZoomActive.classList.remove('pixel-zoom-active','pixel-zoom-bottle','pixel-zoom-sticker');
+    pixelZoomActive.removeAttribute('style');
+    pixelZoomActive=null;
+  }
+}
+function activateRealPixelZoom(img,e,kind='bottle'){
+  if(!img || !opaquePixelAt(img,e)){ clearRealPixelZoom(); return; }
+  if(pixelZoomActive && pixelZoomActive!==img) clearRealPixelZoom();
+  const r=img.getBoundingClientRect();
+  const w=kind==='sticker'?Math.max(156, r.width*2.05):190;
+  const h=kind==='sticker'?Math.max(156, r.height*2.05):423;
+  const left=Math.min(innerWidth-w-18, Math.max(18, r.left + r.width/2 - w/2));
+  const top=Math.min(innerHeight-h-18, Math.max(18, r.top + r.height/2 - h/2));
+  pixelZoomActive=img;
+  img.classList.add('pixel-zoom-active', kind==='sticker'?'pixel-zoom-sticker':'pixel-zoom-bottle');
+  img.style.setProperty('position','fixed','important');
+  img.style.setProperty('left',`${left}px`,'important');
+  img.style.setProperty('top',`${top}px`,'important');
+  img.style.setProperty('width',`${w}px`,'important');
+  img.style.setProperty('height',`${h}px`,'important');
+  img.style.setProperty('max-width','none','important');
+  img.style.setProperty('max-height','none','important');
+  img.style.setProperty('z-index','50050','important');
+  img.style.setProperty('pointer-events','none','important');
+}
+function installPixelZoom(){
+  document.addEventListener('pointermove', e=>{
+    const bottle=e.target.closest?.('.bottle-history-cover img');
+    if(bottle){ activateRealPixelZoom(bottle,e,'bottle'); return; }
+    const sticker=e.target.closest?.('.achievement-card.unlocked .zoomable-sticker, .lot-achievement-stickers .zoomable-sticker');
+    if(sticker){ activateRealPixelZoom(sticker,e,'sticker'); return; }
+    clearRealPixelZoom();
+  }, true);
+  document.addEventListener('pointerleave', clearRealPixelZoom, true);
+  document.addEventListener('scroll', clearRealPixelZoom, true);
+}
 const tip=$('#tooltip');
 ['#helpModal','#magnitudesModal','#gamePopup'].forEach(sel=>{ const el=$(sel); if(el && el.parentElement !== document.body) document.body.appendChild(el); });
 document.body.appendChild(tip);
@@ -1921,6 +2177,7 @@ recordMarketSample(Date.now(), true);
 initTiles();
 ensureTruckSprite();
 render();
+if($('#hud')?.classList.contains('collapsed')) $('#game')?.classList.add('roofs-active');
 setInterval(tick, TICK_MS);
 setInterval(()=>{ if(isMarketTipEl(activeTipEl)) refreshTooltip(); }, 1000);
 setInterval(()=>{ if(saveDirty) saveGame(); }, 20000);
@@ -1929,4 +2186,5 @@ function smokeRepaintPump(now=0){
   requestAnimationFrame(smokeRepaintPump);
 }
 requestAnimationFrame(smokeRepaintPump);
+installPixelZoom();
 addEventListener('beforeunload', saveGame);
