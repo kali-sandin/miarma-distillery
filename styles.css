@@ -124,7 +124,10 @@ body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 .help-modal { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; background: rgba(0,0,0,.70); animation: helpIn .14s cubic-bezier(.2,1.4,.4,1); cursor: pointer; }
 .help-modal img { max-width: min(82vw, 1100px); max-height: 82vh; border: 0; box-shadow: none; image-rendering: auto; }
 .reference-modal { position: fixed; inset: 0; z-index: 20001; display: grid; place-items: center; background: rgba(0,0,0,.70); animation: helpIn .14s cubic-bezier(.2,1.4,.4,1); cursor: pointer; }
-.reference-modal iframe { width: min(88vw, 980px); height: min(88vh, 840px); border: 0; border-radius: 18px; background: #231812; box-shadow: none; image-rendering: auto; }
+.reference-window { width:min(88vw, 980px); height:min(88vh, 840px); border:0; border-radius:18px; background:#231812; box-shadow:none; image-rendering:auto; overflow:hidden; }
+.reference-content { max-width:960px; margin:auto; padding:20px 22px; color:#ffe7b5; font:12.6px/1.31 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+.reference-content h1{margin:0 0 6px;color:#e2a64b;font-size:20px;text-shadow:2px 2px #000}.reference-content .summary{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 8px}.reference-content .pill{background:#6f4729;border-radius:8px;padding:3px 7px;color:#fff3cf;font-weight:900}.reference-content .arrow{color:#e2a64b;font-weight:900;text-shadow:1px 1px #000}
+.reference-content table{width:100%;border-collapse:separate;border-spacing:0;background:rgba(0,0,0,.12);border:1px solid rgba(255,231,181,.16);border-radius:12px;overflow:hidden}.reference-content th,.reference-content td{border:0;border-bottom:1px solid rgba(255,231,181,.16);padding:6px 9px;vertical-align:middle}.reference-content tr:last-child td{border-bottom:0}.reference-content th{color:#fff4ce;background:rgba(226,166,75,.18);text-align:left}.reference-content th:first-child{border-top-left-radius:11px}.reference-content th:last-child{border-top-right-radius:11px}.reference-content tr:last-child td:first-child{border-bottom-left-radius:11px}.reference-content tr:last-child td:last-child{border-bottom-right-radius:11px}.reference-content td.game{color:#fff3cf;font-weight:900}.reference-content .metric{display:flex;align-items:center;gap:10px;font-weight:900;color:#fff4ce}.reference-content .icon{width:46px;height:46px;object-fit:contain;image-rendering:auto;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.3))}.reference-content a{color:#8fd7ff;text-decoration:none}.reference-content .note{margin:8px 0 0;color:#d7c4a4;font-size:11.5px}.reference-content .note span{display:block;margin-top:3px}
 .modal-close { position: fixed; z-index: 20002; right: max(calc((100vw - 980px) / 2 + 12px), calc(6vw + 12px)); top: max(calc((100vh - 840px) / 2 + 12px), calc(6vh + 12px)); width: 48px; height: 48px; border:0; border-radius:50%; background:transparent; color:#ffe7b5; font:900 42px/48px ui-monospace, monospace; text-shadow:2px 2px #000; box-shadow:none; cursor:pointer; }
 .pixel-btn.ref { background:#6f5b33; }
 @keyframes helpIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
@@ -393,7 +396,7 @@ body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 .bar.tempv em.alcohol-zone { background:rgba(255,215,70,.42) !important; box-shadow:none !important; }
 .vat-shop { top:-38px !important; }
 .reference-modal { background: rgba(0,0,0,.70) !important; }
-.reference-modal iframe { border:0 !important; border-radius:18px !important; box-shadow:none !important; background:rgba(36,25,17,.88) !important; }
+.reference-window { border:0 !important; border-radius:18px !important; box-shadow:none !important; background:rgba(36,25,17,.88) !important; }
 .crop-q { top:8px !important; }
 .market-spark { display:flex; align-items:center; gap:8px; margin-top:7px; }
 .market-chart { display:block; width:220px; height:58px; background:rgba(0,0,0,.22); border-radius:7px; }
@@ -809,6 +812,9 @@ body::after { display:none !important; }
 #toggleDebugView { font-size:42px !important; width:52px !important; height:42px !important; }
 .field-tile.needs-water,
 .malt-tile.needs-water { cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 2C10 10 6 15 6 21a10 10 0 0 0 20 0c0-6-4-11-10-19z' fill='%236dccff' stroke='%2300182b' stroke-width='2'/%3E%3Cpath d='M11 22c1 4 5 6 9 4' fill='none' stroke='%23e8fbff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 10 28, pointer !important; }
+.malt-tile.needs-plough { cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M20 3l5 5-13 17-6 3 3-6L20 3z' fill='%23c88a42' stroke='%23241911' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M17 8l7 7' stroke='%23ffe7b5' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 5 28, pointer !important; }
+.malt-tile.ready-kiln { cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M17 2c2 6-5 7-1 13 1-4 5-5 6-10 6 7 5 16-1 21-5 4-14 2-16-5-2-6 2-11 7-16-1 6 3 7 5 10-2-5 3-7 0-13z' fill='%23ff7b1c' stroke='%2324110b' stroke-width='2'/%3E%3Cpath d='M14 25c-2-4 1-6 3-9 0 4 4 5 1 9' fill='%23ffe36d'/%3E%3C/svg%3E") 12 25, pointer !important; }
+.malt-token { cursor:grab !important; }
 .malt-smoke {
   position:absolute;
   left:50%;
@@ -2004,8 +2010,8 @@ body::after {
 .box-card:hover img { width:104px !important; height:104px !important; transform:none !important; animation:none !important; }
 /* Strong modal scroll containment for achievements, same idea as bottle history. */
 .distillery-window {
-  height:min(86vh, 760px) !important;
-  max-height:86vh !important;
+  height:min(98vh, 1040px) !important;
+  max-height:98vh !important;
   overflow:hidden !important;
 }
 .distillery-window > header,
@@ -2164,3 +2170,362 @@ body::after {
   image-rendering:auto !important;
 }
 @keyframes pixelRealZoomWobble { from{ rotate:-1.1deg; } to{ rotate:1.1deg; } }
+
+/* 2026-06-09 fix: robust hover zoom for bottle history + achievement stickers.
+   The real img stays in place; a pointer-events:none overlay does the zoom/wobble above scroll containers. */
+.pixel-zoom-overlay.pixel-zoom-visible {
+  display:block !important;
+  position:fixed !important;
+  pointer-events:none !important;
+  object-fit:contain !important;
+  image-rendering:auto !important;
+  transform-origin:50% 82% !important;
+  animation:pixelZoomOverlayWobble 1.16s ease-in-out infinite alternate !important;
+  filter:drop-shadow(0 22px 26px rgba(0,0,0,.74)) drop-shadow(0 0 18px rgba(255,231,181,.72)) !important;
+}
+.pixel-zoom-overlay.pixel-zoom-visible.sticker {
+  transform-origin:50% 50% !important;
+  animation-duration:1.05s !important;
+  filter:drop-shadow(0 16px 18px rgba(0,0,0,.66)) drop-shadow(0 0 16px rgba(255,231,181,.62)) !important;
+}
+.bottle-history-cover img.pixel-zoom-active,
+.achievement-card.unlocked .achievement-sticker img.pixel-zoom-active,
+.lot-achievement-stickers img.pixel-zoom-active {
+  filter:drop-shadow(0 0 10px rgba(255,231,181,.9)) drop-shadow(0 6px 8px rgba(0,0,0,.55)) !important;
+}
+@keyframes pixelZoomOverlayWobble {
+  0% { transform:rotate(-1.35deg) translateY(0); }
+  45% { transform:rotate(.9deg) translateY(-2px); }
+  100% { transform:rotate(1.25deg) translateY(1px); }
+}
+
+/* 2026-06-09 final: the JS overlay owns the zoom. Keep the real bottle/sticker
+   still so hover hit-testing cannot flicker, and center bottles by opaque pixels. */
+.bottle-history-cover img:hover,
+.bottle-history-cover img.pixel-zoom-active.pixel-zoom-bottle {
+  position:static !important;
+  width:96px !important;
+  height:214px !important;
+  transform:none !important;
+  rotate:0deg !important;
+  animation:none !important;
+  z-index:auto !important;
+  pointer-events:auto !important;
+  filter:drop-shadow(0 0 10px rgba(255,231,181,.9)) drop-shadow(0 6px 8px rgba(0,0,0,.55)) !important;
+}
+.achievement-card.unlocked .achievement-sticker img.pixel-zoom-active.pixel-zoom-sticker,
+.lot-achievement-stickers img.pixel-zoom-active.pixel-zoom-sticker {
+  transform:none !important;
+  rotate:0deg !important;
+  animation:none !important;
+  filter:drop-shadow(0 0 10px rgba(255,231,181,.86)) drop-shadow(0 6px 8px rgba(0,0,0,.5)) !important;
+}
+.pixel-zoom-overlay.pixel-zoom-visible {
+  display:block !important;
+  position:fixed !important;
+  pointer-events:none !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+}
+
+/* 2026-06-09 shop boxes: base + real bottle art diamond + lid, moved as one card. */
+.box-card {
+  width:154px !important;
+  min-height:142px !important;
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  grid-template-rows:26px 116px !important;
+  justify-items:center !important;
+  align-items:center !important;
+  overflow:visible !important;
+}
+.box-card .box-text {
+  grid-column:1 !important;
+  grid-row:1 !important;
+  justify-content:center !important;
+  text-align:center !important;
+  width:100% !important;
+  z-index:5 !important;
+}
+.box-art {
+  grid-column:1 !important;
+  grid-row:2 !important;
+  position:relative !important;
+  width:132px !important;
+  height:112px !important;
+  transform:none !important;
+  animation:none !important;
+  filter:drop-shadow(3px 3px #18140f) !important;
+}
+.box-art img {
+  position:absolute !important;
+  display:block !important;
+  padding:0 !important;
+  margin:0 !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  image-rendering:auto !important;
+  transform:none !important;
+  animation:none !important;
+  filter:none !important;
+  pointer-events:none !important;
+}
+.box-art .box-base,
+.box-art .box-lid { left:0 !important; top:0 !important; width:132px !important; height:112px !important; }
+.box-art .box-base { z-index:1 !important; }
+.box-art .box-lid { z-index:4 !important; }
+.box-art .box-bottle {
+  width:36px !important;
+  height:80px !important;
+  z-index:3 !important;
+  transform-origin:50% 88% !important;
+}
+.box-art .box-bottle-top { left:46px !important; top:1px !important; }
+.box-art .box-bottle-left { left:29px !important; top:20px !important; }
+.box-art .box-bottle-right { left:67px !important; top:19px !important; }
+.box-art .box-bottle-bottom { left:60px !important; top:33px !important; }
+.box-card:hover .box-art,
+.drag-ghost.box-card .box-art { transform:none !important; animation:none !important; }
+.box-card:hover .box-art img,
+.drag-ghost.box-card .box-art img,
+.drag-ghost.box-card:hover .box-art img {
+  position:absolute !important;
+  display:block !important;
+  transform:none !important;
+  animation:none !important;
+  filter:none !important;
+  max-width:none !important;
+  max-height:none !important;
+  pointer-events:none !important;
+}
+.box-card:hover .box-art .box-base,
+.box-card:hover .box-art .box-lid,
+.drag-ghost.box-card .box-art .box-base,
+.drag-ghost.box-card .box-art .box-lid { left:0 !important; top:0 !important; width:132px !important; height:112px !important; }
+.box-card:hover .box-art .box-bottle,
+.drag-ghost.box-card .box-art .box-bottle { width:36px !important; height:80px !important; z-index:3 !important; }
+.box-card:hover .box-art .box-bottle-top,
+.drag-ghost.box-card .box-art .box-bottle-top { left:46px !important; top:1px !important; }
+.box-card:hover .box-art .box-bottle-left,
+.drag-ghost.box-card .box-art .box-bottle-left { left:29px !important; top:20px !important; }
+.box-card:hover .box-art .box-bottle-right,
+.drag-ghost.box-card .box-art .box-bottle-right { left:67px !important; top:19px !important; }
+.box-card:hover .box-art .box-bottle-bottom,
+.drag-ghost.box-card .box-art .box-bottle-bottom { left:60px !important; top:33px !important; }
+.bottle-preview {
+  display:grid !important;
+  grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+  gap:6px 10px !important;
+  margin:10px auto 12px !important;
+  padding:10px !important;
+  max-width:360px !important;
+  border-radius:12px !important;
+  background:rgba(0,0,0,.22) !important;
+  box-shadow:inset 0 0 0 1px rgba(255,231,181,.14) !important;
+  text-align:left !important;
+}
+.bottle-preview b { color:#fff3cf !important; font-size:13px !important; }
+.bottle-preview span { grid-column:1 / -1 !important; color:#d8c29d !important; font-size:12px !important; line-height:1.25 !important; }
+.bottle-options {
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:6px !important;
+  margin:8px auto 4px !important;
+  max-width:360px !important;
+}
+.bottle-options label {
+  display:grid !important;
+  grid-template-columns:auto minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:8px !important;
+  padding:6px 9px !important;
+  border-radius:10px !important;
+  background:rgba(255,231,181,.08) !important;
+  color:#fff3cf !important;
+  cursor:pointer !important;
+  text-align:left !important;
+}
+.bottle-options input { width:16px !important; height:16px !important; accent-color:#e2a64b !important; }
+.bottle-options span { font-weight:900 !important; }
+.bottle-options em { font-style:normal !important; color:#d8c29d !important; font-size:11px !important; white-space:nowrap !important; }
+
+/* 2026-06-10 barrel catalogue + bottle popup/box fixes */
+.barrel-shop { left:10px !important; top:-44px !important; display:block !important; z-index:30 !important; }
+.barrel-shop .barrel-buy { min-width:156px; }
+.barrel-shop-panel {
+  position:absolute;
+  left:0;
+  top:42px;
+  width:610px;
+  max-height:0;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:8px;
+  padding:0 10px;
+  border-radius:14px;
+  background:rgba(36,25,17,.95);
+  box-shadow:0 18px 42px rgba(0,0,0,.44), inset 0 0 0 1px rgba(255,231,181,.16);
+  opacity:0;
+  transform:translateY(-10px) scale(.98);
+  transform-origin:top left;
+  transition:max-height .28s ease, opacity .18s ease, transform .22s ease, padding .22s ease;
+  pointer-events:none;
+}
+.barrel-shop.open .barrel-shop-panel { max-height:720px; opacity:1; transform:translateY(0) scale(1); padding:10px; pointer-events:auto; }
+.barrel-shop-option {
+  border:0;
+  border-radius:10px;
+  background:rgba(255,231,181,.075);
+  color:#ffe7b5;
+  text-align:left;
+  padding:8px 10px;
+  display:grid;
+  gap:3px;
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(255,231,181,.10);
+}
+.barrel-shop-option:hover { filter:brightness(1.18); background:rgba(255,231,181,.13); }
+.barrel-shop-option b { color:#fff3cf; font:900 13px ui-monospace, monospace; }
+.barrel-shop-option span { color:#d8c29d; font:700 11px/1.22 ui-monospace, monospace; }
+.barrel-shop-option em { color:#f2c469; font:900 11px ui-monospace, monospace; font-style:normal; }
+.barrel-shop-option strong { color:#a7e184; font:900 11px/1.18 ui-monospace, monospace; }
+.barrel-card.old-barrel img { filter:saturate(.85) contrast(.96) drop-shadow(3px 3px #18140f); }
+.barrel-transfer-modal { position:fixed; inset:0; z-index:31000; display:grid; place-items:center; background:rgba(0,0,0,.48); }
+.barrel-transfer-card { min-width:430px; border-radius:16px; background:rgba(43,31,24,.97); color:#ffe7b5; padding:18px; box-shadow:12px 14px 0 rgba(0,0,0,.34); text-align:center; }
+.barrel-transfer-card h3 { margin:0 0 6px; color:#e2a64b; font-size:24px; }
+.barrel-transfer-card p { margin:0 0 12px; font-size:15px; }
+.transfer-kpis { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0; }
+.transfer-kpis b { background:rgba(0,0,0,.22); border-radius:8px; padding:8px; color:#fff3cf; }
+#barrelTransferRange { width:360px; margin:12px 0; }
+#barrelTransferLabel { display:block; font-size:24px; color:#fff3cf; margin-bottom:12px; }
+.box-art .box-bottle {
+  width:38px !important;
+  height:86px !important;
+  clip-path:inset(0 0 50% 0) !important;
+  z-index:3 !important;
+}
+.box-art .box-lid { opacity:1 !important; visibility:visible !important; z-index:20 !important; display:block !important; }
+.box-card:hover .box-art .box-lid,
+.drag-ghost.box-card .box-art .box-lid,
+.dragging-source.box-card .box-art .box-lid { opacity:1 !important; visibility:visible !important; z-index:20 !important; display:block !important; }
+.box-art .box-bottle-top { left:45px !important; top:-7px !important; }
+.box-art .box-bottle-left { left:28px !important; top:11px !important; }
+.box-art .box-bottle-right { left:68px !important; top:10px !important; }
+.box-art .box-bottle-bottom { left:63px !important; top:21px !important; }
+.box-card:hover .box-art .box-bottle,
+.drag-ghost.box-card .box-art .box-bottle { width:38px !important; height:86px !important; clip-path:inset(0 0 50% 0) !important; }
+.box-card:hover .box-art .box-bottle-top,
+.drag-ghost.box-card .box-art .box-bottle-top { left:45px !important; top:-7px !important; }
+.box-card:hover .box-art .box-bottle-left,
+.drag-ghost.box-card .box-art .box-bottle-left { left:28px !important; top:11px !important; }
+.box-card:hover .box-art .box-bottle-right,
+.drag-ghost.box-card .box-art .box-bottle-right { left:68px !important; top:10px !important; }
+.box-card:hover .box-art .box-bottle-bottom,
+.drag-ghost.box-card .box-art .box-bottle-bottom { left:63px !important; top:21px !important; }
+.dragging-source.box-card { opacity:.42 !important; }
+.dragging-source.box-card .box-art { filter:grayscale(.15) drop-shadow(2px 2px #18140f) !important; }
+.drag-ghost.box-card { opacity:.96 !important; }
+.bottle-card-modal { min-width:650px !important; }
+.bottle-card-modal h3 { font-size:28px !important; }
+.bottle-card-modal p { font-size:17px !important; }
+#bottleAbvRange { width:340px !important; }
+#bottleAbvLabel { font-size:25px !important; }
+.bottle-preview { max-width:430px !important; gap:8px 12px !important; padding:14px !important; }
+.bottle-preview b { font-size:17px !important; }
+.bottle-preview .bottle-bonuses { display:grid !important; gap:4px !important; color:#d8c29d !important; font-size:15px !important; line-height:1.25 !important; }
+.bottle-preview .bottle-bonuses i { font-style:normal !important; display:block !important; }
+.bottle-options { max-width:430px !important; gap:8px !important; }
+.bottle-options label { padding:9px 12px !important; }
+.bottle-options input { width:20px !important; height:20px !important; }
+.bottle-options span { font-size:16px !important; }
+.bottle-options em { font-size:13px !important; }
+
+/* 2026-06-10 late corrections: malt bars, barrel shop, transfer popup, box clipping */
+#malting .malt-tile .mini-bars { z-index:30 !important; bottom:5px !important; pointer-events:none !important; }
+#malting .malt-tile .malt-capacity { z-index:31 !important; pointer-events:none !important; }
+#malting .malt-tile .plant { z-index:5 !important; bottom:58px !important; pointer-events:none !important; }
+#malting .malt-tile .malt-token { pointer-events:auto !important; }
+#malting .malt-tile .malt-overlay { z-index:6 !important; bottom:58px !important; pointer-events:none !important; }
+#malting .malt-tile .warning-overlay { z-index:35 !important; }
+
+.barrel-shop-panel {
+  width:790px !important;
+  grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+  gap:10px !important;
+}
+.barrel-shop.open .barrel-shop-panel { max-height:820px !important; padding:12px !important; }
+.barrel-shop-option {
+  min-height:116px !important;
+  grid-template-columns:74px minmax(0,1fr) !important;
+  grid-template-rows:auto 1fr auto auto !important;
+  gap:4px 10px !important;
+  padding:10px 12px !important;
+}
+.barrel-shop-img {
+  grid-column:1 !important;
+  grid-row:1 / 5 !important;
+  width:70px !important;
+  height:92px !important;
+  object-fit:contain !important;
+  align-self:center !important;
+  justify-self:center !important;
+  image-rendering:auto !important;
+  filter:drop-shadow(3px 4px 0 rgba(0,0,0,.28)) !important;
+}
+.barrel-shop-option b { grid-column:2 !important; font-size:16px !important; }
+.barrel-shop-option span { grid-column:2 !important; font-size:12px !important; line-height:1.25 !important; }
+.barrel-shop-option em {
+  grid-column:2 !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  flex-wrap:wrap !important;
+  font-style:normal !important;
+}
+.barrel-shop-option em i { font-style:normal !important; color:#ffd36d !important; font-size:18px !important; font-weight:1000 !important; }
+.barrel-shop-option em small { color:#d8c29d !important; font-size:12px !important; }
+.barrel-shop-option strong { grid-column:2 !important; font-size:13px !important; }
+
+.barrel-card img {
+  width:118px !important;
+  height:118px !important;
+  object-fit:contain !important;
+  margin-left:-17px !important;
+  margin-top:-7px !important;
+  align-self:start !important;
+}
+.barrel-card[class*="barrel-"] img { width:118px !important; height:118px !important; object-fit:contain !important; }
+.barrel-card.barrel-sherry img { width:118px !important; height:118px !important; margin-left:-17px !important; margin-top:-7px !important; }
+
+.transfer-visual {
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:12px;
+  margin:10px 0 8px;
+}
+.transfer-visual figure { margin:0; display:grid; gap:5px; justify-items:center; color:#d8c29d; }
+.transfer-visual img { width:118px; height:118px; object-fit:contain; filter:drop-shadow(4px 5px 0 rgba(0,0,0,.32)); }
+.transfer-visual figcaption { font-size:12px; line-height:1.2; }
+.transfer-visual figcaption b { color:#fff3cf; font-size:16px; }
+.transfer-visual > span { color:#ffd36d; font-size:34px; font-weight:1000; }
+.barrel-transfer-card { min-width:560px !important; }
+#barrelTransferRange:focus { outline:3px solid rgba(255,211,109,.7); outline-offset:4px; }
+
+.box-art .box-bottle { clip-path:none !important; }
+.box-art .box-bottle-top { clip-path:none !important; left:45px !important; top:-7px !important; }
+.box-art .box-bottle-left { clip-path:inset(0 0 33.33% 0) !important; left:28px !important; top:11px !important; }
+.box-art .box-bottle-right { clip-path:inset(0 0 33.33% 0) !important; left:68px !important; top:10px !important; }
+.box-art .box-bottle-bottom { clip-path:inset(0 0 50% 0) !important; left:63px !important; top:21px !important; }
+.box-card:hover .box-art .box-bottle-top,
+.drag-ghost.box-card .box-art .box-bottle-top { clip-path:none !important; left:45px !important; top:-7px !important; }
+.box-card:hover .box-art .box-bottle-left,
+.drag-ghost.box-card .box-art .box-bottle-left { clip-path:inset(0 0 33.33% 0) !important; left:28px !important; top:11px !important; }
+.box-card:hover .box-art .box-bottle-right,
+.drag-ghost.box-card .box-art .box-bottle-right { clip-path:inset(0 0 33.33% 0) !important; left:68px !important; top:10px !important; }
+.box-card:hover .box-art .box-bottle-bottom,
+.drag-ghost.box-card .box-art .box-bottle-bottom { clip-path:inset(0 0 50% 0) !important; left:63px !important; top:21px !important; }
+.bottle-options label.muted-option { opacity:.58; }
+.bottle-options label.muted-option em::after { content:' · sin Q a este grado'; }
