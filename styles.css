@@ -2529,3 +2529,344 @@ body::after {
 .drag-ghost.box-card .box-art .box-bottle-bottom { clip-path:inset(0 0 50% 0) !important; left:63px !important; top:21px !important; }
 .bottle-options label.muted-option { opacity:.58; }
 .bottle-options label.muted-option em::after { content:' · sin Q a este grado'; }
+
+/* 2026-06-10 deep polish: roofs keep crops active, rich tooltips, centered barrel shop, bottling popup */
+#game.roofs-active #field,
+#game.roofs-active #field * {
+  pointer-events:auto !important;
+}
+.distillery-stat:hover span,
+.bottle-stat:hover span,
+.seed-inventory:not(.disabled):hover span {
+  transform:scale(1.12);
+  filter:drop-shadow(0 0 8px rgba(255,230,140,.88)) drop-shadow(2px 2px #000) !important;
+}
+.seed-inventory:not(.disabled) span {
+  color:#fff4a8;
+  filter:drop-shadow(0 0 5px rgba(255,219,57,.7)) drop-shadow(2px 2px #000) !important;
+}
+#tooltip {
+  max-width:500px !important;
+  min-width:260px;
+}
+#tooltip.wide-tip {
+  width:min(500px, calc(100vw - 34px)) !important;
+  max-width:min(500px, calc(100vw - 34px)) !important;
+}
+#tooltip .tip-wide { display:grid; gap:5px; }
+#tooltip .tip-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; color:#fff3cf; }
+#tooltip .tip-head b { color:#fff3cf; font-size:13px; }
+#tooltip .tip-head span { color:#d8c29d; font-size:11px; white-space:nowrap; }
+#tooltip .tip-desc { color:#b9b0a4; font-size:11px; line-height:1.25; }
+#tooltip .tip-line { display:flex; align-items:center; gap:9px; flex-wrap:nowrap; white-space:nowrap; color:#ffe7b7; }
+#tooltip .tip-kpis { justify-content:space-between; }
+#tooltip .tip-quality { color:#ffe16d; font-weight:1000; text-shadow:1px 1px #000; }
+#tooltip .tip-bonus { color:#a7e184; font-weight:1000; margin-left:8px; }
+#tooltip .tip-muted { color:#b9b0a4; font-style:italic; margin-left:8px; }
+#tooltip .tip-liquids { display:grid; gap:3px; padding-top:4px; border-top:1px solid rgba(255,231,181,.13); }
+#tooltip .tip-liquids > div { white-space:nowrap; color:#fff0c8; }
+.barrel-shop.open::after { display:none !important; }
+.barrel-shop-modal {
+  position:fixed;
+  inset:0;
+  z-index:34000;
+  display:grid;
+  place-items:center;
+  background:rgba(0,0,0,.58);
+}
+.barrel-shop-modal.hidden { display:none !important; }
+.barrel-shop-window {
+  position:relative;
+  width:min(940px, calc(100vw - 48px));
+  max-height:calc(100vh - 48px);
+  overflow:hidden auto;
+  border-radius:18px;
+  background:linear-gradient(145deg, rgba(63,43,28,.98), rgba(22,15,10,.99));
+  color:#ffe7b5;
+  padding:20px;
+  box-shadow:0 26px 90px rgba(0,0,0,.65);
+}
+.barrel-shop-window header { padding-right:58px; margin-bottom:12px; }
+.barrel-shop-window h3 { margin:0; color:#e2a64b; font-size:28px; text-shadow:2px 2px #000; }
+.barrel-shop-window p { margin:3px 0 0; color:#d8c29d; }
+.barrel-shop-grid {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:10px;
+}
+.barrel-shop-grid .barrel-shop-option { min-height:126px !important; }
+.barrel-shop-grid .barrel-shop-img {
+  width:auto !important;
+  height:auto !important;
+  max-width:104px !important;
+  max-height:108px !important;
+  object-fit:contain !important;
+}
+.barrel-shop-grid .barrel-shop-option strong,
+.barrel-shop-option strong { color:#a7e184 !important; }
+.barrel-card img,
+.barrel-card[class*="barrel-"] img,
+.barrel-card.barrel-sherry img {
+  width:auto !important;
+  height:auto !important;
+  max-width:132px !important;
+  max-height:132px !important;
+  object-fit:contain !important;
+  justify-self:center !important;
+  align-self:start !important;
+}
+.bottle-card-modal {
+  min-width:min(880px, calc(100vw - 42px)) !important;
+  grid-template-columns:160px minmax(0,1fr) !important;
+}
+.bottle-flow {
+  display:grid;
+  grid-template-columns:120px minmax(280px,1fr) 150px;
+  align-items:center;
+  gap:14px;
+  margin:8px 0 12px;
+}
+.bottle-source-barrel {
+  max-width:122px;
+  max-height:126px;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  justify-self:center;
+  filter:drop-shadow(4px 5px 0 rgba(0,0,0,.32));
+}
+.bottle-slider-wrap { display:grid; gap:4px; justify-items:center; }
+.bottle-target-box .box-art { transform:scale(.92) !important; transform-origin:center center !important; }
+.bottle-options label { grid-template-columns:minmax(0,1fr) !important; position:relative; }
+.bottle-options input { position:absolute !important; opacity:0 !important; pointer-events:none !important; width:1px !important; height:1px !important; }
+.bottle-options label.selected.chill-option {
+  background:linear-gradient(135deg, rgba(125,225,255,.24), rgba(255,231,181,.08)) !important;
+  box-shadow:inset 0 0 0 2px rgba(135,226,255,.74), 0 0 16px rgba(135,226,255,.38) !important;
+}
+.bottle-options label.selected.caramel-option {
+  background:linear-gradient(135deg, rgba(255,163,45,.26), rgba(255,231,181,.08)) !important;
+  box-shadow:inset 0 0 0 2px rgba(255,171,54,.80), 0 0 16px rgba(255,142,36,.42) !important;
+}
+.bottle-options em { color:#a7e184 !important; white-space:normal !important; line-height:1.25 !important; }
+.achievement-copy .achievement-reward {
+  color:#ffe16d !important;
+  font-weight:1000;
+  text-shadow:1px 1px #000;
+}
+
+/* 2026-06-10 barrel proportions: keep original relative sizes instead of homogenizing. */
+.barrel-shop-grid .barrel-shop-option {
+  grid-template-columns:132px minmax(0,1fr) !important;
+}
+.barrel-shop-grid .barrel-shop-img {
+  max-width:none !important;
+  max-height:none !important;
+  width:auto !important;
+  height:auto !important;
+}
+.barrel-shop-option[data-type="quarter_cask"] .barrel-shop-img { width:78px !important; height:auto !important; }
+.barrel-shop-option[data-type="ex_bourbon_barrel"] .barrel-shop-img { width:102px !important; height:auto !important; }
+.barrel-shop-option[data-type="STR_wine_barrique"] .barrel-shop-img { width:106px !important; height:auto !important; }
+.barrel-shop-option[data-type="sherry_hogshead"] .barrel-shop-img { width:110px !important; height:auto !important; }
+.barrel-shop-option[data-type="virgin_oak_hogshead"] .barrel-shop-img { width:112px !important; height:auto !important; }
+.barrel-shop-option[data-type="ex_bourbon_hogshead"] .barrel-shop-img { width:118px !important; height:auto !important; }
+.barrel-shop-option[data-type="sherry_butt"] .barrel-shop-img { width:132px !important; height:auto !important; }
+.barrel-shop-option[data-type="port_pipe"] .barrel-shop-img { width:144px !important; height:auto !important; }
+
+.barrel-card { overflow:visible !important; }
+.barrel-card img,
+.barrel-card[class*="barrel-"] img,
+.barrel-card.barrel-sherry img {
+  width:auto !important;
+  height:auto !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  justify-self:center !important;
+  align-self:start !important;
+  margin-left:-13px !important;
+  margin-top:-8px !important;
+}
+.barrel-card.barrel-quarter_cask img { width:80px !important; margin-left:1px !important; margin-top:8px !important; }
+.barrel-card.barrel-ex_bourbon_barrel img { width:104px !important; margin-left:-7px !important; margin-top:3px !important; }
+.barrel-card.barrel-STR_wine_barrique img { width:108px !important; margin-left:-9px !important; margin-top:-2px !important; }
+.barrel-card.barrel-sherry_hogshead img { width:112px !important; margin-left:-10px !important; margin-top:-3px !important; }
+.barrel-card.barrel-virgin_oak_hogshead img { width:114px !important; margin-left:-11px !important; margin-top:-4px !important; }
+.barrel-card.barrel-ex_bourbon_hogshead img { width:120px !important; margin-left:-15px !important; margin-top:-8px !important; }
+.barrel-card.barrel-sherry_butt img { width:134px !important; margin-left:-22px !important; margin-top:-13px !important; }
+.barrel-card.barrel-port_pipe img { width:146px !important; margin-left:-28px !important; margin-top:-12px !important; }
+.barrel-shop-option[data-type="str_wine_barrique"] .barrel-shop-img { width:106px !important; height:auto !important; }
+.barrel-card.barrel-str_wine_barrique img { width:108px !important; margin-left:-9px !important; margin-top:-2px !important; }
+/* Explicit barrel image boxes avoid zero-height while images are still loading. */
+.barrel-shop-option[data-type="quarter_cask"] .barrel-shop-img { width:78px !important; height:82px !important; }
+.barrel-shop-option[data-type="ex_bourbon_barrel"] .barrel-shop-img { width:102px !important; height:105px !important; }
+.barrel-shop-option[data-type="STR_wine_barrique"] .barrel-shop-img,
+.barrel-shop-option[data-type="str_wine_barrique"] .barrel-shop-img { width:106px !important; height:121px !important; }
+.barrel-shop-option[data-type="sherry_hogshead"] .barrel-shop-img { width:110px !important; height:123px !important; }
+.barrel-shop-option[data-type="virgin_oak_hogshead"] .barrel-shop-img { width:112px !important; height:125px !important; }
+.barrel-shop-option[data-type="ex_bourbon_hogshead"] .barrel-shop-img { width:118px !important; height:130px !important; }
+.barrel-shop-option[data-type="sherry_butt"] .barrel-shop-img { width:132px !important; height:140px !important; }
+.barrel-shop-option[data-type="port_pipe"] .barrel-shop-img { width:144px !important; height:138px !important; }
+
+/* 2026-06-11 polish pass: locked barrel shop, richer tooltips, achievements grid, bottle options. */
+#tooltip .still-tip .tip-cols {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:4px;
+}
+#tooltip .still-tip section {
+  display:grid;
+  gap:3px;
+  padding:8px 9px;
+  border-radius:10px;
+  background:rgba(255,231,181,.075);
+  box-shadow:inset 0 0 0 1px rgba(255,231,181,.13);
+}
+#tooltip .still-tip h5 { margin:0 0 2px; color:#ffd36d; font-size:12px; }
+#tooltip .still-tip p { margin:0; white-space:nowrap; color:#fff0c8; }
+.barrel-shop-option.locked {
+  cursor:not-allowed !important;
+  filter:none !important;
+  opacity:.72 !important;
+  background:rgba(0,0,0,.20) !important;
+  box-shadow:inset 0 0 0 1px rgba(255,231,181,.06) !important;
+}
+.barrel-shop-option.locked:hover { filter:none !important; background:rgba(0,0,0,.20) !important; }
+.barrel-shop-option.locked .barrel-shop-img {
+  filter:brightness(0) opacity(.42) drop-shadow(4px 5px 0 rgba(0,0,0,.45)) !important;
+}
+.barrel-shop-option.locked b,
+.barrel-shop-option.locked span,
+.barrel-shop-option.locked em { color:#8c7d68 !important; }
+.barrel-shop-option.locked strong { color:#a7e184 !important; font-size:18px !important; letter-spacing:2px; }
+.barrel-shop-option.locked em i:first-child { color:#d66f5e !important; }
+.bottle-options label:not(.disabled-option):hover {
+  filter:brightness(1.16);
+  transform:translateY(-1px);
+  box-shadow:inset 0 0 0 1px rgba(255,231,181,.22), 0 0 12px rgba(255,220,130,.22) !important;
+}
+.bottle-options label.disabled-option {
+  cursor:not-allowed !important;
+  opacity:.45 !important;
+  filter:grayscale(.35) !important;
+}
+.bottle-options label.disabled-option:hover { transform:none !important; box-shadow:none !important; }
+.bottle-options em b { font-weight:1000; color:#a7e184; }
+.bottle-options em b.bad { color:#ff7d67; }
+.distillery-window {
+  width:min(1160px, calc(100vw - 42px)) !important;
+}
+.achievement-list {
+  display:grid !important;
+  grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+  gap:10px !important;
+}
+.achievement-card { min-height:190px !important; }
+.achievement-reward { color:#ffe16d !important; }
+.box-art .box-bottle,
+.box-art .box-bottle-top,
+.box-art .box-bottle-left,
+.box-art .box-bottle-right,
+.box-art .box-bottle-bottom,
+.box-card:hover .box-art .box-bottle-top,
+.drag-ghost.box-card .box-art .box-bottle-top,
+.box-card:hover .box-art .box-bottle-left,
+.drag-ghost.box-card .box-art .box-bottle-left,
+.box-card:hover .box-art .box-bottle-right,
+.drag-ghost.box-card .box-bottle-right,
+.box-card:hover .box-art .box-bottle-bottom,
+.drag-ghost.box-card .box-art .box-bottle-bottom {
+  clip-path:inset(0 0 30% 0) !important;
+}
+.box-art .box-bottle-bottom,
+.box-card:hover .box-art .box-bottle-bottom,
+.drag-ghost.box-card .box-art .box-bottle-bottom { left:59px !important; }
+.drag-ghost.box-card .box-art .box-bottle-right { clip-path:inset(0 0 30% 0) !important; }
+
+/* 2026-06-11 microfix: achievements sizing, stillhouse spacing, bottling rep bonus. */
+.distillery-window {
+  width:min(1280px, calc(100vw - 28px)) !important;
+}
+.achievement-list {
+  grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+  align-items:start !important;
+  gap:12px !important;
+}
+.achievement-card {
+  min-height:0 !important;
+  height:auto !important;
+  align-items:start !important;
+  overflow:hidden !important;
+  grid-template-columns:82px minmax(0,1fr) max-content !important;
+  padding:10px !important;
+}
+.achievement-sticker img { max-width:78px !important; max-height:78px !important; }
+.achievement-copy { min-width:0 !important; }
+.achievement-copy h4 { font-size:15px !important; line-height:1.15 !important; margin-bottom:3px !important; }
+.achievement-copy p { font-size:11px !important; line-height:1.22 !important; margin:2px 0 5px !important; }
+.achievement-copy dl { display:grid !important; grid-template-columns:74px minmax(0,1fr) !important; gap:3px 7px !important; margin:0 !important; }
+.achievement-copy dt,
+.achievement-copy dd { font-size:11px !important; line-height:1.18 !important; min-width:0 !important; }
+.achievement-reward { overflow-wrap:anywhere !important; }
+#stillhouse {
+  left:1431px !important;
+  width:404px !important;
+}
+.still-unit .bar.input { left:-3px !important; }
+.still-unit .bar.tempv { left:11px !important; }
+.still-unit .empty-still-btn,
+.still-unit .fire-btn { bottom:0 !important; }
+.bottle-preview .rep-bonus { color:#a7e184 !important; font-weight:1000 !important; }
+
+/* 2026-06-11 final requested fixes: achievements layout, still bars, box top bottle, heat color. */
+#tooltip .still-heat {
+  color:#ff5436 !important;
+  font-weight:1000 !important;
+  text-shadow:0 0 8px rgba(255,70,24,.78), 1px 1px #000 !important;
+}
+.box-art .box-bottle-top,
+.box-card:hover .box-art .box-bottle-top,
+.drag-ghost.box-card .box-art .box-bottle-top,
+.dragging-source.box-card .box-art .box-bottle-top {
+  clip-path:none !important;
+}
+.distillery-window {
+  width:min(1500px, calc(100vw - 18px)) !important;
+  max-height:calc(100vh - 24px) !important;
+  overflow:hidden !important;
+  grid-template-rows:auto auto auto minmax(0,1fr) !important;
+}
+.achievement-list {
+  display:grid !important;
+  grid-template-columns:repeat(auto-fit, minmax(560px, 1fr)) !important;
+  grid-auto-rows:auto !important;
+  gap:14px !important;
+  align-items:start !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  padding:2px 14px 14px 2px !important;
+  min-height:0 !important;
+}
+.achievement-card {
+  position:relative !important;
+  display:grid !important;
+  grid-template-columns:104px minmax(0,1fr) max-content !important;
+  gap:14px !important;
+  align-items:start !important;
+  min-height:226px !important;
+  height:auto !important;
+  overflow:hidden !important;
+  padding:14px !important;
+}
+.achievement-sticker img { max-width:96px !important; max-height:96px !important; }
+.achievement-copy h4 { font-size:17px !important; line-height:1.18 !important; margin:0 0 6px !important; }
+.achievement-copy p { font-size:13px !important; line-height:1.28 !important; margin:0 0 8px !important; }
+.achievement-copy dl { display:grid !important; grid-template-columns:84px minmax(0,1fr) !important; gap:5px 9px !important; margin:0 !important; }
+.achievement-copy dt,
+.achievement-copy dd { font-size:12.5px !important; line-height:1.24 !important; }
+.achievement-reward { overflow-wrap:break-word !important; }
+.still-unit .bar.input { left:-6px !important; }
+.still-unit .bar.tempv { left:6px !important; }
+.bottle-preview .rep-negative,
+.bottle-preview b.rep-negative { color:#ff7d67 !important; font-weight:1000 !important; }
