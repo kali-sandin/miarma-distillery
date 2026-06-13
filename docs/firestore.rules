@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function allowedKeys() {
+      return [
+        'schemaVersion', 'build', 'publicName', 'distilleryName',
+        'region', 'x', 'y', 'distilleryImage',
+        'reputation', 'litresSold', 'lotsSold', 'bottlesSold',
+        'maxBottlePrice', 'maxBottlesLot', 'oldestSoldAge',
+        'achievements', 'achievementsCount', 'updatedAtClient', 'updatedAt'
+      ];
+    }
+    function validString(field, max) {
+      return request.resource.data[field] is string && request.resource.data[field].size() > 0 && request.resource.data[field].size() <= max;
+    }
+    function validNum(field, min, max) {
+      return request.resource.data[field] is number && request.resource.data[field] >= min && request.resource.data[field] <= max;
+    }
+    function validProfile() {
+      return request.resource.data.keys().hasOnly(allowedKeys())
+        && request.resource.data.schemaVersion == 1
+        && validString('build', 40)
+        && validString('publicName', 48)
+        && validString('distilleryName', 48)
+        && request.resource.data.region in ['speyside','highlands','campbeltown','islay','lowlands']
+        && validNum('x', 0, 1)
+        && validNum('y', 0, 1)
+        && request.resource.data.distilleryImage.matches('^img/mapa/dest[0-9][0-9]\\.png$')
+        && validNum('reputation', -1000, 1000000)
+        && validNum('litresSold', 0, 1000000000)
+        && validNum('lotsSold', 0, 10000000)
+        && validNum('bottlesSold', 0, 1000000000)
+        && validNum('maxBottlePrice', 0, 1000000)
+        && validNum('maxBottlesLot', 0, 10000000)
+        && validNum('oldestSoldAge', 0, 500)
+        && request.resource.data.achievements is list
+        && request.resource.data.achievements.size() <= 80
+        && validNum('achievementsCount', 0, 80)
+        && request.resource.data.updatedAtClient is number
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    match /players/{uid} {
+      allow read: if signedIn();
+      allow create, update: if isOwner(uid) && validProfile();
+      allow delete: if isOwner(uid);
+    }
+  }
+}

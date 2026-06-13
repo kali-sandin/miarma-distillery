@@ -67,21 +67,10 @@ addEventListener('resize', fitStage);
 addEventListener('resize', () => { const root=$('#scotlandMapOverlay.visible'); if(root) renderPlayerDistilleryOnMap(root); });
 fitStage();
 
-const $ = (q, root=document) => root.querySelector(q);
-const $$ = (q, root=document) => [...root.querySelectorAll(q)];
-const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
-const pct = n => `${clamp(n,0,100).toFixed(0)}%`;
-const rnd = (a,b) => a + Math.random()*(b-a);
-const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-const scaleNow = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scale')) || 1;
-const localPoint = (el, x, y) => { const r=el.getBoundingClientRect(), sc=scaleNow(); return {x: clamp((x-r.left)/sc, 6, Math.max(6, el.offsetWidth-120)), y: clamp((y-r.top)/sc, 6, Math.max(6, el.offsetHeight-90))}; };
-const localDropPoint = (el, e, data) => { const r=el.getBoundingClientRect(), sc=scaleNow(); return {x: clamp((e.clientX-r.left)/sc - (Number(data?.offsetX)||0), 6, Math.max(6, el.offsetWidth-120)), y: clamp((e.clientY-r.top)/sc - (Number(data?.offsetY)||0), 6, Math.max(6, el.offsetHeight-90))}; };
 const hasVatContents = v => !!(v && ((v.volume||0)>0 || (v.ferment||0)>0 || v.rotten || v.yeast));
 const hasStillContents = s => !!(s && ((s.input||0)>0 || (s.output||0)>0 || s.fire || (s.temp||20)>24));
 const isVatActive = (v,i) => i===0 || !!v?.unlocked || hasVatContents(v);
 const isStillActive = (s,i) => i===0 || !!s?.unlocked || hasStillContents(s);
-const pointIn = (el, x, y) => { const r=el.getBoundingClientRect(); return x>=r.left && x<=r.right && y>=r.top && y<=r.bottom; };
-
 const ALCOHOL_BOIL = 78.3;
 const WATER_BOIL = 100;
 const TEMP_MAX = 120;
@@ -454,6 +443,7 @@ function awardAchievement(id){
   if(r.factory) d.secondDistilleryUnlocked = true;
   const ach=ACH_BY_ID[id] || {name:id, reward:'', img:'img/logros/logros 1.png'};
   queueAchievementPopup(ach);
+  markPublicProfileDirty('achievement');
   return true;
 }
 function barrelTrailTypes(lot){ const set=new Set(); for(const c of normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Lote')) for(const t of (c.barrelTrail||[])) if(t) set.add(t); for(const x of (lot.lineage||[])){ const t=x.barrelType||x.to||x.from; if(t) set.add(t); } return [...set]; }
@@ -1224,6 +1214,7 @@ let scotlandMapHover = null;
 let scotlandTransitioning = false;
 let scotlandZoom = {scale:1, x:0, y:0};
 let scotlandPan = null;
+let publicScotlandPlayers = [];
 function ensureScotlandMapOverlay(){
   let root=$('#scotlandMapOverlay');
   if(root) return root;
@@ -1233,7 +1224,7 @@ function ensureScotlandMapOverlay(){
   root.innerHTML=`<div class="scotland-map-stage">
     <img class="scotland-base-map" src="img/mapa/mapa.jpg" alt="Mapa de Escocia" draggable="false">
     <img class="scotland-region-mask" alt="" draggable="false">
-  </div><figure class="scotland-player-marker hidden"><img class="scotland-player-dest" alt="Destilería" draggable="false"><figcaption></figcaption></figure><aside class="scotland-player-card hidden"></aside><aside class="scotland-region-card hidden"></aside><div class="scotland-select-cursor">📍</div><div class="scotland-map-hint"></div>`;
+  </div><div class="scotland-other-markers"></div><figure class="scotland-player-marker hidden"><img class="scotland-player-dest" alt="Destilería" draggable="false"><figcaption></figcaption></figure><aside class="scotland-player-card hidden"></aside><aside class="scotland-region-card hidden"></aside><div class="scotland-select-cursor">📍</div><div class="scotland-map-hint"></div>`;
   document.body.appendChild(root);
   root.addEventListener('pointermove', handleScotlandMapMove);
   root.addEventListener('pointerleave', clearScotlandHover);
@@ -1248,6 +1239,7 @@ function applyScotlandZoom(root=ensureScotlandMapOverlay()){
   const st=root.querySelector('.scotland-map-stage');
   if(st) st.style.transform=`translate(${scotlandZoom.x}px, ${scotlandZoom.y}px) scale(${scotlandZoom.scale})`;
   renderPlayerDistilleryOnMap(root);
+  renderOtherScotlandPlayers(root);
 }
 function resetScotlandZoom(root=ensureScotlandMapOverlay()){ scotlandZoom={scale:1,x:0,y:0}; applyScotlandZoom(root); }
 function setScotlandZoom(nextScale, cx=innerWidth/2, cy=innerHeight/2){
@@ -1341,6 +1333,31 @@ function renderPlayerDistilleryOnMap(root=ensureScotlandMapOverlay()){
   marker.querySelector('figcaption').textContent=state.distilleryName || 'Mi destilería';
   marker.classList.remove('hidden');
 }
+function publicPlayerTip(p){
+  return `${p.publicName || 'Jugador'}\n${p.distilleryName || 'Destilería'}\nRegión: ${regionName(p.region)}\n🏆 Rep ${Math.round(Number(p.reputation)||0)}\n🧪 ${Math.round(Number(p.litresSold)||0)} l vendidos\n📦 ${Math.round(Number(p.lotsSold)||0)} lotes`;
+}
+function renderOtherScotlandPlayers(root=ensureScotlandMapOverlay()){
+  const layer=root.querySelector('.scotland-other-markers');
+  if(!layer){ return; }
+  layer.innerHTML='';
+  const box=scotlandMapBox(root);
+  for(const p of publicScotlandPlayers.slice(0,10)){
+    if(!SCOTLAND_REGIONS[p.region]) continue;
+    const x=clamp(Number(p.x)||.5,0,1), y=clamp(Number(p.y)||.5,0,1);
+    const marker=document.createElement('figure');
+    marker.className='scotland-other-marker';
+    marker.style.left=`${box.left + box.width*x}px`;
+    marker.style.top=`${box.top + box.height*y}px`;
+    marker.dataset.tip=publicPlayerTip(p);
+    marker.innerHTML=`<img src="${/^img\/mapa\/dest\d{2}\.png$/.test(String(p.distilleryImage||'')) ? p.distilleryImage : 'img/mapa/dest01.png'}" alt=""><figcaption><b>${escapeHtml(p.publicName || 'Jugador')}</b><span>🏆 ${Math.round(Number(p.reputation)||0)}</span></figcaption>`;
+    layer.appendChild(marker);
+  }
+}
+function renderPublicPlayers(players=[]){
+  publicScotlandPlayers = Array.isArray(players) ? players : [];
+  const root=$('#scotlandMapOverlay.visible');
+  if(root) renderOtherScotlandPlayers(root);
+}
 function scotlandPlayerScreenPoint(root=ensureScotlandMapOverlay()){
   const marker=root.querySelector('.scotland-player-marker:not(.hidden)');
   if(marker){ const r=marker.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height*.28}; }
@@ -1380,6 +1397,13 @@ function renderScotlandPlayerCard(root=ensureScotlandMapOverlay()){
   if(!card || !state.scotlandLocation){ card?.classList.add('hidden'); return; }
   card.innerHTML=playerScotlandCardHtml(); card.classList.remove('hidden');
 }
+function buildPublicProfile(publicName=''){
+  return window.MiarmaPublicProfile?.buildPublicProfile?.({state, distillery:distillery(), publicName}) || null;
+}
+function markPublicProfileDirty(reason='change'){
+  try{ window.MiarmaMultiplayer?.markDirty?.(reason); }catch(_){ }
+}
+window.MiarmaGame = {...(window.MiarmaGame||{}), buildPublicProfile, renderPublicPlayers};
 function confirmScotlandLocation(region){
   const root=$('#gamePopup'); if(!root) return Promise.resolve({ok:window.confirm(`¿Fundar la destilería en ${region.name}?`), name:state.distilleryName});
   if(root.parentElement !== document.body) document.body.appendChild(root);
@@ -1421,6 +1445,7 @@ async function handleScotlandMapClick(e){
   if(!choice.ok) return;
   state.distilleryName=choice.name || 'Mi destilería';
   state.scotlandLocation={region:region.id, x:pt.x, y:pt.y, dest:chosenDistilleryAsset()};
+  markPublicProfileDirty('region-selected');
   markDirty(); saveGame(); render();
   await transitionScotlandMapToDistillery(e.clientX, e.clientY, true);
 }
@@ -1434,6 +1459,7 @@ function openScotlandMap(mode='view'){
   root.querySelector('.scotland-map-hint').textContent = mode==='select' ? 'Elige una región válida para fundar la destilería' : 'ESC o click en tu destilería para volver';
   root.querySelector('.scotland-base-map').onload=()=>renderPlayerDistilleryOnMap(root);
   renderPlayerDistilleryOnMap(root);
+  renderOtherScotlandPlayers(root);
   renderScotlandPlayerCard(root);
   clearScotlandHover();
   playFx('fxCork', .62);
@@ -2206,6 +2232,7 @@ function finishBottleBarrel(id,targetAbv,p={x:18+state.boxes.length*95,y:20}, op
   playFx('fxNewBottles', .82);
   state.bottles += bottles;
   if(preview.repDelta) addReputation(preview.repDelta);
+  markPublicProfileDirty('bottled');
   degradeBarrel(b);
   Object.assign(b,{volume:0,age:0,abv:0,quality:100,peatPpm:0,components:[],lineage:[]});
 }
@@ -2258,6 +2285,7 @@ function sellBox(id){
   const hist=(state.bottleHistory||[]).find(x=>x.id===b.id);
   if(hist){ hist.sold=true; hist.salePricePerBottle=euros/Math.max(1,b.bottles); hist.saleTotal=euros; hist.soldAt=Date.now(); updateSoldStats(hist, euros); }
   state.coins += euros/1000; state.bottles -= b.bottles;
+  markPublicProfileDirty('box-sold');
   playFx('fxCashRegister', .78);
   animateTruckSale();
 }
@@ -2679,7 +2707,7 @@ document.addEventListener('click', e=>{
 $('#buySeeds').onclick=()=>{ if(state.coins + 1e-6 >= SEED_PACK_COST){ state.coins=Math.max(0, state.coins-SEED_PACK_COST); state.seeds+=SEED_PACK_KG; playFx('fxCashRegister', .72); markDirty(); render(); } else notice(`Necesitas ${SEED_PACK_COST} k€ para comprar semillas.`, 'explain', 'No hay dinero'); };
 $('#distilleryName').addEventListener('input', e=>{ state.distilleryName=e.target.value || 'Mi destilería'; markDirty(); });
 $('#editName').onclick=()=>{ nameEditing=true; render(); $('#distilleryName').focus(); $('#distilleryName').select(); };
-function acceptName(){ nameEditing=false; state.distilleryName=$('#distilleryName').value.trim() || 'Mi destilería'; markDirty(); render(); saveGame(); }
+function acceptName(){ nameEditing=false; state.distilleryName=$('#distilleryName').value.trim() || 'Mi destilería'; markPublicProfileDirty('name-changed'); markDirty(); render(); saveGame(); }
 $('#acceptName').onclick=acceptName;
 $('#distilleryName').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); acceptName(); }});
 document.addEventListener('keydown', e=>{
