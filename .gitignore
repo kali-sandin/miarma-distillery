@@ -11,3 +11,7 @@ img/*_orig.*
 
 # Source/backup assets in nested folders
 img/**/*.xcf
+
+# Unused/export source map variants kept local
+img/mapa/mapa.png
+img/mapa/flavour-map.jpg

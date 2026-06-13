@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Miarma Distillery · PoC</title>
+  <title>Destilería Escocesa</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="splashScreen" class="splash-screen hidden loading" role="button" aria-label="Pantalla inicial de Sim Distillery">
+  <div id="splashScreen" class="splash-screen hidden loading" role="button" aria-label="Pantalla inicial de Destilería Escocesa">
     <img src="img/splash.jpg" alt="Sim Distillery" draggable="false" />
     <div class="splash-loader" aria-live="polite">
       <div class="splash-loader-label"><span id="splashStatus">Cargando finca…</span><strong id="splashPercent">0%</strong></div>
@@ -43,7 +43,7 @@
   <audio id="fxEscocesRumbling5" src="fx/escoces_rumbling5.mp3" preload="auto"></audio>
   <audio id="fxTruckStart" src="fx/truck_start.mp3" preload="auto"></audio>
   <audio id="fxTruckReverse" src="fx/truck_reverse.mp3" preload="auto"></audio>
-  <main id="game" aria-label="Miarma Distillery PoC">
+  <main id="game" aria-label="Destilería Escocesa">
     <div id="fincaEdges" aria-hidden="true">
       <i class="edge edge-u"></i><i class="edge edge-d"></i><i class="edge edge-l"></i><i class="edge edge-r"></i>
       <i class="edge edge-lu"></i><i class="edge edge-ru"></i><i class="edge edge-ld"></i><i class="edge edge-rd"></i>
@@ -54,8 +54,8 @@
 
     <section id="hud" class="pixel-panel collapsed" data-tip="Panel general de la oficina: nombre, dinero, semillas, velocidad y acciones principales.">
       <label class="name-field">
-        <strong id="distilleryNameView" class="name-view">Miarma Distillery</strong>
-        <input id="distilleryName" maxlength="28" value="Miarma Distillery" autocomplete="off" />
+        <strong id="distilleryNameView" class="name-view">Mi destilería</strong>
+        <input id="distilleryName" maxlength="28" value="Mi destilería" autocomplete="off" />
         <button id="editName" class="pixel-btn small name-edit" type="button">Editar</button>
         <button id="toggleMusic" class="pixel-btn small icon-toggle" type="button" data-tip="Música de fondo: activar/desactivar.">🎵</button>
         <button id="toggleFx" class="pixel-btn small icon-toggle" type="button" data-tip="Efectos de sonido: activar/desactivar.">🔊</button>
@@ -105,7 +105,8 @@ Botón x1: vuelve a velocidad base.">
 
     <button id="office" class="office-hotspot" data-tip="Pulsa para ver el menú (ESC)">Oficina</button>
     <button id="hudIcon" class="hud-icon" type="button" data-tip="Mostrar u ocultar panel de información y menú.">☰</button>
-    <div id="helpModal" class="help-modal hidden" role="dialog" aria-modal="true"><img src="img/ayuda.png" alt="Ayuda de Miarma Distillery" /></div>
+    <button id="scotlandMapButton" class="scotland-map-button hidden" type="button" data-tip="Volver al mapa de Escocia y ver la localización de la destilería.">🗺️</button>
+    <div id="helpModal" class="help-modal hidden" role="dialog" aria-modal="true"><img src="img/ayuda.png" alt="Ayuda del juego" /></div>
     <div id="magnitudesModal" class="reference-modal hidden" role="dialog" aria-modal="true"><div class="reference-window"><button id="magnitudesClose" class="modal-close" type="button" aria-label="Cerrar referencia">×</button><main class="reference-content"><h1>⚖️ Magnitudes comparadas</h1>
   <div class="summary">
     <span class="pill">8 parcelas → 16.000 l wash</span>
