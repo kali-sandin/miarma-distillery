@@ -150,11 +150,11 @@ const PLANT_IMAGES = { sprout: 'img/cebada_recien_plantada.png', green: 'img/ceb
 const MALT_IMAGES = { raw: 'img/cebada_germinando.png', wet: 'img/cebada_germinando.png', tilled: 'img/cebada_arada.png', water1: 'img/cebada_germinando_1.png', water2: 'img/cebada_germinando_2.png', bad: 'img/cebada_germinando_estropeada.png', heated: 'img/cebada_germinando_malteada.png', maltedPlain: 'img/cebada_malteada_sin.png', maltedPeat: 'img/cebada_malteada_turba.png' };
 const SCOTLAND_DESTILLERY_ASSETS = Array.from({length:15}, (_,i)=>`img/mapa/dest${String(i+1).padStart(2,'0')}.png`);
 const SCOTLAND_REGIONS = {
-  speyside: {id:'speyside', name:'Speyside', color:'#4aafe4', mask:'img/mapa/mapa-speyside.png', desc:'Valles fértiles, ríos claros y whiskies elegantes, dulces y frutales. Aquí mandan los jereces bien puestos y la malta limpia.', example:'Macallan, Glenfiddich, Balvenie, Glenlivet, Glenfarclas, Aberlour, Cardhu, Glenrothes, Mortlach', bonus:'+⭐⭐⭐ y +🏆 si turba <10ppm y usa Jerez/Port Pipe · 🌾 Cebada x1.5', bonusLines:['+⭐⭐⭐ Calidad y +🏆 Reputación con Jerez/Port Pipe <em>(Peat < 10ppm)</em>','🌾 Cebada x1.5']},
-  highlands: {id:'highlands', name:'Highlands', color:'#61ff4b', mask:'img/mapa/mapa-highlands.png', desc:'La región grande y salvaje: montañas, costa, valles y estilos muy variados. Puede salir gloria líquida o un escocés opinando fuerte.', example:'Glenmorangie, Dalmore, Oban, Clynelish, Old Pulteney, Edradour, Glendronach', bonus:'🎲 ⭐⭐⭐⭐⭐ · 🎲 🏆', bonusLines:['🎲 hasta ⭐⭐⭐⭐⭐ Calidad','🎲 hasta 🏆 Reputación']},
-  campbeltown: {id:'campbeltown', name:'Campbeltown', color:'#ff6e6e', mask:'img/mapa/mapa-campbeltown.png', desc:'Pequeña, marinera y con carácter aceitoso, salino y contundente. Pocas destilerías, pero mucho orgullo.', example:'Springbank, Glen Scotia, Glengyle/Kilkerran', bonus:'+🏆🏆 si mezcla Bourbon + Jerez y Q>98', bonusLines:['+🏆🏆 Reputación en mezcla Bourbon + Jerez <em>(Q > 98)</em>']},
-  islay: {id:'islay', name:'Islay', color:'#ffe873', mask:'img/mapa/mapa-islay.png', desc:'Turba, humo, salitre y drama atlántico. Si quieres que el whisky abrace como una hoguera mojada, esta es tu isla.', example:'Laphroaig, Ardbeg, Lagavulin, Bowmore, Bruichladdich, Caol Ila, Bunnahabhain, Kilchoman', bonus:'30–35ppm: +⭐⭐⭐ y +🏆🏆 · 25–29/36–40ppm: +🏆', bonusLines:['30–35ppm: +⭐⭐⭐ Calidad y +🏆🏆 Reputación','25–29ppm o 36–40ppm: +🏆 Reputación']},
-  lowlands: {id:'lowlands', name:'Lowlands', color:'#cf4af5', mask:'img/mapa/mapa-lowlands.png', desc:'Whiskies más ligeros, florales y limpios, con tradición de triple destilación y perfil amable.', example:'Auchentoshan, Glenkinchie, Bladnoch, Daftmill, Kingsbarns, Rosebank, Ailsa Bay', bonus:'+⭐⭐⭐ y +🏆 si triple destilado y 0ppm de turba', bonusLines:['+⭐⭐⭐ Calidad y +🏆 Reputación en triple destilado <em>(Peat = 0ppm)</em>']}
+  speyside: {id:'speyside', name:'Speyside', color:'#4aafe4', mask:'img/mapa/mapa-speyside.png', desc:'Valles fértiles, ríos claros y whiskies elegantes, dulces y frutales. Aquí mandan los jereces bien puestos y la malta limpia.', example:'Macallan, Glenfiddich, Balvenie, Glenlivet, Glenfarclas, Aberlour, Cardhu, Glenrothes, Mortlach', bonus:'+⭐⭐⭐ Calidad · +🏆 Reputación · 🌾 Cebada x1.5', bonusLines:['+⭐⭐⭐ Calidad con Jerez/Port Pipe <em>(Peat < 10ppm)</em>','+🏆 Reputación con Jerez/Port Pipe <em>(Peat < 10ppm)</em>','🌾 Cebada x1.5']},
+  highlands: {id:'highlands', name:'Highlands', color:'#61ff4b', mask:'img/mapa/mapa-highlands.png', desc:'La región grande y salvaje: montañas, costa, valles y estilos muy variados. Puede salir gloria líquida o un escocés opinando fuerte.', example:'Glenmorangie, Dalmore, Oban, Clynelish, Old Pulteney, Edradour, Glendronach', bonus:'🎲 Calidad aleatoria · 🎲 Reputación aleatoria', bonusLines:['🎲 hasta ⭐⭐⭐⭐⭐ Calidad','🎲 hasta 🏆 Reputación']},
+  campbeltown: {id:'campbeltown', name:'Campbeltown', color:'#ff6e6e', mask:'img/mapa/mapa-campbeltown.png', desc:'Pequeña, marinera y con carácter aceitoso, salino y contundente. Pocas destilerías, pero mucho orgullo.', example:'Springbank, Glen Scotia, Glengyle/Kilkerran', bonus:'+🏆🏆 Reputación', bonusLines:['+🏆🏆 Reputación en mezcla Bourbon + Jerez <em>(Q > 98)</em>']},
+  islay: {id:'islay', name:'Islay', color:'#ffe873', mask:'img/mapa/mapa-islay.png', desc:'Turba, humo, salitre y drama atlántico. Si quieres que el whisky abrace como una hoguera mojada, esta es tu isla.', example:'Laphroaig, Ardbeg, Lagavulin, Bowmore, Bruichladdich, Caol Ila, Bunnahabhain, Kilchoman', bonus:'30–35ppm: +⭐⭐⭐ Calidad · +🏆🏆 Reputación · 25–29/36–40ppm: +🏆 Reputación', bonusLines:['30–35ppm: +⭐⭐⭐ Calidad','30–35ppm: +🏆🏆 Reputación','25–29ppm o 36–40ppm: +🏆 Reputación']},
+  lowlands: {id:'lowlands', name:'Lowlands', color:'#cf4af5', mask:'img/mapa/mapa-lowlands.png', desc:'Whiskies más ligeros, florales y limpios, con tradición de triple destilación y perfil amable.', example:'Auchentoshan, Glenkinchie, Bladnoch, Daftmill, Kingsbarns, Rosebank, Ailsa Bay', bonus:'+⭐⭐⭐ Calidad · +🏆 Reputación', bonusLines:['+⭐⭐⭐ Calidad en triple destilado <em>(Peat = 0ppm)</em>','+🏆 Reputación en triple destilado <em>(Peat = 0ppm)</em>']}
 };
 const SCOTLAND_REGION_ORDER = ['speyside','highlands','campbeltown','islay','lowlands'].map(id=>SCOTLAND_REGIONS[id]);
 const SCOTLAND_REGION_MASK_ASSETS = SCOTLAND_REGION_ORDER.map(r=>r.mask);
@@ -409,6 +409,8 @@ const ACHIEVEMENTS = [
 ];
 const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map(a=>[a.id,a]));
 let suppressAchievements = false;
+let achievementPopupQueue = [];
+let achievementPopupActive = false;
 function defaultDistillery(){ return {reputation:0, achievements:{}, stats:{lotsSold:0,bottlesSold:0,litresSold:0,maxBottlesLot:0,oldestSoldAge:0,maxBottlePrice:0, soldCategories:{nas:false,y10:false,y12:false,y15:false,y18:false,unpeated:false,peated:false,triple:false}}, debugStats:false, secondDistilleryUnlocked:false}; }
 function normalizeDistillery(d){ const fresh=defaultDistillery(), src=d||{}; return {...fresh, ...src, achievements:{...fresh.achievements, ...(src.achievements||{})}, stats:{...fresh.stats, ...(src.stats||{}), soldCategories:{...fresh.stats.soldCategories, ...(src.stats?.soldCategories||{})}}}; }
 function distillery(){ state.distillery = normalizeDistillery(state.distillery); return state.distillery; }
@@ -420,6 +422,25 @@ function normalizeScotlandLocation(loc){
 function hasAchievement(id){ return !!distillery().achievements?.[id]; }
 function achievementMaxSpeedStep(){ const d=distillery(); if(d.achievements.collectors_item) return 9; if(d.achievements.angels_share) return 7; if(d.achievements.woody_taste) return 6; if(d.achievements.serious_business) return 4; return SPEED_BASE_MAX_STEP; }
 function addReputation(delta){ const d=distillery(); d.reputation = Math.round((Number(d.reputation)||0) + delta); }
+async function processAchievementPopupQueue(){
+  if(achievementPopupActive) return;
+  achievementPopupActive = true;
+  while(achievementPopupQueue.length){
+    const ach=achievementPopupQueue.shift();
+    playFx('fxSuccess', .82);
+    await gamePopup({
+      title:'🏆 Logro',
+      mood:'happy',
+      html:`<div class="achievement-unlock-popup"><img class="achievement-unlock-img" src="${ach.img}" alt="${escapeHtml(ach.name)}" onerror="this.src='img/logros/logros 1.png'"><div><p><b>Logro desbloqueado:</b> ${escapeHtml(ach.name)}</p><p><b>Premio:</b> ${escapeHtml(ach.reward || '')}</p></div></div>`,
+      ok:'¡Olé!'
+    });
+  }
+  achievementPopupActive = false;
+}
+function queueAchievementPopup(ach){
+  achievementPopupQueue.push(ach);
+  processAchievementPopupQueue();
+}
 function awardAchievement(id){
   if(suppressAchievements) return false;
   const d=distillery(); if(d.achievements[id]) return false;
@@ -431,14 +452,8 @@ function awardAchievement(id){
   if(Array.isArray(r.barrels)){ r.barrels.forEach((type,idx)=>state.barrels.push(newBarrel(type,24+(state.barrels.length+idx)*42,64))); }
   if(r.vat){ const v=state.vats.find(x=>!x.unlocked && !hasVatContents(x)); if(v) v.unlocked=true; }
   if(r.factory) d.secondDistilleryUnlocked = true;
-  playFx('fxSuccess', .82);
   const ach=ACH_BY_ID[id] || {name:id, reward:'', img:'img/logros/logros 1.png'};
-  gamePopup({
-    title:'🏆 Logro',
-    mood:'happy',
-    html:`<div class="achievement-unlock-popup"><img class="achievement-unlock-img" src="${ach.img}" alt="${escapeHtml(ach.name)}" onerror="this.src='img/logros/logros 1.png'"><div><p><b>Logro desbloqueado:</b> ${escapeHtml(ach.name)}</p><p><b>Premio:</b> ${escapeHtml(ach.reward || '')}</p></div></div>`,
-    ok:'¡Ole!'
-  });
+  queueAchievementPopup(ach);
   return true;
 }
 function barrelTrailTypes(lot){ const set=new Set(); for(const c of normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Lote')) for(const t of (c.barrelTrail||[])) if(t) set.add(t); for(const x of (lot.lineage||[])){ const t=x.barrelType||x.to||x.from; if(t) set.add(t); } return [...set]; }
@@ -1326,6 +1341,13 @@ function renderPlayerDistilleryOnMap(root=ensureScotlandMapOverlay()){
   marker.querySelector('figcaption').textContent=state.distilleryName || 'Mi destilería';
   marker.classList.remove('hidden');
 }
+function scotlandPlayerScreenPoint(root=ensureScotlandMapOverlay()){
+  const marker=root.querySelector('.scotland-player-marker:not(.hidden)');
+  if(marker){ const r=marker.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height*.28}; }
+  const loc=state.scotlandLocation;
+  if(loc){ const box=scotlandMapBox(root); return {x:box.left+box.width*loc.x, y:box.top+box.height*loc.y}; }
+  return {x:innerWidth/2, y:innerHeight/2};
+}
 function regionName(id){ return SCOTLAND_REGIONS[id]?.name || 'Escocia'; }
 function distilleryRadarData(){
   const d=distillery(), st=d.stats||{}, lots=state.bottleHistory||[];
@@ -1388,7 +1410,7 @@ async function handleScotlandMapClick(e){
   if(scotlandPan) return;
   const root=ensureScotlandMapOverlay();
   if(scotlandMapMode==='view'){
-    if(e.target.closest('.scotland-player-marker')) return closeScotlandMapToDistillery(e.clientX, e.clientY);
+    if(e.target.closest('.scotland-player-marker')) return closeScotlandMapToDistillery();
     return;
   }
   const region=scotlandRegionAt(e.clientX, e.clientY);
@@ -1416,10 +1438,13 @@ function openScotlandMap(mode='view'){
   clearScotlandHover();
   playFx('fxCork', .62);
 }
-function transitionScotlandMapToDistillery(x=innerWidth/2, y=innerHeight/2, fromSplash=false){
+function transitionScotlandMapToDistillery(x=null, y=null, fromSplash=false){
   return new Promise(resolve=>{
     const root=ensureScotlandMapOverlay();
     scotlandTransitioning=true;
+    if(scotlandZoom.scale !== 1 || scotlandZoom.x || scotlandZoom.y){ resetScotlandZoom(root); }
+    const pt=(x===null || y===null) ? scotlandPlayerScreenPoint(root) : {x,y};
+    x=pt.x; y=pt.y;
     root.style.setProperty('--zoom-x', `${x}px`); root.style.setProperty('--zoom-y', `${y}px`);
     root.classList.add('zoom-to-black');
     setTimeout(()=>{
@@ -1432,7 +1457,7 @@ function transitionScotlandMapToDistillery(x=innerWidth/2, y=innerHeight/2, from
     }, 720);
   });
 }
-function closeScotlandMapToDistillery(x=innerWidth/2, y=innerHeight/2){ return transitionScotlandMapToDistillery(x,y,false); }
+function closeScotlandMapToDistillery(x=null, y=null){ return transitionScotlandMapToDistillery(x,y,false); }
 function showKeybindingsPopup(){
   return gamePopup({
     title:'Atajos de teclado',
@@ -1688,7 +1713,7 @@ function renderStills(){
       <div class="temp-chip">${s.temp.toFixed(0)}°C</div>
       <div class="bar vertical input"><i style="height:${pct(s.input)}"></i><span class="bar-abv">${hasInput ? `${s.inputAbv.toFixed(0)}°` : ''}</span></div>
       <div class="bar vertical tempv"><em class="alcohol-zone" style="height:4%;bottom:58%"></em><b class="water-line" style="bottom:80%"></b><i style="height:${tempPct(visualTemp)}"></i><span class="bar-abv">🌡️</span></div>
-      <div class="still-visual"><img class="machine-sprite still-sprite" src="${s.fire?'img/alambique.gif':'img/alambique.png'}" alt="alambique" draggable="false"></div>
+      <div class="still-visual"><img class="machine-sprite still-sprite" src="img/alambique.png" alt="alambique" draggable="false">${s.fire?'<img class="machine-sprite still-sprite fire-gif" src="img/alambique.gif" alt="fuego" draggable="false">':''}</div>
       <div class="bar vertical output ${s.outputRuns>=3?'run3':''}"><i style="height:${pct(s.output)}"></i><span class="bar-abv">${hasOutput ? `${s.outputAbv.toFixed(0)}°` : ''}</span></div>
       <div class="still-drop in drop-target" data-still="${i}" data-zone="in" data-tip="Entrada del alambique: suelta mosto o destilado para segunda pasada."></div>
       <div class="still-drop out ${spiritReady?'ready-drag':''}" data-still="${i}" data-zone="out" ${spiritReady ? 'data-drag="spirit" data-label="destilado"' : ''} data-tip="Salida del alambique: arrastra de aquí a IN para segunda pasada o a barricas."></div>
@@ -2123,10 +2148,14 @@ function bottlePreviewHtml(b, targetAbv, opts={}){
   const addBonus=(label, q=0, r=0)=>{ const key=String(label||'Bonus'); const cur=bonusRows.get(key)||{q:0,r:0}; cur.q+=Number(q)||0; cur.r+=Number(r)||0; bonusRows.set(key,cur); };
   p.steps.filter(s=>Math.round(s.delta)!==0).forEach(s=>addBonus(s.label, s.delta, 0));
   p.repSteps.forEach(x=>addBonus(x.def.label, 0, x.rep));
+  if(targetAbv===40) addBonus('Gradación', 0, -1);
+  else if(targetAbv>=46) addBonus('Gradación', 0, 1 + (targetAbv>60 && targetAbv>=Math.floor(Number(b.abv)||0) ? 1 : 0));
+  if(opts.chillFilter && chillFilterEffective(targetAbv)) addBonus('Chill Filter', 0, -1);
+  if(opts.caramelColor) addBonus('E150a natural', 0, -1);
   if(p.regionBonus?.qDelta || p.regionBonus?.repDelta) addBonus(`Región ${regionName(p.regionBonus.region)}`, p.regionBonus.qDelta||0, p.regionBonus.repDelta||0);
   const bonuses=[...bonusRows.entries()].map(([label,v])=>bonusItemHtml(label,v.q,v.r)).filter(Boolean).join('');
   return `<div class="bottle-preview">
-    <div class="bottle-preview-totals"><b>🍾 ${p.bottles} botellas</b><b>🧪 ${targetAbv}° ABV</b><b>⭐ Q ${Math.round(p.finalQ)}</b><b class="${bonusDeltaClass(p.repDelta)}">🏆 Rep ${rep}</b></div>
+    <div class="bottle-preview-totals"><b class="bottle-total bottles">🍾 ${p.bottles}</b><b class="bottle-total reputation ${bonusDeltaClass(p.repDelta)}">🏆 Rep ${rep}</b><b class="bottle-total quality">⭐ Q ${Math.round(p.finalQ)}</b><b class="bottle-total abv">🧪 ${targetAbv}°</b></div>
     ${bonuses ? `<span class="bottle-bonuses">${bonuses}</span>` : ''}
   </div>`;
 }

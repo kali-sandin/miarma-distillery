@@ -3190,3 +3190,88 @@ body::after {
 .bottle-preview .bottle-bonuses em { color:#a99a83 !important; font-style:italic !important; font-weight:700 !important; }
 .bottle-preview .bottle-bonuses .delta-positive { color:#a7e184 !important; }
 .bottle-preview .bottle-bonuses .delta-negative { color:#ff7d67 !important; }
+
+/* 2026-06-13 follow-up fixes: Scotland labels, still bars, bottle preview containment */
+.still-unit .bar.input,
+.still-unit .bar.tempv {
+  top:48px !important;
+  height:132px !important;
+}
+.still-unit .bar.output {
+  top:114px !important;
+  height:66px !important;
+}
+.still-visual .fire-gif {
+  mix-blend-mode:screen !important;
+  opacity:.95 !important;
+  pointer-events:none !important;
+}
+.scotland-player-marker {
+  gap:0 !important;
+}
+.scotland-player-marker figcaption {
+  margin-top:-12px !important;
+}
+.region-bonus-list {
+  gap:6px !important;
+}
+.distillery-region-summary span {
+  display:grid !important;
+  gap:4px !important;
+}
+.bottle-card-modal {
+  width:min(820px, calc(100vw - 42px)) !important;
+  min-width:0 !important;
+  max-width:820px !important;
+}
+.bottle-copy,
+#bottlePreview,
+.bottle-options,
+.bottle-preview {
+  max-width:620px !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+.bottle-preview {
+  overflow:hidden !important;
+  justify-self:stretch !important;
+}
+.bottle-preview-totals {
+  grid-template-columns:repeat(4, minmax(0,1fr)) !important;
+}
+.bottle-preview-totals b,
+.bottle-preview .bottle-total {
+  font-size:20px !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  min-width:0 !important;
+}
+.bottle-preview .bottle-total.quality {
+  color:#ffe16d !important;
+}
+.bottle-preview .bottle-total.bottles,
+.bottle-preview .bottle-total.reputation,
+.bottle-preview .bottle-total.abv {
+  color:#fff3cf !important;
+}
+.bottle-preview .bottle-total.reputation.delta-positive { color:#a7e184 !important; }
+.bottle-preview .bottle-total.reputation.delta-negative { color:#ff7d67 !important; }
+.bottle-preview .bottle-bonuses {
+  max-width:100% !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+.bottle-preview .bottle-bonuses i {
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  overflow-wrap:anywhere !important;
+  word-break:normal !important;
+}
+.bottle-preview .bonus-source,
+.bottle-preview .bonus-delta,
+.bottle-preview .bottle-bonuses em {
+  white-space:normal !important;
+}
