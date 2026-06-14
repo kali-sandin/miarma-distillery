@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "build": "manual-test",
+  "publicName": "Milei Industries",
+  "distilleryName": "Smoke Hill",
+  "region": "islay",
+  "x": 0.35,
+  "y": 0.52,
+  "distilleryImage": "img/mapa/dest05.png",
+  "reputation": 77,
+  "bestQuality": 99,
+  "litresSold": 900,
+  "lotsSold": 4,
+  "bottlesSold": 1800,
+  "maxBottlePrice": 33,
+  "maxBottlesLot": 900,
+  "oldestSoldAge": 18,
+  "achievements": ["serious_business", "woody_taste"],
+  "achievementsCount": 2,
+  "updatedAtClient": 1781390000000,
+  "updatedAt": "__now__"
+}

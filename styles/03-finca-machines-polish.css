@@ -204,14 +204,14 @@ body::after {
 /* 2026-06-05 last tanda: still controls, live fire, finca edge tiles, bottles layout */
 #fincaEdges { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
 #fincaEdges .edge { position:absolute; display:block; image-rendering:pixelated; background-repeat:repeat; background-size:auto; opacity:.98; }
-#fincaEdges .edge-u { left:257px; right:269px; top:0; height:122px; background-image:url('img/finca/finca_U.jpg'); background-repeat:repeat-x; }
-#fincaEdges .edge-d { left:257px; right:269px; bottom:0; height:174px; background-image:url('img/finca/finca_D.jpg'); background-repeat:repeat-x; }
-#fincaEdges .edge-l { left:0; top:122px; bottom:174px; width:257px; background-image:url('img/finca/finca_L.jpg'); background-repeat:repeat-y; }
-#fincaEdges .edge-r { right:0; top:122px; bottom:174px; width:269px; background-image:url('img/finca/finca_R.jpg'); background-repeat:repeat-y; }
-#fincaEdges .edge-lu { left:0; top:0; width:257px; height:122px; background-image:url('img/finca/finca_LU.jpg'); }
-#fincaEdges .edge-ru { right:0; top:0; width:269px; height:122px; background-image:url('img/finca/finca_RU.jpg'); }
-#fincaEdges .edge-ld { left:0; bottom:0; width:257px; height:174px; background-image:url('img/finca/finca_LD.jpg'); }
-#fincaEdges .edge-rd { right:0; bottom:0; width:269px; height:174px; background-image:url('img/finca/finca_RD.jpg'); }
+#fincaEdges .edge-u { left:257px; right:269px; top:0; height:122px; background-image:url('../img/finca/finca_U.jpg'); background-repeat:repeat-x; }
+#fincaEdges .edge-d { left:257px; right:269px; bottom:0; height:174px; background-image:url('../img/finca/finca_D.jpg'); background-repeat:repeat-x; }
+#fincaEdges .edge-l { left:0; top:122px; bottom:174px; width:257px; background-image:url('../img/finca/finca_L.jpg'); background-repeat:repeat-y; }
+#fincaEdges .edge-r { right:0; top:122px; bottom:174px; width:269px; background-image:url('../img/finca/finca_R.jpg'); background-repeat:repeat-y; }
+#fincaEdges .edge-lu { left:0; top:0; width:257px; height:122px; background-image:url('../img/finca/finca_LU.jpg'); }
+#fincaEdges .edge-ru { right:0; top:0; width:269px; height:122px; background-image:url('../img/finca/finca_RU.jpg'); }
+#fincaEdges .edge-ld { left:0; bottom:0; width:257px; height:174px; background-image:url('../img/finca/finca_LD.jpg'); }
+#fincaEdges .edge-rd { right:0; bottom:0; width:269px; height:174px; background-image:url('../img/finca/finca_RD.jpg'); }
 
 /* Still controls: cubo izquierda, fuego derecha, closer together */
 .still-unit .empty-still-btn {
@@ -273,14 +273,14 @@ body::after {
 /* Finca zoom-out tiles live outside the central map bounds */
 #fincaEdges { inset:0; z-index:0; overflow:visible !important; }
 #finca { z-index:1; }
-#fincaEdges .edge-u { left:0 !important; right:0 !important; top:-122px !important; height:122px !important; background-image:url('img/finca/finca_U.jpg'); background-repeat:repeat-x !important; background-size:auto 122px !important; }
-#fincaEdges .edge-d { left:0 !important; right:0 !important; bottom:-174px !important; height:174px !important; background-image:url('img/finca/finca_D.jpg'); background-repeat:repeat-x !important; background-size:auto 174px !important; }
-#fincaEdges .edge-l { left:-257px !important; top:0 !important; bottom:0 !important; width:257px !important; background-image:url('img/finca/finca_L.jpg'); background-repeat:repeat-y !important; background-size:257px auto !important; }
-#fincaEdges .edge-r { right:-269px !important; top:0 !important; bottom:0 !important; width:269px !important; background-image:url('img/finca/finca_R.jpg'); background-repeat:repeat-y !important; background-size:269px auto !important; }
-#fincaEdges .edge-lu { left:-257px !important; top:-122px !important; width:257px !important; height:122px !important; background-image:url('img/finca/finca_LU.jpg'); }
-#fincaEdges .edge-ru { right:-269px !important; top:-122px !important; width:269px !important; height:122px !important; background-image:url('img/finca/finca_RU.jpg'); }
-#fincaEdges .edge-ld { left:-257px !important; bottom:-174px !important; width:257px !important; height:174px !important; background-image:url('img/finca/finca_LD.jpg'); }
-#fincaEdges .edge-rd { right:-269px !important; bottom:-174px !important; width:269px !important; height:174px !important; background-image:url('img/finca/finca_RD.jpg'); }
+#fincaEdges .edge-u { left:0 !important; right:0 !important; top:-122px !important; height:122px !important; background-image:url('../img/finca/finca_U.jpg'); background-repeat:repeat-x !important; background-size:auto 122px !important; }
+#fincaEdges .edge-d { left:0 !important; right:0 !important; bottom:-174px !important; height:174px !important; background-image:url('../img/finca/finca_D.jpg'); background-repeat:repeat-x !important; background-size:auto 174px !important; }
+#fincaEdges .edge-l { left:-257px !important; top:0 !important; bottom:0 !important; width:257px !important; background-image:url('../img/finca/finca_L.jpg'); background-repeat:repeat-y !important; background-size:257px auto !important; }
+#fincaEdges .edge-r { right:-269px !important; top:0 !important; bottom:0 !important; width:269px !important; background-image:url('../img/finca/finca_R.jpg'); background-repeat:repeat-y !important; background-size:269px auto !important; }
+#fincaEdges .edge-lu { left:-257px !important; top:-122px !important; width:257px !important; height:122px !important; background-image:url('../img/finca/finca_LU.jpg'); }
+#fincaEdges .edge-ru { right:-269px !important; top:-122px !important; width:269px !important; height:122px !important; background-image:url('../img/finca/finca_RU.jpg'); }
+#fincaEdges .edge-ld { left:-257px !important; bottom:-174px !important; width:257px !important; height:174px !important; background-image:url('../img/finca/finca_LD.jpg'); }
+#fincaEdges .edge-rd { right:-269px !important; bottom:-174px !important; width:269px !important; height:174px !important; background-image:url('../img/finca/finca_RD.jpg'); }
 
 
 /* 2026-06-05 tope pass: moved finca assets, scaled non-repeating frame, roofs overlay, splash preload, bottle hover, still heat glow */
@@ -296,7 +296,7 @@ body::after {
   z-index:0 !important;
   overflow:hidden !important;
   pointer-events:none !important;
-  background-image:url('img/finca/finca_C.jpg') !important;
+  background-image:url('../img/finca/finca_C.jpg') !important;
   background-size:1920px 1080px !important;
   background-position:center center !important;
   background-repeat:repeat !important;
@@ -315,20 +315,20 @@ body::after {
 #fincaEdges .edge { position:absolute !important; display:block !important; image-rendering:pixelated; opacity:1 !important; pointer-events:none !important; }
 #fincaEdges .edge-u,
 #fincaEdges .edge-d { left:0 !important; right:0 !important; background-position:center bottom !important; background-repeat:repeat !important; }
-#fincaEdges .edge-u { top:0 !important; height:var(--bleed-y) !important; background-image:url('img/finca/finca_U.jpg') !important; background-size:1920px var(--top-h) !important; }
-#fincaEdges .edge-d { bottom:0 !important; height:var(--bleed-y) !important; background-image:url('img/finca/finca_D.jpg') !important; background-size:1920px var(--bottom-h) !important; background-position:center top !important; }
+#fincaEdges .edge-u { top:0 !important; height:var(--bleed-y) !important; background-image:url('../img/finca/finca_U.jpg') !important; background-size:1920px var(--top-h) !important; }
+#fincaEdges .edge-d { bottom:0 !important; height:var(--bleed-y) !important; background-image:url('../img/finca/finca_D.jpg') !important; background-size:1920px var(--bottom-h) !important; background-position:center top !important; }
 #fincaEdges .edge-l,
 #fincaEdges .edge-r { top:var(--bleed-y) !important; bottom:var(--bleed-y) !important; background-repeat:repeat !important; }
-#fincaEdges .edge-l { left:0 !important; width:var(--bleed-x) !important; background-image:url('img/finca/finca_L.jpg') !important; background-size:var(--left-w) 1080px !important; background-position:right center !important; }
-#fincaEdges .edge-r { right:0 !important; width:var(--bleed-x) !important; background-image:url('img/finca/finca_R.jpg') !important; background-size:var(--right-w) 1080px !important; background-position:left center !important; }
+#fincaEdges .edge-l { left:0 !important; width:var(--bleed-x) !important; background-image:url('../img/finca/finca_L.jpg') !important; background-size:var(--left-w) 1080px !important; background-position:right center !important; }
+#fincaEdges .edge-r { right:0 !important; width:var(--bleed-x) !important; background-image:url('../img/finca/finca_R.jpg') !important; background-size:var(--right-w) 1080px !important; background-position:left center !important; }
 #fincaEdges .edge-lu,
 #fincaEdges .edge-ru,
 #fincaEdges .edge-ld,
 #fincaEdges .edge-rd { width:var(--bleed-x) !important; height:var(--bleed-y) !important; background-repeat:repeat !important; }
-#fincaEdges .edge-lu { left:0 !important; top:0 !important; background-image:url('img/finca/finca_LU.jpg') !important; background-size:var(--left-w) var(--top-h) !important; background-position:right bottom !important; }
-#fincaEdges .edge-ru { right:0 !important; top:0 !important; background-image:url('img/finca/finca_RU.jpg') !important; background-size:var(--right-w) var(--top-h) !important; background-position:left bottom !important; }
-#fincaEdges .edge-ld { left:0 !important; bottom:0 !important; background-image:url('img/finca/finca_LD.jpg') !important; background-size:var(--left-w) var(--bottom-h) !important; background-position:right top !important; }
-#fincaEdges .edge-rd { right:0 !important; bottom:0 !important; background-image:url('img/finca/finca_RD.jpg') !important; background-size:var(--right-w) var(--bottom-h) !important; background-position:left top !important; }
+#fincaEdges .edge-lu { left:0 !important; top:0 !important; background-image:url('../img/finca/finca_LU.jpg') !important; background-size:var(--left-w) var(--top-h) !important; background-position:right bottom !important; }
+#fincaEdges .edge-ru { right:0 !important; top:0 !important; background-image:url('../img/finca/finca_RU.jpg') !important; background-size:var(--right-w) var(--top-h) !important; background-position:left bottom !important; }
+#fincaEdges .edge-ld { left:0 !important; bottom:0 !important; background-image:url('../img/finca/finca_LD.jpg') !important; background-size:var(--left-w) var(--bottom-h) !important; background-position:right top !important; }
+#fincaEdges .edge-rd { right:0 !important; bottom:0 !important; background-image:url('../img/finca/finca_RD.jpg') !important; background-size:var(--right-w) var(--bottom-h) !important; background-position:left top !important; }
 #finca { z-index:1 !important; }
 #fincaRoofs {
   position:absolute;
@@ -443,19 +443,19 @@ body::after {
 
 /* 2026-06-06 correction pass: roofs top, mirrored outer texture, help glow, boxes restored, bottle archive layout */
 #fincaEdges {
-  background-image:url('img/finca/generated/tile_C_pair.jpg') !important;
+  background-image:url('../img/finca/generated/tile_C_pair.jpg') !important;
   background-size:3840px 2160px !important;
   background-position:center center !important;
   background-repeat:repeat !important;
 }
-#fincaEdges .edge-u { background-image:url('img/finca/generated/tile_U_pair.jpg') !important; background-size:1920px 408px !important; background-position:center bottom !important; background-repeat:repeat !important; }
-#fincaEdges .edge-d { background-image:url('img/finca/generated/tile_D_pair.jpg') !important; background-size:1920px 584px !important; background-position:center top !important; background-repeat:repeat !important; }
-#fincaEdges .edge-l { background-image:url('img/finca/generated/tile_L_pair.jpg') !important; background-size:860px 1080px !important; background-position:right center !important; background-repeat:repeat !important; }
-#fincaEdges .edge-r { background-image:url('img/finca/generated/tile_R_pair.jpg') !important; background-size:900px 1080px !important; background-position:left center !important; background-repeat:repeat !important; }
-#fincaEdges .edge-lu { background-image:url('img/finca/generated/tile_LU_pair.jpg') !important; background-size:860px 408px !important; background-position:right bottom !important; background-repeat:repeat !important; }
-#fincaEdges .edge-ru { background-image:url('img/finca/generated/tile_RU_pair.jpg') !important; background-size:900px 408px !important; background-position:left bottom !important; background-repeat:repeat !important; }
-#fincaEdges .edge-ld { background-image:url('img/finca/generated/tile_LD_pair.jpg') !important; background-size:860px 584px !important; background-position:right top !important; background-repeat:repeat !important; }
-#fincaEdges .edge-rd { background-image:url('img/finca/generated/tile_RD_pair.jpg') !important; background-size:900px 584px !important; background-position:left top !important; background-repeat:repeat !important; }
+#fincaEdges .edge-u { background-image:url('../img/finca/generated/tile_U_pair.jpg') !important; background-size:1920px 408px !important; background-position:center bottom !important; background-repeat:repeat !important; }
+#fincaEdges .edge-d { background-image:url('../img/finca/generated/tile_D_pair.jpg') !important; background-size:1920px 584px !important; background-position:center top !important; background-repeat:repeat !important; }
+#fincaEdges .edge-l { background-image:url('../img/finca/generated/tile_L_pair.jpg') !important; background-size:860px 1080px !important; background-position:right center !important; background-repeat:repeat !important; }
+#fincaEdges .edge-r { background-image:url('../img/finca/generated/tile_R_pair.jpg') !important; background-size:900px 1080px !important; background-position:left center !important; background-repeat:repeat !important; }
+#fincaEdges .edge-lu { background-image:url('../img/finca/generated/tile_LU_pair.jpg') !important; background-size:860px 408px !important; background-position:right bottom !important; background-repeat:repeat !important; }
+#fincaEdges .edge-ru { background-image:url('../img/finca/generated/tile_RU_pair.jpg') !important; background-size:900px 408px !important; background-position:left bottom !important; background-repeat:repeat !important; }
+#fincaEdges .edge-ld { background-image:url('../img/finca/generated/tile_LD_pair.jpg') !important; background-size:860px 584px !important; background-position:right top !important; background-repeat:repeat !important; }
+#fincaEdges .edge-rd { background-image:url('../img/finca/generated/tile_RD_pair.jpg') !important; background-size:900px 584px !important; background-position:left top !important; background-repeat:repeat !important; }
 #fincaRoofs {
   inset:0 auto auto 0 !important;
   left:0 !important;
@@ -561,7 +561,7 @@ body::after {
   margin:0 !important;
   padding:18px 24px 16px !important;
   list-style:none !important;
-  background:transparent url('img/finca/etiqueta.png') center/100% 100% no-repeat !important;
+  background:transparent url('../img/finca/etiqueta.png') center/100% 100% no-repeat !important;
   color:#241b13 !important;
   border-radius:0 !important;
   box-shadow:none !important;

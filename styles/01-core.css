@@ -116,7 +116,7 @@ body { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 .hidden { display: none !important; }
 .drag-ghost { position: fixed; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none; z-index: 10000; opacity: .9; filter: drop-shadow(8px 8px 0 rgba(0,0,0,.35)); width: 58px !important; height: 58px !important; overflow: visible; }
 .drag-ghost img, .drag-ghost .plant-img { width: 58px !important; height: 58px !important; object-fit: contain; }
-.drag-ghost.crop-token img { content: url('img/cebada_germinando.png'); }
+.drag-ghost.crop-token img { content: url('../img/cebada_germinando.png'); }
 .drag-ghost.card { width: 76px !important; height: 76px !important; }
 .drag-ghost.card img { width: 70px !important; height: 70px !important; }
 #tooltip { position: fixed; z-index: 9999; max-width: 330px; padding: 8px 10px; border: 3px solid #2b2018; background: rgba(31,24,18,.92); color: #ffe7b7; box-shadow: 5px 5px 0 rgba(0,0,0,.35); pointer-events: none; opacity: 0; transform: none; font-size: 12px; line-height: 1.3; transition: opacity .08s ease; }

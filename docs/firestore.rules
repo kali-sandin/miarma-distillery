@@ -7,7 +7,7 @@ service cloud.firestore {
       return [
         'schemaVersion', 'build', 'publicName', 'distilleryName',
         'region', 'x', 'y', 'distilleryImage',
-        'reputation', 'litresSold', 'lotsSold', 'bottlesSold',
+        'reputation', 'bestQuality', 'litresSold', 'lotsSold', 'bottlesSold',
         'maxBottlePrice', 'maxBottlesLot', 'oldestSoldAge',
         'achievements', 'achievementsCount', 'updatedAtClient', 'updatedAt'
       ];
@@ -29,6 +29,7 @@ service cloud.firestore {
         && validNum('y', 0, 1)
         && request.resource.data.distilleryImage.matches('^img/mapa/dest[0-9][0-9]\\.png$')
         && validNum('reputation', -1000, 1000000)
+        && validNum('bestQuality', 0, 100)
         && validNum('litresSold', 0, 1000000000)
         && validNum('lotsSold', 0, 10000000)
         && validNum('bottlesSold', 0, 1000000000)

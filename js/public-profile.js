@@ -1,9 +1,21 @@
 const PUBLIC_SCHEMA_VERSION = 1;
-const PUBLIC_BUILD = '2026-06-14-social-mvp';
+const PUBLIC_BUILD = '2026-06-14-social-map-v2';
 const REGION_IDS = new Set(['speyside','highlands','campbeltown','islay','lowlands']);
 const clamp = (n,min,max)=>Math.min(max, Math.max(min, Number(n)||0));
 const cleanText = (value, fallback='', max=80)=>String(value ?? fallback).trim().replace(/\s+/g,' ').slice(0,max) || fallback;
 const cleanImage = value => /^img\/mapa\/dest\d{2}\.png$/.test(String(value||'')) ? String(value) : 'img/mapa/dest01.png';
+const quality = value => Math.min(100, Math.max(0, Number(value)||0));
+
+function bestQualityFromState(state, stats={}){
+  const lots=Array.isArray(state?.bottleHistory) ? state.bottleHistory : [];
+  const boxes=Array.isArray(state?.boxes) ? state.boxes : [];
+  return Math.round(Math.max(0, Number(stats.bestQuality)||0, ...lots.map(x=>quality(x.quality)), ...boxes.map(x=>quality(x.quality))));
+}
+function bestAgeFromState(state, stats={}){
+  const lots=Array.isArray(state?.bottleHistory) ? state.bottleHistory : [];
+  const boxes=Array.isArray(state?.boxes) ? state.boxes : [];
+  return Number(Math.max(0, Number(stats.oldestSoldAge)||0, ...lots.map(x=>Number(x.age)||0), ...boxes.map(x=>Number(x.age)||0)).toFixed(1));
+}
 
 function buildPublicProfile({state, distillery, publicName=''}={}){
   if(!state || !distillery || !state.scotlandLocation) return null;
@@ -11,6 +23,8 @@ function buildPublicProfile({state, distillery, publicName=''}={}){
   const stats=distillery.stats || {};
   const achievements=Object.keys(distillery.achievements || {}).sort().slice(0,80);
   const region=REGION_IDS.has(loc.region) ? loc.region : 'speyside';
+  const bestQuality=bestQualityFromState(state, stats);
+  const oldestSoldAge=bestAgeFromState(state, stats);
   return {
     schemaVersion: PUBLIC_SCHEMA_VERSION,
     build: PUBLIC_BUILD,
@@ -21,12 +35,13 @@ function buildPublicProfile({state, distillery, publicName=''}={}){
     y: Number(clamp(loc.y,0,1).toFixed(5)),
     distilleryImage: cleanImage(loc.dest),
     reputation: Math.round(Number(distillery.reputation)||0),
+    bestQuality,
     litresSold: Math.round(Number(stats.litresSold)||0),
     lotsSold: Math.round(Number(stats.lotsSold)||0),
     bottlesSold: Math.round(Number(stats.bottlesSold)||0),
     maxBottlePrice: Number((Number(stats.maxBottlePrice)||0).toFixed(2)),
     maxBottlesLot: Math.round(Number(stats.maxBottlesLot)||0),
-    oldestSoldAge: Number((Number(stats.oldestSoldAge)||0).toFixed(1)),
+    oldestSoldAge,
     achievements,
     achievementsCount: achievements.length,
     updatedAtClient: Date.now()

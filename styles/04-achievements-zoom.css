@@ -310,7 +310,7 @@
 
 /* 2026-06-08 final fixes: only one edge-pair ring; finca_C repeats beyond it. */
 #fincaEdges {
-  background-image:url('img/finca/generated/tile_C_pair.jpg') !important;
+  background-image:url('../img/finca/generated/tile_C_pair.jpg') !important;
   background-size:3840px 2160px !important;
   background-position:center center !important;
   background-repeat:repeat !important;
@@ -319,7 +319,7 @@
   left:0 !important; right:0 !important;
   top:calc(var(--bleed-y) - 408px) !important;
   height:408px !important;
-  background-image:url('img/finca/generated/tile_U_pair.jpg') !important;
+  background-image:url('../img/finca/generated/tile_U_pair.jpg') !important;
   background-size:1920px 408px !important;
   background-position:center bottom !important;
   background-repeat:repeat-x !important;
@@ -329,7 +329,7 @@
   top:calc(var(--bleed-y) + 1080px) !important;
   bottom:auto !important;
   height:584px !important;
-  background-image:url('img/finca/generated/tile_D_pair.jpg') !important;
+  background-image:url('../img/finca/generated/tile_D_pair.jpg') !important;
   background-size:1920px 584px !important;
   background-position:center top !important;
   background-repeat:repeat-x !important;
@@ -339,7 +339,7 @@
   top:var(--bleed-y) !important;
   bottom:auto !important;
   width:860px !important; height:1080px !important;
-  background-image:url('img/finca/generated/tile_L_pair.jpg') !important;
+  background-image:url('../img/finca/generated/tile_L_pair.jpg') !important;
   background-size:860px 1080px !important;
   background-position:right center !important;
   background-repeat:repeat-y !important;
@@ -350,15 +350,15 @@
   top:var(--bleed-y) !important;
   bottom:auto !important;
   width:900px !important; height:1080px !important;
-  background-image:url('img/finca/generated/tile_R_pair.jpg') !important;
+  background-image:url('../img/finca/generated/tile_R_pair.jpg') !important;
   background-size:900px 1080px !important;
   background-position:left center !important;
   background-repeat:repeat-y !important;
 }
-#fincaEdges .edge-lu { left:calc(var(--bleed-x) - 860px) !important; top:calc(var(--bleed-y) - 408px) !important; width:860px !important; height:408px !important; background-image:url('img/finca/generated/tile_LU_pair.jpg') !important; background-size:860px 408px !important; background-position:right bottom !important; background-repeat:no-repeat !important; }
-#fincaEdges .edge-ru { left:calc(var(--bleed-x) + 1920px) !important; right:auto !important; top:calc(var(--bleed-y) - 408px) !important; width:900px !important; height:408px !important; background-image:url('img/finca/generated/tile_RU_pair.jpg') !important; background-size:900px 408px !important; background-position:left bottom !important; background-repeat:no-repeat !important; }
-#fincaEdges .edge-ld { left:calc(var(--bleed-x) - 860px) !important; bottom:auto !important; top:calc(var(--bleed-y) + 1080px) !important; width:860px !important; height:584px !important; background-image:url('img/finca/generated/tile_LD_pair.jpg') !important; background-size:860px 584px !important; background-position:right top !important; background-repeat:no-repeat !important; }
-#fincaEdges .edge-rd { left:calc(var(--bleed-x) + 1920px) !important; right:auto !important; bottom:auto !important; top:calc(var(--bleed-y) + 1080px) !important; width:900px !important; height:584px !important; background-image:url('img/finca/generated/tile_RD_pair.jpg') !important; background-size:900px 584px !important; background-position:left top !important; background-repeat:no-repeat !important; }
+#fincaEdges .edge-lu { left:calc(var(--bleed-x) - 860px) !important; top:calc(var(--bleed-y) - 408px) !important; width:860px !important; height:408px !important; background-image:url('../img/finca/generated/tile_LU_pair.jpg') !important; background-size:860px 408px !important; background-position:right bottom !important; background-repeat:no-repeat !important; }
+#fincaEdges .edge-ru { left:calc(var(--bleed-x) + 1920px) !important; right:auto !important; top:calc(var(--bleed-y) - 408px) !important; width:900px !important; height:408px !important; background-image:url('../img/finca/generated/tile_RU_pair.jpg') !important; background-size:900px 408px !important; background-position:left bottom !important; background-repeat:no-repeat !important; }
+#fincaEdges .edge-ld { left:calc(var(--bleed-x) - 860px) !important; bottom:auto !important; top:calc(var(--bleed-y) + 1080px) !important; width:860px !important; height:584px !important; background-image:url('../img/finca/generated/tile_LD_pair.jpg') !important; background-size:860px 584px !important; background-position:right top !important; background-repeat:no-repeat !important; }
+#fincaEdges .edge-rd { left:calc(var(--bleed-x) + 1920px) !important; right:auto !important; bottom:auto !important; top:calc(var(--bleed-y) + 1080px) !important; width:900px !important; height:584px !important; background-image:url('../img/finca/generated/tile_RD_pair.jpg') !important; background-size:900px 584px !important; background-position:left top !important; background-repeat:no-repeat !important; }
 
 /* Same-element zoom above every modal border, with gentle wobble. */
 .bottle-history-cover img.pixel-zoom-active,

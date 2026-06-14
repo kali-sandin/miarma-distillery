@@ -1,7 +1,8 @@
 const FIREBASE_VERSION = '10.12.5';
 const PROFILE_KEY = 'miarma-social-public-name-v1';
 const LAST_PROFILE_KEY = 'miarma-social-last-profile-v1';
-const AUTO_PUBLISH_REASONS = new Set(['box-sold','achievement','region-selected','name-changed','bottled','manual']);
+const TOP10_CACHE_MS = 10 * 60 * 1000;
+const AUTO_PUBLISH_REASONS = new Set(['box-sold','achievement','region-selected','name-changed','bottled','manual','auth','map-open','reputation']);
 
 const state = {
   app: null,
@@ -9,21 +10,32 @@ const state = {
   db: null,
   user: null,
   firebase: null,
-  modal: null,
   status: 'offline',
-  statusText: 'Multijugador no iniciado',
+  statusText: 'Social no iniciado',
   lastTop: [],
+  lastTopFetchedAt: 0,
   dirtyReasons: new Set(),
   publishTimer: null,
   initPromise: null,
   configured: !!window.MIARMA_FIREBASE_CONFIG,
-  publicName: localStorage.getItem(PROFILE_KEY) || ''
+  publicName: localStorage.getItem(PROFILE_KEY) || '',
+  mapLoginAttempted: false
 };
 
 const $ = (q, root=document)=>root.querySelector(q);
 const esc = value => String(value ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const profileComparable = profile => JSON.stringify({...profile, updatedAtClient:0});
-const setStatus = (status, text) => { state.status=status; state.statusText=text; renderStatus(); };
+const topFresh = () => Date.now() - Number(state.lastTopFetchedAt||0) < TOP10_CACHE_MS;
+const syncLog = (...args) => console.debug('[SimDistillery:sync]', ...args);
+const visibleStatusText = () => {
+  if(state.status === 'error') return state.statusText || 'Error social';
+  if(state.status === 'pending') return state.statusText || 'Cargando…';
+  if(!state.configured) return 'Firebase no configurado.';
+  if(!state.user) return 'Conecta Google para ver el top 10.';
+  if(!currentProfile()) return 'Conectado. Elige región para publicar tu destilería.';
+  return `Conectado como ${state.publicName || state.user.displayName || 'Jugador'}`;
+};
+const setStatus = (status, text) => { state.status=status; state.statusText=text; renderMapControls(); };
 
 async function loadOptionalConfig(){
   if(window.MIARMA_FIREBASE_CONFIG !== undefined){ state.configured=!!window.MIARMA_FIREBASE_CONFIG; return state.configured; }
@@ -48,9 +60,22 @@ async function loadFirebase(){
   auth.onAuthStateChanged(state.auth, user=>{
     state.user=user;
     if(user && !state.publicName){ state.publicName=user.displayName || 'Jugador'; localStorage.setItem(PROFILE_KEY, state.publicName); }
-    setStatus(user ? 'connected' : 'offline', user ? `Conectado como ${state.publicName || user.displayName || 'Jugador'}` : 'Desconectado');
-    renderModal();
-    if(user) markDirty('auth');
+    if(!user){
+      state.dirtyReasons.delete('auth');
+      setStatus('offline', 'Desconectado');
+      renderMapControls();
+      return;
+    }
+    renderMapControls();
+    const profile=currentProfile();
+    if(profile){
+      markDirty('auth');
+      setStatus('connected', `Conectado: ${state.publicName || user.displayName || 'Jugador'}`);
+    } else {
+      state.dirtyReasons.delete('auth');
+      setStatus('connected', `Conectado: ${state.publicName || user.displayName || 'Jugador'} · elige región para publicar ficha`);
+    }
+    fetchTop10IfStale({force:true});
   });
   return state.firebase;
 }
@@ -74,122 +99,129 @@ function profileChanged(profile){
 async function login(){
   try{
     await loadOptionalConfig();
+    if(!window.MIARMA_FIREBASE_CONFIG){ setStatus('error','Firebase no configurado.'); return false; }
     setStatus('pending','Abriendo Google…');
     const {auth}=await ensureFirebase();
     const provider=new auth.GoogleAuthProvider();
-    await auth.signInWithPopup(state.auth, provider);
-  }catch(err){ setStatus('error', `Error login: ${err.message}`); }
+    try{
+      await auth.signInWithPopup(state.auth, provider);
+    }catch(err){
+      const code=String(err?.code || '');
+      if(code.includes('popup-blocked') || code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')){
+        setStatus('pending','Redirigiendo a Google…');
+        await auth.signInWithRedirect(state.auth, provider);
+      } else {
+        throw err;
+      }
+    }
+    return true;
+  }catch(err){ setStatus('error', `Error login: ${err.message}`); return false; }
 }
 
 async function logout(){
-  try{ const {auth}=await ensureFirebase(); await auth.signOut(state.auth); }
-  catch(err){ setStatus('error', `Error logout: ${err.message}`); }
+  try{ const {auth}=await ensureFirebase(); await auth.signOut(state.auth); state.mapLoginAttempted=true; renderMapControls(); return true; }
+  catch(err){ setStatus('error', `Error logout: ${err.message}`); return false; }
 }
 
 async function publishProfile(reason='manual', {force=false}={}){
   try{
     await loadOptionalConfig();
     const profile=currentProfile();
-    if(!profile){ setStatus('error','No hay región elegida todavía; no se puede publicar ficha.'); return false; }
-    if(!window.MIARMA_FIREBASE_CONFIG){ setStatus('error','Firebase no está configurado.'); renderModal(); return false; }
+    if(!profile){
+      state.dirtyReasons.delete(reason);
+      state.dirtyReasons.delete('auth');
+      renderMapControls();
+      setStatus(state.user ? 'connected' : 'offline', state.user ? 'Conectado. Elige región para publicar tu destilería.' : 'Conecta Google para ver el top 10.');
+      return false;
+    }
+    if(!window.MIARMA_FIREBASE_CONFIG){ setStatus('error','Firebase no configurado.'); return false; }
     const {firestore}=await ensureFirebase();
-    if(!state.user){ setStatus('error','Conecta con Google antes de publicar.'); return false; }
-    if(!force && !profileChanged(profile)){ setStatus('connected','Sin cambios públicos que publicar.'); return false; }
-    setStatus('pending','Publicando ficha pública…');
+    if(!state.user){ setStatus('offline','Conecta Google para ver el top 10.'); return false; }
+    if(!force && !profileChanged(profile)){ setStatus('connected','Ficha pública sin cambios.'); return false; }
+    syncLog('publishing profile', reason, [...state.dirtyReasons]);
     const docRef=firestore.doc(state.db, 'players', state.user.uid);
     await firestore.setDoc(docRef, {...profile, updatedAt:firestore.serverTimestamp()}, {merge:false});
     localStorage.setItem(LAST_PROFILE_KEY, profileComparable(profile));
     state.dirtyReasons.clear();
-    setStatus('published', `Publicado (${reason})`);
-    renderModal();
+    syncLog('profile published', reason);
+    setStatus('connected', 'Conectado');
     return true;
-  }catch(err){ setStatus('error', `Error publicando: ${err.message}`); return false; }
+  }catch(err){ console.warn('[SimDistillery:sync] Error publicando ficha', err); setStatus(state.user ? 'connected' : 'offline', state.user ? 'Conectado' : 'Conecta Google para ver el top 10.'); return false; }
 }
 
 function markDirty(reason='change'){
+  if(reason==='auth' && !currentProfile()){ renderMapControls(); return; }
   state.dirtyReasons.add(reason);
-  renderStatus();
-  if(!AUTO_PUBLISH_REASONS.has(reason) || !state.user) return;
+  syncLog('dirty', reason, [...state.dirtyReasons]);
+  renderMapControls();
+  if(!AUTO_PUBLISH_REASONS.has(reason) || !state.user || !currentProfile()) return;
   clearTimeout(state.publishTimer);
   state.publishTimer=setTimeout(()=>publishProfile([...state.dirtyReasons].join(',')), 2200);
 }
 
-async function fetchTop10(){
+function normalizeTopPlayer(doc, idx){
+  const p={uid:doc.id, ...doc.data(), rank:idx+1};
+  p.reputation=Math.round(Number(p.reputation)||0);
+  p.bestQuality=Math.round(Number(p.bestQuality)||0);
+  p.bottlesSold=Math.round(Number(p.bottlesSold)||0);
+  p.litresSold=Math.round(Number(p.litresSold)||0);
+  p.maxBottlesLot=Math.round(Number(p.maxBottlesLot)||0);
+  p.oldestSoldAge=Number(p.oldestSoldAge)||0;
+  p.maxBottlePrice=Number(p.maxBottlePrice)||0;
+  p.achievementsCount=Math.round(Number(p.achievementsCount)||0);
+  return p;
+}
+
+async function fetchTop10({force=false}={}){
   try{
     await loadOptionalConfig();
-    if(!window.MIARMA_FIREBASE_CONFIG){ setStatus('error','Firebase no está configurado.'); renderModal(); return []; }
+    if(!window.MIARMA_FIREBASE_CONFIG){ setStatus('error','Firebase no configurado.'); return []; }
     const {firestore}=await ensureFirebase();
-    if(!state.user){ setStatus('error','Conecta con Google para leer el ranking.'); return []; }
+    if(!state.user){ setStatus('offline','Conecta Google para cargar top 10.'); return []; }
+    if(!force && topFresh()){ window.MiarmaGame?.renderPublicPlayers?.(state.lastTop); renderMapControls(); return state.lastTop; }
     setStatus('pending','Cargando top 10…');
     const q=firestore.query(firestore.collection(state.db,'players'), firestore.orderBy('reputation','desc'), firestore.limit(10));
     const snap=await firestore.getDocs(q);
-    state.lastTop=snap.docs.map(doc=>({uid:doc.id, ...doc.data()}));
+    state.lastTop=snap.docs.map(normalizeTopPlayer);
+    state.lastTopFetchedAt=Date.now();
     window.MiarmaGame?.renderPublicPlayers?.(state.lastTop);
     setStatus('connected',`Top 10 actualizado (${state.lastTop.length})`);
-    renderModal();
     return state.lastTop;
   }catch(err){ setStatus('error', `Error ranking: ${err.message}`); return []; }
 }
-
+function fetchTop10IfStale({force=false}={}){ return fetchTop10({force}); }
 function getCachedTopPlayers(){ return state.lastTop.slice(); }
+function currentUserId(){ return state.user?.uid || null; }
 
-function savePublicName(value){
-  state.publicName=String(value||'').trim().slice(0,48) || state.user?.displayName || 'Jugador';
-  localStorage.setItem(PROFILE_KEY, state.publicName);
-  markDirty('name-changed');
-  renderStatus();
-}
-
-function configHelpHtml(){
-  return `<div class="multiplayer-help"><p>Firebase aún no está configurado en esta copia.</p><ol><li>Crea proyecto Firebase.</li><li>Activa Authentication → Google.</li><li>Crea Firestore en modo production.</li><li>Copia <code>js/firebase-config.example.js</code> a <code>js/firebase-config.js</code>.</li><li>Pega el objeto de config de tu app web Firebase.</li><li>Publica reglas Firestore de <code>docs/firestore.rules</code>.</li></ol></div>`;
-}
-
-function topHtml(){
-  if(!state.lastTop.length) return '<div class="multiplayer-empty">Sin ranking cargado todavía.</div>';
-  return state.lastTop.map((p,i)=>`<article class="multiplayer-rank-card"><b>#${i+1}</b><span>${esc(p.publicName || 'Jugador')}</span><strong>🏆 ${Math.round(Number(p.reputation)||0)}</strong><em>${esc(p.distilleryName || 'Destilería')} · ${esc(p.region || 'Escocia')}</em></article>`).join('');
-}
-
-function renderStatus(){
-  const root=$('#multiplayerStatus');
-  if(root){ root.dataset.status=state.status; root.textContent=state.statusText + (state.dirtyReasons.size ? ` · pendiente: ${[...state.dirtyReasons].join(', ')}` : ''); }
-}
-
-function ensureModal(){
-  let root=$('#multiplayerModal');
-  if(root) return root;
-  root=document.createElement('div');
-  root.id='multiplayerModal';
-  root.className='multiplayer-modal hidden';
-  document.body.appendChild(root);
-  root.addEventListener('click', e=>{ if(e.target===root) closeModal(); });
-  return root;
-}
-
-function renderModal(){
-  const root=ensureModal();
-  if(root.classList.contains('hidden')) return;
+function renderMapControls(){
+  const root=$('#scotlandSocialPanel');
+  if(!root) return;
   const user=state.user;
-  root.innerHTML=`<section class="multiplayer-window"><button class="game-popup-close multiplayer-close" type="button" aria-label="Cerrar">×</button><header><h3>🌐 Multijugador social</h3><p>Ranking y mapa público opcional. Tu partida completa sigue local.</p></header><div id="multiplayerStatus" class="multiplayer-status" data-status="${esc(state.status)}">${esc(state.statusText)}</div>${state.configured?'':configHelpHtml()}<div class="multiplayer-controls"><button id="mpLogin" class="pixel-btn" type="button">${user?'Reconectar Google':'Conectar Google'}</button><button id="mpLogout" class="pixel-btn danger" type="button" ${user?'':'disabled'}>Desconectar</button><label>Nombre público<input id="mpPublicName" maxlength="48" value="${esc(state.publicName || user?.displayName || '')}" placeholder="Jugador"></label><button id="mpPublish" class="pixel-btn" type="button">Publicar ahora</button><button id="mpTop" class="pixel-btn" type="button">Actualizar top 10</button></div><section class="multiplayer-ranking"><h4>Top 10 reputación</h4>${topHtml()}</section></section>`;
-  $('#mpLogin',root).onclick=login;
-  $('#mpLogout',root).onclick=logout;
-  $('#mpPublish',root).onclick=()=>publishProfile('manual',{force:true});
-  $('#mpTop',root).onclick=fetchTop10;
-  $('#mpPublicName',root).onchange=e=>savePublicName(e.target.value);
-  $('.multiplayer-close',root).onclick=closeModal;
+  const staleTxt=state.lastTopFetchedAt ? `Top10 hace ${Math.max(0, Math.round((Date.now()-state.lastTopFetchedAt)/60000))}m` : (user ? 'Top10 pendiente' : '');
+  const statusText=visibleStatusText();
+  root.innerHTML=`<div class="social-map-title">🌐 Sim Distillery</div><div id="multiplayerStatus" class="multiplayer-status compact" data-status="${esc(state.status)}">${esc(statusText)}${staleTxt?`<br><small>${esc(staleTxt)}</small>`:''}</div><div class="social-map-actions">${user?'<button id="mpLogout" class="pixel-btn small danger" type="button">Desconectar cuenta</button>':'<button id="mpLogin" class="pixel-btn small" type="button">Login Google</button>'}</div>`;
+  root.querySelectorAll('button').forEach(btn=>btn.addEventListener('pointerdown', e=>e.stopPropagation()));
+  $('#mpLogin',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); state.mapLoginAttempted=true; login(); });
+  $('#mpLogout',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); logout(); });
 }
 
-function openModal(){
-  loadOptionalConfig().then(()=>{ renderModal(); if(state.configured) ensureFirebase().catch(err=>setStatus('error', `Firebase: ${err.message}`)); });
-  const root=ensureModal();
-  root.classList.remove('hidden');
-  renderModal();
+async function onScotlandMapOpen({autoLogin=false}={}){
+  await loadOptionalConfig();
+  renderMapControls();
+  if(!state.configured){ setStatus('error','Firebase no configurado.'); return; }
+  try{ await ensureFirebase(); }catch(err){ setStatus('error', `Firebase: ${err.message}`); return; }
+  if(state.user){
+    markDirty('map-open');
+    await fetchTop10IfStale();
+    return;
+  }
+  setStatus('offline','Conecta Google para ver el top 10.');
+  if(autoLogin && !state.mapLoginAttempted){ state.mapLoginAttempted=true; login(); }
 }
-function closeModal(){ ensureModal().classList.add('hidden'); }
 
 function init(){
-  document.addEventListener('click', e=>{ if(e.target.closest('#multiplayerButton')){ e.preventDefault(); openModal(); } });
   loadOptionalConfig().then(configured=>{ if(configured) ensureFirebase().catch(err=>setStatus('error', `Firebase: ${err.message}`)); });
 }
 
-window.MiarmaMultiplayer = {init, openModal, closeModal, login, logout, publishProfile, fetchTop10, markDirty, getCachedTopPlayers, currentProfile};
+window.MiarmaMultiplayer = {init, login, logout, publishProfile, fetchTop10, fetchTop10IfStale, markDirty, getCachedTopPlayers, currentProfile, currentUserId, renderMapControls, onScotlandMapOpen};
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

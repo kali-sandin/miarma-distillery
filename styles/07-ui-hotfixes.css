@@ -1,0 +1,341 @@
+/* 2026-06-14 UI hotfixes after CSS split and Scotland map feedback */
+
+/* Imported CSS files resolve URLs from /styles/, so visual paper labels/finca tiles need ../img. */
+.bottle-history-main ul {
+  background:transparent url('../img/finca/etiqueta.png') center/100% 100% no-repeat !important;
+  color:#241b13 !important;
+  min-height:118px !important;
+  padding:18px 26px 16px 38px !important;
+}
+.bottle-history-main li { color:#241b13 !important; font-weight:900 !important; }
+.lot-achievement-stickers {
+  min-height:38px !important;
+  margin-top:8px !important;
+  overflow:visible !important;
+  position:relative !important;
+  z-index:4 !important;
+}
+.lot-achievement-stickers img {
+  width:34px !important;
+  height:34px !important;
+  min-width:34px !important;
+  min-height:34px !important;
+  opacity:1 !important;
+  visibility:visible !important;
+}
+
+/* Keep box art perfectly aligned in normal, hover, dragging source and drag ghost states. */
+.box-art,
+.box-card:hover .box-art,
+.dragging-source.box-card .box-art,
+.drag-ghost.box-card .box-art {
+  width:132px !important;
+  height:112px !important;
+  transform:none !important;
+  animation:none !important;
+}
+.box-art .box-base,
+.box-art .box-lid,
+.box-card:hover .box-art .box-base,
+.box-card:hover .box-art .box-lid,
+.dragging-source.box-card .box-art .box-base,
+.dragging-source.box-card .box-art .box-lid,
+.drag-ghost.box-card .box-art .box-base,
+.drag-ghost.box-card .box-art .box-lid {
+  left:0 !important;
+  top:0 !important;
+  width:132px !important;
+  height:112px !important;
+  transform:none !important;
+  margin:0 !important;
+}
+.box-art .box-bottle,
+.box-card:hover .box-art .box-bottle,
+.dragging-source.box-card .box-art .box-bottle,
+.drag-ghost.box-card .box-art .box-bottle {
+  width:38px !important;
+  height:86px !important;
+  transform:none !important;
+  margin:0 !important;
+}
+.box-art .box-bottle-top,
+.box-card:hover .box-art .box-bottle-top,
+.dragging-source.box-card .box-art .box-bottle-top,
+.drag-ghost.box-card .box-bottle-top { left:45px !important; top:-7px !important; clip-path:none !important; }
+.box-art .box-bottle-left,
+.box-card:hover .box-art .box-bottle-left,
+.dragging-source.box-card .box-art .box-bottle-left,
+.drag-ghost.box-card .box-bottle-left { left:28px !important; top:11px !important; clip-path:inset(0 0 33.33% 0) !important; }
+.box-art .box-bottle-right,
+.box-card:hover .box-art .box-bottle-right,
+.dragging-source.box-card .box-art .box-bottle-right,
+.drag-ghost.box-card .box-bottle-right { left:68px !important; top:10px !important; clip-path:inset(0 0 33.33% 0) !important; }
+.box-art .box-bottle-bottom,
+.box-card:hover .box-art .box-bottle-bottom,
+.dragging-source.box-card .box-art .box-bottle-bottom,
+.drag-ghost.box-card .box-bottle-bottom { left:63px !important; top:21px !important; clip-path:inset(0 0 50% 0) !important; }
+
+/* Region card: labels no longer steal horizontal space from long bonus text. */
+.scotland-region-card {
+  width:min(640px, 42vw) !important;
+  right:clamp(14px, 2.2vw, 54px) !important;
+}
+.scotland-region-card dl {
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:5px !important;
+}
+.scotland-region-card dt {
+  font-size:15px !important;
+  line-height:1.1 !important;
+  margin-top:5px !important;
+  color:#e2a64b !important;
+}
+.scotland-region-card dd {
+  font-size:16px !important;
+  line-height:1.25 !important;
+  margin:0 0 5px !important;
+}
+.region-bonus-list {
+  width:100% !important;
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:6px !important;
+}
+.region-bonus-list li {
+  padding:6px 10px !important;
+  line-height:1.16 !important;
+  overflow-wrap:normal !important;
+  word-break:normal !important;
+}
+
+/* Bottling popup: keep the final box away from the slider thumb. */
+.bottle-flow {
+  grid-template-columns:112px minmax(250px,1fr) 132px !important;
+  gap:16px !important;
+  align-items:center !important;
+}
+.bottle-slider-wrap { min-width:0 !important; padding-right:18px !important; position:relative !important; z-index:3 !important; }
+#bottleAbvRange { width:min(250px, 100%) !important; }
+.bottle-target-box { justify-self:center !important; padding-left:0 !important; pointer-events:none !important; max-width:132px !important; overflow:visible !important; }
+.bottle-target-box .box-art { transform:scale(.78) !important; transform-origin:center center !important; }
+
+/* Achievement rewards need full width; the old grid forced long region bonuses into tiny right columns. */
+.achievement-copy dl {
+  display:block !important;
+}
+.achievement-copy dt,
+.achievement-copy dd {
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+}
+.achievement-copy dt {
+  margin:5px 0 2px !important;
+  color:#e2a64b !important;
+  font-size:12px !important;
+  line-height:1.1 !important;
+}
+.achievement-copy dd {
+  margin:0 0 5px !important;
+  overflow-wrap:normal !important;
+  word-break:normal !important;
+}
+.achievement-reward {
+  white-space:normal !important;
+  overflow-wrap:normal !important;
+  word-break:normal !important;
+}
+
+/* Scotland pan/zoom feedback. */
+.scotland-map-overlay.view-mode { cursor:grab; }
+.scotland-map-overlay.view-mode:active { cursor:grabbing; }
+.scotland-map-overlay.select-mode { cursor:crosshair; }
+.scotland-map-button { left:222px !important; }
+.scotland-map-overlay.zoom-to-black .scotland-map-stage {
+  transform-origin:0 0 !important;
+  animation:scotlandZoomToDistillery .72s cubic-bezier(.20,.82,.28,1) forwards !important;
+}
+.scotland-map-overlay.zoom-to-black .scotland-player-marker {
+  animation:scotlandMarkerFocus .72s cubic-bezier(.20,.82,.28,1) forwards !important;
+}
+@keyframes scotlandZoomToDistillery {
+  from { transform:translate(var(--zoom-from-x, 0px), var(--zoom-from-y, 0px)) scale(var(--zoom-from-scale, 1)); filter:none; }
+  to { transform:translate(var(--zoom-to-x, 0px), var(--zoom-to-y, 0px)) scale(var(--zoom-to-scale, 2.25)); filter:blur(1.4px) saturate(1.18); }
+}
+@keyframes scotlandMarkerFocus {
+  from { filter:drop-shadow(0 0 12px #ffe873) drop-shadow(4px 6px 0 rgba(0,0,0,.5)); opacity:1; }
+  to { filter:drop-shadow(0 0 26px #ffe873) drop-shadow(4px 6px 0 rgba(0,0,0,.5)); opacity:.36; transform:translate(-50%, -78%) scale(1.24); }
+}
+
+/* Player card: icons and readable radar values around each axis. */
+.scotland-player-card { width:min(420px, 31vw) !important; }
+.scotland-player-card dl {
+  grid-template-columns:repeat(2, max-content minmax(0,1fr)) !important;
+  gap:6px 9px !important;
+}
+.scotland-player-card dt {
+  display:flex !important;
+  align-items:center !important;
+  gap:4px !important;
+  color:#d8c29d !important;
+}
+.scotland-player-card dt span { min-width:16px; text-align:center; }
+.scotland-player-card dd { color:#fff3cf !important; }
+.scotland-radar { max-width:288px !important; margin:2px auto 4px !important; }
+.scotland-radar text.radar-label { fill:#d8c29d !important; font:900 9px ui-monospace, monospace !important; }
+.scotland-radar text.radar-value { fill:#ffe16d !important; font:1000 8px ui-monospace, monospace !important; paint-order:stroke; stroke:#000; stroke-width:2px; stroke-linejoin:round; }
+
+/* 2026-06-14 map-native social UX */
+.scotland-social-panel {
+  position:absolute;
+  left:clamp(16px, 3.6vw, 82px);
+  top:18px;
+  z-index:8;
+  width:min(360px, 30vw);
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(125,225,255,.30);
+  background:linear-gradient(145deg, rgba(20,29,35,.88), rgba(8,11,16,.82));
+  color:#fff3cf;
+  box-shadow:0 12px 38px rgba(0,0,0,.45), 0 0 18px rgba(125,225,255,.12);
+}
+.social-map-title { color:#7de1ff; font:1000 14px/1 ui-monospace, monospace; margin-bottom:6px; text-shadow:1px 1px #000; }
+.multiplayer-status.compact {
+  margin:0 0 8px !important;
+  padding:7px 9px !important;
+  border-radius:9px !important;
+  font-size:11px !important;
+  line-height:1.22 !important;
+}
+.multiplayer-status.compact small { color:#d8c29d; font-size:10px; }
+.social-map-actions { display:flex; gap:8px; }
+.social-map-actions .pixel-btn.small { min-height:30px; padding:6px 10px; font-size:12px; }
+.scotland-other-marker {
+  gap:0 !important;
+  transform:translate(-50%, -72%) !important;
+}
+.scotland-other-marker img {
+  order:2;
+  width:70px !important;
+  height:70px !important;
+  opacity:.90 !important;
+}
+.scotland-other-marker figcaption {
+  order:1;
+  margin:0 0 -7px !important;
+  min-width:102px;
+  max-width:148px !important;
+  border:1px solid rgba(125,225,255,.28);
+  box-shadow:0 0 12px rgba(125,225,255,.16);
+}
+.scotland-other-marker figcaption small {
+  float:left;
+  margin-right:4px;
+  color:#7de1ff;
+  font-weight:1000;
+}
+.scotland-other-marker.selected {
+  filter:drop-shadow(0 0 11px var(--selected, #7de1ff)) drop-shadow(3px 5px 0 rgba(0,0,0,.55)) !important;
+}
+.scotland-other-marker.selected figcaption {
+  border-color:#ffe16d !important;
+  background:rgba(25,23,9,.82) !important;
+  color:#ffe16d !important;
+}
+.scotland-radar .radar-compare {
+  fill:color-mix(in srgb, var(--compare) 26%, transparent);
+  stroke:var(--compare);
+  stroke-width:2.2;
+  opacity:.86;
+  filter:drop-shadow(0 0 4px color-mix(in srgb, var(--compare) 72%, transparent));
+}
+.scotland-radar-legend {
+  display:grid;
+  gap:3px;
+  margin:2px auto 5px;
+  max-width:320px;
+  text-align:left;
+  font:900 10px/1.15 ui-monospace, monospace;
+  color:#d8c29d;
+}
+.scotland-radar-legend span { display:flex; align-items:center; gap:5px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.scotland-radar-legend i { width:10px; height:10px; border-radius:50%; flex:0 0 auto; background:var(--c); box-shadow:0 0 8px var(--c); }
+
+/* 2026-06-14 login/social polish + larger public distilleries. */
+.scotland-social-panel,
+.scotland-social-panel * {
+  pointer-events:auto !important;
+}
+.scotland-other-marker {
+  width:126px !important;
+  transform:translate(-50%, -70%) !important;
+}
+.scotland-other-marker img {
+  width:92px !important;
+  height:92px !important;
+  opacity:.94 !important;
+}
+.scotland-other-marker figcaption {
+  max-width:168px !important;
+  min-width:118px !important;
+  padding:4px 8px !important;
+}
+.scotland-other-marker .other-player-label {
+  order:1;
+  margin:0 0 -8px !important;
+}
+.scotland-other-marker .other-distillery-label {
+  order:3;
+  margin:-10px 0 0 !important;
+  color:#fff3cf !important;
+  background:rgba(0,0,0,.76) !important;
+  border-color:rgba(255,225,109,.28) !important;
+}
+.scotland-other-marker figcaption small {
+  float:none !important;
+  display:inline-block !important;
+  margin:0 5px 0 0 !important;
+  color:#7de1ff !important;
+  font-size:15px !important;
+  line-height:1 !important;
+  vertical-align:middle !important;
+  text-shadow:2px 2px #000 !important;
+}
+.scotland-other-marker figcaption b { font-size:12px !important; line-height:1.08 !important; }
+.scotland-other-marker figcaption span { font-size:11px !important; line-height:1.05 !important; }
+.scotland-other-marker .other-distillery-label b { font-size:11px !important; color:#ffe16d !important; }
+
+/* Achievement/distillery region summary: compact pills, not a squeezed right column. */
+.distillery-region-summary {
+  display:block !important;
+  padding:10px 12px !important;
+}
+.distillery-region-summary > b {
+  display:block !important;
+  margin:0 0 8px !important;
+  font-size:18px !important;
+}
+.distillery-region-summary .region-summary-bonuses {
+  margin:0 !important;
+  padding:0 !important;
+  display:grid !important;
+  grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)) !important;
+  gap:6px !important;
+}
+.distillery-region-summary .region-summary-bonuses li {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+  padding:7px 9px !important;
+  line-height:1.12 !important;
+  white-space:normal !important;
+}
+.distillery-region-summary .region-summary-bonuses em {
+  flex:0 0 auto !important;
+  white-space:nowrap !important;
+  font-size:11px !important;
+  opacity:.86 !important;
+}

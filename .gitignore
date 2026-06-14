@@ -16,3 +16,9 @@ img/**/*.xcf
 # Unused/export source map variants kept local
 img/mapa/mapa.png
 img/mapa/flavour-map.jpg
+
+# Local Firebase/Admin credentials — never commit
+keys/
+*service-account*.json
+*firebase-admin*.json
+sim-distillery-admin*.json
