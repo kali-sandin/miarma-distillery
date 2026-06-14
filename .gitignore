@@ -2,8 +2,6 @@
 node_modules/
 .openclaw-check/
 *.log
-js/firebase-config.js
-
 # Source/backup assets not used by the game
 audio/main_loop_original.mp3
 img/*.xcf
