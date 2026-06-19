@@ -6,15 +6,21 @@ const cleanText = (value, fallback='', max=80)=>String(value ?? fallback).trim()
 const cleanImage = value => /^img\/mapa\/dest\d{2}\.png$/.test(String(value||'')) ? String(value) : 'img/mapa/dest01.png';
 const quality = value => Math.min(100, Math.max(0, Number(value)||0));
 
-function bestQualityFromState(state, stats={}){
+function publicQualityFromState(state, stats={}){
   const lots=Array.isArray(state?.bottleHistory) ? state.bottleHistory : [];
   const boxes=Array.isArray(state?.boxes) ? state.boxes : [];
-  return Math.round(Math.max(0, Number(stats.bestQuality)||0, ...lots.map(x=>quality(x.quality)), ...boxes.map(x=>quality(x.quality))));
+  const byId=new Map();
+  for(const lot of [...lots, ...boxes]) if(lot) byId.set(lot.id || `${lot.seq || ''}-${byId.size}`, lot);
+  const vals=[...byId.values()].map(x=>quality(x.quality)).filter(x=>Number.isFinite(x));
+  if(vals.length) return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+  return Math.round(Math.max(0, Number(stats.bestQuality)||0));
 }
-function bestAgeFromState(state, stats={}){
+function averageSoldAgeFromState(state, stats={}){
   const lots=Array.isArray(state?.bottleHistory) ? state.bottleHistory : [];
-  const boxes=Array.isArray(state?.boxes) ? state.boxes : [];
-  return Number(Math.max(0, Number(stats.oldestSoldAge)||0, ...lots.map(x=>Number(x.age)||0), ...boxes.map(x=>Number(x.age)||0)).toFixed(1));
+  const sold=lots.filter(x=>x?.sold);
+  const total=sold.reduce((a,x)=>a+(Number(x.bottles)||0),0);
+  if(total>0) return Number((sold.reduce((a,x)=>a+(Number(x.age)||0)*(Number(x.bottles)||0),0)/total).toFixed(1));
+  return Number(Math.max(0, Number(stats.oldestSoldAge)||0).toFixed(1));
 }
 
 function buildPublicProfile({state, distillery, publicName=''}={}){
@@ -23,8 +29,12 @@ function buildPublicProfile({state, distillery, publicName=''}={}){
   const stats=distillery.stats || {};
   const achievements=Object.keys(distillery.achievements || {}).sort().slice(0,80);
   const region=REGION_IDS.has(loc.region) ? loc.region : 'speyside';
-  const bestQuality=bestQualityFromState(state, stats);
-  const oldestSoldAge=bestAgeFromState(state, stats);
+  // Field kept as bestQuality for current Firestore rules/backward compatibility;
+  // the radar now interprets it as average lot quality.
+  const bestQuality=publicQualityFromState(state, stats);
+  // Field name kept as oldestSoldAge for current Firestore rules/backward compatibility;
+  // the radar now interprets it as average sold age.
+  const oldestSoldAge=averageSoldAgeFromState(state, stats);
   return {
     schemaVersion: PUBLIC_SCHEMA_VERSION,
     build: PUBLIC_BUILD,

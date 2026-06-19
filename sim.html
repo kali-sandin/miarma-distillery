@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulador de Embotellado</title>
+  <style>
+    :root {
+      --ink:#1b110b;
+      --panel:rgba(34,21,13,.78);
+      --gold:#f0b75b;
+      --cream:#ffe8bd;
+      --blue:#79ddff;
+      --green:#a8e36f;
+      --red:#ff7c65;
+    }
+    * { box-sizing:border-box; }
+    html, body { margin:0; min-height:100%; background:#130c08; color:var(--cream); font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    body {
+      min-height:100vh;
+      overflow-x:hidden;
+      background:
+        linear-gradient(90deg, rgba(14,8,5,.92), rgba(14,8,5,.52) 45%, rgba(14,8,5,.92)),
+        url('img/splash.jpg') center/cover fixed;
+    }
+    body::before {
+      content:'';
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:radial-gradient(circle at 70% 18%, rgba(255,190,86,.24), transparent 32%), linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.70));
+    }
+    main { position:relative; z-index:1; width:min(1280px, calc(100vw - 28px)); margin:0 auto; padding:22px 0 34px; }
+    header { min-height:108px; display:grid; grid-template-columns:minmax(0,1fr) max-content; align-items:end; gap:18px; }
+    h1 { margin:0; color:#fff2c8; font-size:clamp(34px, 6vw, 72px); line-height:.92; text-shadow:5px 6px 0 rgba(0,0,0,.42), 0 0 34px rgba(240,183,91,.38); letter-spacing:0; }
+    .subtitle { margin:10px 0 0; color:#d9c49d; font-weight:900; max-width:720px; line-height:1.35; }
+    .back { align-self:center; border:0; border-radius:8px; background:#89532d; color:#ffe8bd; padding:10px 14px; font:1000 14px ui-monospace, monospace; text-decoration:none; box-shadow:0 8px 22px rgba(0,0,0,.34), inset 0 -3px 0 rgba(0,0,0,.22); }
+    .shell { display:grid; grid-template-columns:320px minmax(0,1fr); gap:16px; align-items:stretch; margin-top:16px; }
+    .panel, .chart-panel, .result-panel {
+      border-radius:8px;
+      background:linear-gradient(145deg, rgba(54,34,21,.88), rgba(24,14,9,.84));
+      box-shadow:0 18px 48px rgba(0,0,0,.44), inset 0 0 0 1px rgba(255,232,189,.10);
+      backdrop-filter:blur(2px);
+    }
+    .panel { padding:15px; display:grid; gap:12px; }
+    label { display:grid; gap:6px; color:#d9c49d; font-weight:1000; font-size:12px; text-transform:uppercase; }
+    input {
+      width:100%;
+      border:0;
+      border-radius:8px;
+      background:#ffe8bd;
+      color:#24170d;
+      padding:10px 11px;
+      font:1000 18px ui-monospace, monospace;
+      box-shadow:inset 0 3px 0 rgba(0,0,0,.16);
+    }
+    .quick { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    button {
+      border:0;
+      border-radius:8px;
+      padding:10px 11px;
+      background:#5e3d25;
+      color:#ffe8bd;
+      font:1000 12px ui-monospace, monospace;
+      cursor:pointer;
+      box-shadow:0 5px 16px rgba(0,0,0,.25), inset 0 -2px 0 rgba(0,0,0,.22);
+    }
+    button:hover, .back:hover { filter:brightness(1.16); }
+    .chart-panel { position:relative; min-height:560px; padding:16px; overflow:hidden; }
+    .chart-panel::before {
+      content:'';
+      position:absolute;
+      right:-30px;
+      bottom:-48px;
+      width:290px;
+      height:290px;
+      background:url('img/barriles/sherry_butt_old.png') center/contain no-repeat;
+      opacity:.20;
+      filter:drop-shadow(0 18px 22px rgba(0,0,0,.55));
+      pointer-events:none;
+    }
+    canvas { position:relative; z-index:1; display:block; width:100%; height:420px; image-rendering:auto; }
+    .legend { position:relative; z-index:1; display:flex; flex-wrap:wrap; gap:10px; margin:12px 0 0; }
+    .legend span { display:flex; align-items:center; gap:7px; padding:7px 9px; border-radius:999px; background:rgba(0,0,0,.28); font-size:12px; font-weight:1000; }
+    .legend i { width:14px; height:5px; border-radius:10px; background:var(--c); box-shadow:0 0 12px var(--c); }
+    .kpis { position:relative; z-index:1; display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; margin-top:14px; }
+    .kpi { min-height:88px; padding:12px; border-radius:8px; background:rgba(0,0,0,.28); display:grid; gap:4px; align-content:center; }
+    .kpi small { color:#d9c49d; font-size:11px; font-weight:900; }
+    .kpi strong { color:#fff1c7; font-size:clamp(18px, 2vw, 27px); line-height:1; overflow-wrap:anywhere; }
+    .result-panel { margin-top:16px; padding:15px; display:grid; grid-template-columns:170px minmax(0,1fr); gap:15px; align-items:center; }
+    .result-panel img { width:150px; height:150px; object-fit:contain; justify-self:center; filter:drop-shadow(0 13px 16px rgba(0,0,0,.52)); }
+    .formula { display:grid; gap:7px; color:#e8d2aa; line-height:1.32; font-weight:800; }
+    .formula b { color:#fff1c7; }
+    @media (max-width: 860px) {
+      header, .shell, .result-panel { grid-template-columns:1fr; }
+      h1 { font-size:44px; }
+      .back { justify-self:start; }
+      .kpis { grid-template-columns:1fr 1fr; }
+      canvas { height:360px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Simulador de Embotellado</h1>
+        <p class="subtitle">Ganancia estimada frente a años de barrica, usando la pérdida anual de volumen y el precio de mercado real del juego.</p>
+      </div>
+      <a class="back" href="index.html">Volver al juego</a>
+    </header>
+
+    <section class="shell">
+      <form class="panel" id="controls">
+        <label>Litros al embarricar <input id="litres" name="litres" type="number" min="1" step="10"></label>
+        <label>Calidad Q <input id="quality" name="quality" type="number" min="1" max="100" step="1"></label>
+        <label>Grado inicial <input id="initialAbv" name="initialAbv" type="number" min="40" max="90" step=".1"></label>
+        <label>Grado al embotellar <input id="bottleAbv" name="bottleAbv" type="number" min="40" max="90" step=".1"></label>
+        <label>Años máximos <input id="years" name="years" type="number" min="3" max="60" step="1"></label>
+        <div class="quick">
+          <button type="button" data-preset="balanced">Bourbon 12a</button>
+          <button type="button" data-preset="premium">Premium 18a</button>
+          <button type="button" data-preset="cask">Cask strength</button>
+          <button type="button" data-preset="reset">Defaults</button>
+        </div>
+      </form>
+
+      <section class="chart-panel">
+        <canvas id="chart" width="1100" height="560"></canvas>
+        <div class="legend">
+          <span><i style="--c:var(--red)"></i>Mercado mínimo 3€</span>
+          <span><i style="--c:var(--gold)"></i>Mercado medio 4€</span>
+          <span><i style="--c:var(--green)"></i>Mercado máximo 5€</span>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><small>Óptimo medio</small><strong id="bestYear">-</strong></div>
+          <div class="kpi"><small>Ingreso medio</small><strong id="bestMoney">-</strong></div>
+          <div class="kpi"><small>Botellas</small><strong id="bestBottles">-</strong></div>
+          <div class="kpi"><small>Volumen final</small><strong id="bestLitres">-</strong></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="result-panel">
+      <img src="img/bottles/bottle_18Q.png" alt="Botella">
+      <div class="formula" id="formula"></div>
+    </section>
+  </main>
+
+  <script>
+    const MARKET_MIN = 3;
+    const MARKET_MAX = 5;
+    const MARKET_MID = (MARKET_MIN + MARKET_MAX) / 2;
+    const BOTTLE_LITRES = 0.7;
+    const defaults = { litres: 2000, quality: 92, initialAbv: 63.5, bottleAbv: 46, years: 35 };
+    const presets = {
+      balanced: { litres: 2000, quality: 90, initialAbv: 63.5, bottleAbv: 46, years: 30 },
+      premium: { litres: 2500, quality: 96, initialAbv: 63.5, bottleAbv: 48, years: 40 },
+      cask: { litres: 1600, quality: 94, initialAbv: 61, bottleAbv: 58, years: 32 },
+      reset: defaults
+    };
+    const els = Object.fromEntries(['litres','quality','initialAbv','bottleAbv','years','bestYear','bestMoney','bestBottles','bestLitres','formula'].map(id => [id, document.getElementById(id)]));
+    const params = new URLSearchParams(location.search);
+    function num(name, fallback){
+      const aliases = { quality:['q'], initialAbv:['abv','initial'], bottleAbv:['targetAbv','bottle'] }[name] || [];
+      const raw = params.get(name) ?? aliases.map(a=>params.get(a)).find(v=>v!==null);
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    function setValues(values){
+      for(const [k,v] of Object.entries({...defaults, ...values})) if(els[k]) els[k].value = v;
+      draw();
+    }
+    function values(){
+      return {
+        litres: Math.max(1, Number(els.litres.value) || defaults.litres),
+        quality: Math.min(100, Math.max(1, Number(els.quality.value) || defaults.quality)),
+        initialAbv: Math.min(90, Math.max(1, Number(els.initialAbv.value) || defaults.initialAbv)),
+        bottleAbv: Math.min(90, Math.max(40, Number(els.bottleAbv.value) || defaults.bottleAbv)),
+        years: Math.min(60, Math.max(3, Math.floor(Number(els.years.value) || defaults.years)))
+      };
+    }
+    function agedLitres(initialLitres, years){ return initialLitres * Math.pow(.95, Math.floor(Math.max(0, years))); }
+    function resultAt(year, price, v=values()){
+      const barrelL = agedLitres(v.litres, year);
+      const finalL = barrelL * v.initialAbv / v.bottleAbv;
+      const bottles = Math.floor(finalL / BOTTLE_LITRES);
+      const money = bottles * Math.max(.1, year) * price * (v.quality / 100);
+      return { year, barrelL, finalL, bottles, money };
+    }
+    function euro(n){ return `${Math.round(n).toLocaleString('es-ES')}€`; }
+    function draw(){
+      const v = values();
+      if(v.bottleAbv > v.initialAbv) els.bottleAbv.value = v.initialAbv;
+      const vv = values();
+      const series = [
+        { price: MARKET_MIN, color: '#ff7c65' },
+        { price: MARKET_MID, color: '#f0b75b' },
+        { price: MARKET_MAX, color: '#a8e36f' }
+      ].map(s => ({...s, data: Array.from({length: vv.years*4 + 1}, (_,i)=>resultAt(i/4, s.price, vv))}));
+      const best = series[1].data.reduce((a,b)=>b.money>a.money?b:a, series[1].data[0]);
+      els.bestYear.textContent = `${best.year.toFixed(best.year % 1 ? 1 : 0)} años`;
+      els.bestMoney.textContent = euro(best.money);
+      els.bestBottles.textContent = best.bottles.toLocaleString('es-ES');
+      els.bestLitres.textContent = `${Math.round(best.finalL).toLocaleString('es-ES')} l`;
+      els.formula.innerHTML = `<b>Fórmula del juego:</b> volumen en barrica x 0,95 por cada año entero; litros finales = litros de barrica x grado inicial / grado de embotellado; botellas = litros finales / 0,7; venta = botellas x años x precio de mercado x Q/100.<br><b>Parámetros URL:</b> ?litres=${vv.litres}&quality=${vv.quality}&initialAbv=${vv.initialAbv}&bottleAbv=${vv.bottleAbv}`;
+      const next = new URLSearchParams({litres:vv.litres, quality:vv.quality, initialAbv:vv.initialAbv, bottleAbv:vv.bottleAbv, years:vv.years});
+      history.replaceState(null, '', `${location.pathname}?${next}`);
+
+      const canvas = document.getElementById('chart'), ctx = canvas.getContext('2d');
+      const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1));
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      const w=rect.width, h=rect.height, pad={l:70,r:26,t:26,b:58};
+      ctx.clearRect(0,0,w,h);
+      const maxMoney = Math.max(1, ...series.flatMap(s=>s.data.map(p=>p.money)));
+      const x = year => pad.l + (year / vv.years) * (w - pad.l - pad.r);
+      const y = money => h - pad.b - (money / maxMoney) * (h - pad.t - pad.b);
+      ctx.fillStyle='rgba(0,0,0,.24)';
+      ctx.fillRect(pad.l, pad.t, w-pad.l-pad.r, h-pad.t-pad.b);
+      ctx.strokeStyle='rgba(255,232,189,.13)';
+      ctx.lineWidth=1;
+      ctx.fillStyle='rgba(255,232,189,.70)';
+      ctx.font='900 11px ui-monospace, monospace';
+      for(let i=0;i<=5;i++){
+        const yy = pad.t + i*(h-pad.t-pad.b)/5;
+        ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(w-pad.r, yy); ctx.stroke();
+        const val = maxMoney * (1 - i/5);
+        ctx.fillText(euro(val), 8, yy+4);
+      }
+      for(let year=0; year<=vv.years; year+=Math.max(1, Math.ceil(vv.years/8))){
+        const xx=x(year);
+        ctx.beginPath(); ctx.moveTo(xx, pad.t); ctx.lineTo(xx, h-pad.b); ctx.stroke();
+        ctx.fillText(`${year}a`, xx-10, h-24);
+      }
+      for(const s of series){
+        ctx.beginPath();
+        s.data.forEach((p,i)=>{ const xx=x(p.year), yy=y(p.money); i ? ctx.lineTo(xx,yy) : ctx.moveTo(xx,yy); });
+        ctx.strokeStyle=s.color; ctx.lineWidth=4; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.shadowColor=s.color; ctx.shadowBlur=12; ctx.stroke(); ctx.shadowBlur=0;
+      }
+      const bx=x(best.year), by=y(best.money);
+      ctx.fillStyle='#fff2c8'; ctx.strokeStyle='#130c08'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.arc(bx, by, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#fff2c8'; ctx.font='1000 13px ui-monospace, monospace';
+      ctx.fillText(`Óptimo medio ${best.year.toFixed(1)}a · ${euro(best.money)}`, Math.min(bx+12, w-300), Math.max(22, by-12));
+    }
+    setValues({
+      litres:num('litres', defaults.litres),
+      quality:num('quality', defaults.quality),
+      initialAbv:num('initialAbv', defaults.initialAbv),
+      bottleAbv:num('bottleAbv', defaults.bottleAbv),
+      years:num('years', defaults.years)
+    });
+    document.getElementById('controls').addEventListener('input', draw);
+    document.querySelectorAll('[data-preset]').forEach(btn=>btn.addEventListener('click', ()=>setValues(presets[btn.dataset.preset] || defaults)));
+    addEventListener('resize', draw);
+  </script>
+</body>
+</html>

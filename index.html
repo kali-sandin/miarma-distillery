@@ -18,6 +18,7 @@
   <audio id="mainLoop" src="audio/main_loop.mp3" loop preload="auto"></audio>
   <audio id="fxDropGrain" src="fx/fx-drop_grain.mp3" preload="auto"></audio>
   <audio id="fxBubblesDrop" src="fx/bubbles-drop.mp3" preload="auto"></audio>
+  <audio id="fxMillBubblesWater" src="fx/mill-bubbles-water.mp3" preload="auto"></audio>
   <audio id="fxAhhh" src="fx/ahhh.mp3" preload="auto"></audio>
   <audio id="fxCashRegister" src="fx/cash_register.mp3" preload="auto"></audio>
   <audio id="fxChicharrasCicada" src="fx/chicharras-cicada.mp3" preload="auto"></audio>
@@ -67,13 +68,13 @@
         <div class="stat resource-stat seed-inventory" id="seedInventory" data-drag="seed" data-tip="🌾 Semillas disponibles.
 Arrastra este icono a una parcela vacía para plantar 20 Kg."><span>🌾</span><strong id="seeds">0 Kg</strong></div>
         <button class="stat resource-stat bottle-stat" id="bottleStat" type="button"><span>🍾</span><strong id="bottles">0</strong></button>
-        <div class="stat resource-stat"><span>📈</span><strong id="market">3.5 €</strong></div>
+        <button class="stat resource-stat market-stat" id="marketStat" type="button" data-tip="Simulador de ganancias de embotellado."><span>📈</span><strong id="market">3.5 €</strong></button>
       </div>
       <div class="action-row">
-        <button id="buySeeds" class="pixel-btn" data-tip="Comprar semillas.
+        <button id="buySeeds" class="pixel-btn icon-action-btn" data-tip="Comprar semillas.
 Precio: 1 k€.
 Añade: 20 Kg.
-Cada parcela consume 20 Kg.">Comprar semillas</button>
+Cada parcela consume 20 Kg."><img class="action-btn-icon" src="img/cebada_recien_plantada.png" alt="">Comprar semillas</button>
       </div>
       <label class="speed-control" data-tip="Velocidad del tiempo.
 Rueda del ratón: cambia step a step.

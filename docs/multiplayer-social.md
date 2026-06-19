@@ -31,13 +31,13 @@ Campos públicos:
 - `x`, `y`
 - `distilleryImage`
 - `reputation`
-- `bestQuality`
+- `bestQuality` (por compatibilidad con las rules: actualmente representa la **Q media** pública de los lotes, no Q máxima)
 - `litresSold`
 - `lotsSold`
 - `bottlesSold`
 - `maxBottlePrice`
 - `maxBottlesLot`
-- `oldestSoldAge`
+- `oldestSoldAge` (por compatibilidad con las rules: actualmente representa la **edad media ponderada** del whisky vendido, no la edad máxima)
 - `achievements`
 - `achievementsCount`
 - `updatedAtClient`
@@ -71,7 +71,7 @@ Si `js/firebase-config.js` no existe, el juego sigue funcionando normal. El pane
 
 ## Estrategia de escrituras
 
-No se publica desde `tick()` ni desde la simulación continua. Se marca perfil sucio sólo en eventos relevantes: venta, embotellado, logro, reputación, cambio de región/nombre, apertura de mapa o publicación manual. Antes de escribir se compara contra la última ficha publicada para evitar escrituras sin cambios.
+No se publica desde `tick()` ni desde la simulación continua. Se marca perfil sucio sólo en eventos relevantes: venta, embotellado, logro, reputación, cambio de región/nombre visible, apertura de mapa o publicación manual. Antes de escribir se compara contra la última ficha publicada para evitar escrituras sin cambios.
 
 ## Datos manuales para probar top 10
 
@@ -101,13 +101,13 @@ Ejemplo de JSON:
   "y": 0.52,
   "distilleryImage": "img/mapa/dest05.png",
   "reputation": 77,
-  "bestQuality": 99,
+  "bestQuality": 88,
   "litresSold": 900,
   "lotsSold": 4,
   "bottlesSold": 1800,
   "maxBottlePrice": 33,
   "maxBottlesLot": 900,
-  "oldestSoldAge": 18,
+  "oldestSoldAge": 12.8,
   "achievements": ["serious_business", "woody_taste"],
   "achievementsCount": 2,
   "updatedAtClient": 1781390000000,

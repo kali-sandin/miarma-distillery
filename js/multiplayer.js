@@ -19,7 +19,8 @@ const state = {
   initPromise: null,
   configured: !!window.MIARMA_FIREBASE_CONFIG,
   publicName: localStorage.getItem(PROFILE_KEY) || '',
-  mapLoginAttempted: false
+  mapLoginAttempted: false,
+  editingName: false
 };
 
 const $ = (q, root=document)=>root.querySelector(q);
@@ -36,6 +37,14 @@ const visibleStatusText = () => {
   return `Conectado como ${state.publicName || state.user.displayName || 'Jugador'}`;
 };
 const setStatus = (status, text) => { state.status=status; state.statusText=text; renderMapControls(); };
+function cleanPublicName(value){ return String(value || '').trim().replace(/\s+/g,' ').slice(0,48) || 'Jugador'; }
+function savePublicName(value){
+  state.publicName=cleanPublicName(value);
+  localStorage.setItem(PROFILE_KEY, state.publicName);
+  state.editingName=false;
+  setStatus(state.user ? 'connected' : 'offline', state.user ? `Conectado como ${state.publicName}` : 'Conecta Google para ver el top 10.');
+  markDirty('name-changed');
+}
 
 async function loadOptionalConfig(){
   if(window.MIARMA_FIREBASE_CONFIG !== undefined){ state.configured=!!window.MIARMA_FIREBASE_CONFIG; return state.configured; }
@@ -199,10 +208,15 @@ function renderMapControls(){
   const user=state.user;
   const staleTxt=state.lastTopFetchedAt ? `Top10 hace ${Math.max(0, Math.round((Date.now()-state.lastTopFetchedAt)/60000))}m` : (user ? 'Top10 pendiente' : '');
   const statusText=visibleStatusText();
-  root.innerHTML=`<div class="social-map-title">🌐 Sim Distillery</div><div id="multiplayerStatus" class="multiplayer-status compact" data-status="${esc(state.status)}">${esc(statusText)}${staleTxt?`<br><small>${esc(staleTxt)}</small>`:''}</div><div class="social-map-actions">${user?'<button id="mpLogout" class="pixel-btn small danger" type="button">Desconectar cuenta</button>':'<button id="mpLogin" class="pixel-btn small" type="button">Login Google</button>'}</div>`;
-  root.querySelectorAll('button').forEach(btn=>btn.addEventListener('pointerdown', e=>e.stopPropagation()));
+  const nameValue=esc(state.publicName || user?.displayName || 'Jugador');
+  const nameEditor=user && state.editingName ? `<label class="social-public-name"><span>Nombre visible</span><input id="mpPublicName" maxlength="48" value="${nameValue}" autocomplete="off"><button id="mpSaveName" class="pixel-btn small" type="button">Guardar</button></label>` : '';
+  root.innerHTML=`<div class="social-map-title">🌐 Sim Distillery</div><div id="multiplayerStatus" class="multiplayer-status compact" data-status="${esc(state.status)}">${esc(statusText)}${staleTxt?`<br><small>${esc(staleTxt)}</small>`:''}</div>${nameEditor}<div class="social-map-actions">${user?'<button id="mpEditName" class="pixel-btn small" type="button">Cambiar nombre</button><button id="mpLogout" class="pixel-btn small danger" type="button">Desconectar cuenta</button>':'<button id="mpLogin" class="pixel-btn small" type="button">Login Google</button>'}</div>`;
+  root.querySelectorAll('button,input').forEach(el=>el.addEventListener('pointerdown', e=>e.stopPropagation()));
   $('#mpLogin',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); state.mapLoginAttempted=true; login(); });
   $('#mpLogout',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); logout(); });
+  $('#mpEditName',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); state.editingName=true; renderMapControls(); setTimeout(()=>$('#mpPublicName',root)?.focus(),0); });
+  $('#mpSaveName',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); savePublicName($('#mpPublicName',root)?.value); });
+  $('#mpPublicName',root)?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); savePublicName(e.currentTarget.value); } });
 }
 
 async function onScotlandMapOpen({autoLogin=false}={}){
@@ -223,5 +237,5 @@ function init(){
   loadOptionalConfig().then(configured=>{ if(configured) ensureFirebase().catch(err=>setStatus('error', `Firebase: ${err.message}`)); });
 }
 
-window.MiarmaMultiplayer = {init, login, logout, publishProfile, fetchTop10, fetchTop10IfStale, markDirty, getCachedTopPlayers, currentProfile, currentUserId, renderMapControls, onScotlandMapOpen};
+window.MiarmaMultiplayer = {init, login, logout, publishProfile, fetchTop10, fetchTop10IfStale, markDirty, getCachedTopPlayers, currentProfile, currentUserId, renderMapControls, onScotlandMapOpen, savePublicName};
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

@@ -339,3 +339,659 @@
   font-size:11px !important;
   opacity:.86 !important;
 }
+
+/* 2026-06-14 social/radar/map/market polish */
+.social-public-name {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) max-content;
+  gap:5px 7px;
+  align-items:center;
+  margin:0 0 8px;
+}
+.social-public-name span {
+  grid-column:1 / -1;
+  color:#7de1ff;
+  font:1000 10px/1 ui-monospace, monospace;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.social-public-name input {
+  min-width:0;
+  border:2px solid rgba(125,225,255,.38);
+  border-radius:8px;
+  background:#071219;
+  color:#fff3cf;
+  padding:6px 8px;
+  font:900 12px ui-monospace, monospace;
+  outline:none;
+}
+.social-public-name input:focus { box-shadow:0 0 0 2px rgba(125,225,255,.30); }
+.scotland-region-card {
+  width:min(430px, 31vw) !important;
+  right:clamp(12px, 2.6vw, 54px) !important;
+  padding:16px 18px !important;
+  border-radius:15px !important;
+  font-size:14px !important;
+}
+.scotland-region-card h3 { font-size:29px !important; margin-bottom:8px !important; }
+.scotland-region-card p { font-size:14px !important; line-height:1.30 !important; margin-bottom:11px !important; }
+.scotland-region-card dl { grid-template-columns:64px minmax(0,1fr) !important; gap:8px 10px !important; }
+.scotland-region-card dt,
+.scotland-region-card dd { font-size:13px !important; line-height:1.22 !important; }
+.scotland-region-card .region-bonus-list { gap:5px !important; }
+.scotland-region-card .region-bonus-list li { padding:5px 7px !important; border-left-width:3px !important; }
+.scotland-player-card {
+  width:min(390px, 29vw) !important;
+  padding:16px 18px !important;
+}
+.scotland-player-card h3 { margin:0 0 -4px !important; font-size:24px !important; }
+.scotland-player-card > img { width:142px !important; height:142px !important; margin-bottom:-4px !important; }
+.scotland-player-card .player-region { display:none !important; }
+.scotland-player-card dl { display:none !important; }
+.scotland-radar { max-width:304px !important; margin:-2px auto 2px !important; }
+.scotland-radar .radar-axis { cursor:help; }
+.scotland-radar .radar-axis circle { fill:rgba(255,225,109,.20); stroke:#ffe16d; stroke-width:1; opacity:.78; }
+.scotland-radar .radar-axis:hover line,
+.scotland-radar .radar-axis:hover circle { stroke:#7de1ff !important; filter:drop-shadow(0 0 5px #7de1ff); }
+.scotland-radar text.radar-label { fill:#fff3cf !important; font:1000 8.4px ui-monospace, monospace !important; paint-order:stroke; stroke:#000; stroke-width:2.2px; stroke-linejoin:round; }
+.scotland-radar text.radar-value { fill:#ffe16d !important; font:1000 8px ui-monospace, monospace !important; paint-order:stroke; stroke:#000; stroke-width:2.4px; stroke-linejoin:round; }
+.scotland-achievement-badges {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:7px;
+  max-height:96px;
+  overflow:auto;
+  margin:6px auto 0;
+  padding:8px;
+  border-radius:12px;
+  background:rgba(0,0,0,.18);
+  box-shadow:inset 0 0 0 1px rgba(255,231,181,.08);
+}
+.scotland-achievement-badges.empty {
+  color:#d8c29d;
+  font:900 11px ui-monospace, monospace;
+}
+.scotland-achievement-badges img {
+  width:34px;
+  height:34px;
+  object-fit:contain;
+  image-rendering:pixelated;
+  border-radius:8px;
+  padding:3px;
+  background:radial-gradient(circle at 35% 20%, rgba(255,225,109,.30), rgba(0,0,0,.18));
+  box-shadow:0 0 0 1px rgba(255,225,109,.22), 0 5px 12px rgba(0,0,0,.32);
+  transition:transform .14s cubic-bezier(.2,1.4,.35,1), filter .14s ease, box-shadow .14s ease;
+  cursor:help;
+}
+.scotland-achievement-badges img:hover {
+  transform:translateY(-4px) scale(1.22) rotate(-3deg);
+  filter:brightness(1.18) saturate(1.25);
+  box-shadow:0 0 0 2px rgba(255,225,109,.65), 0 0 18px rgba(255,225,109,.45), 0 10px 24px rgba(0,0,0,.48);
+  z-index:2;
+}
+.scotland-map-overlay.zoom-to-black .scotland-player-marker,
+.scotland-map-overlay.zoom-to-black .scotland-other-markers { opacity:0 !important; transition:opacity .10s ease !important; }
+.drag-market-chart {
+  position:fixed;
+  right:24px;
+  bottom:24px;
+  z-index:52000;
+  width:300px;
+  padding:12px 13px;
+  border-radius:15px;
+  border:2px solid rgba(135,226,255,.45);
+  background:linear-gradient(145deg, rgba(12,22,30,.94), rgba(3,7,10,.92));
+  color:#fff3cf;
+  box-shadow:0 18px 46px rgba(0,0,0,.55), 0 0 24px rgba(135,226,255,.18);
+  pointer-events:none;
+}
+.drag-market-chart.hidden { display:none !important; }
+.drag-market-chart > b { display:block; margin:0 0 6px; color:#7de1ff; font:1000 14px ui-monospace, monospace; }
+.drag-market-chart > strong { display:block; margin-top:5px; color:#ffe16d; font:1000 22px ui-monospace, monospace; text-align:center; }
+.drag-market-chart > span { display:block; color:#a7e184; font:900 12px ui-monospace, monospace; text-align:center; }
+.drag-market-chart .market-spark { justify-content:center; }
+.drag-market-chart .market-chart { width:224px; height:66px; }
+.bottle-history-toolbar { justify-content:flex-end !important; }
+.bottle-history-toolbar input { display:none !important; }
+
+/* 2026-06-14 radar/social polish follow-up */
+.scotland-region-card dl {
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:4px !important;
+}
+.scotland-region-card dt {
+  display:block !important;
+  margin:6px 0 0 !important;
+  color:#e2a64b !important;
+  font-size:11px !important;
+  line-height:1 !important;
+  letter-spacing:.06em !important;
+  text-transform:uppercase !important;
+  white-space:nowrap !important;
+}
+.scotland-region-card dd {
+  display:block !important;
+  min-width:0 !important;
+  margin:0 0 4px !important;
+  padding-left:0 !important;
+  overflow-wrap:anywhere !important;
+}
+.scotland-region-card .region-bonus-list { margin-top:1px !important; }
+.social-map-actions {
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:6px !important;
+}
+.scotland-radar-legend {
+  margin:8px auto 8px !important;
+  padding-top:2px !important;
+}
+.scotland-radar .radar-point {
+  pointer-events:all;
+  fill:rgba(255,225,109,.24);
+  stroke:#ffe16d;
+  stroke-width:1.55;
+  filter:drop-shadow(0 0 5px rgba(255,225,109,.50));
+  cursor:help;
+}
+.scotland-radar .radar-point-compare {
+  fill:color-mix(in srgb, var(--compare) 24%, transparent);
+  stroke:var(--compare);
+  filter:drop-shadow(0 0 5px color-mix(in srgb, var(--compare) 72%, transparent));
+}
+.scotland-radar .radar-point:hover {
+  stroke-width:2.6;
+  filter:drop-shadow(0 0 9px currentColor);
+}
+.scotland-radar .radar-axis:hover line { stroke:#7de1ff !important; filter:drop-shadow(0 0 5px #7de1ff); }
+.scotland-achievement-badges {
+  gap:12px !important;
+  max-height:172px !important;
+  margin:8px auto 0 !important;
+  padding:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  border-radius:0 !important;
+  overflow:auto !important;
+}
+.scotland-achievement-badges.empty {
+  padding:4px 0 !important;
+  background:transparent !important;
+}
+.scotland-achievement-badges img {
+  width:68px !important;
+  height:68px !important;
+  padding:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  filter:drop-shadow(0 6px 7px rgba(0,0,0,.48));
+}
+.scotland-achievement-badges img:hover {
+  transform:translateY(-5px) scale(1.16) rotate(-3deg) !important;
+  box-shadow:none !important;
+  filter:brightness(1.18) saturate(1.24) drop-shadow(0 0 16px rgba(255,225,109,.70)) drop-shadow(0 9px 10px rgba(0,0,0,.55)) !important;
+}
+
+/* 2026-06-19 single fermentation vat + market simulator link */
+.market-stat {
+  border:0;
+  font:inherit;
+  cursor:pointer;
+}
+.market-stat:hover {
+  filter:brightness(1.14) drop-shadow(0 0 7px rgba(135,226,255,.45));
+}
+#fermentation {
+  display:block !important;
+  overflow:visible !important;
+}
+.fermentation-props {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+}
+.fermentation-props img {
+  position:absolute;
+  image-rendering:pixelated;
+  object-fit:contain;
+  filter:drop-shadow(5px 7px 0 rgba(0,0,0,.28));
+}
+.mash-tun-prop {
+  position:absolute;
+  left:0;
+  top:-36px;
+  width:165px;
+  height:221px;
+  pointer-events:none;
+  z-index:2;
+}
+.mash-tun-prop img {
+  width:100%;
+  height:100%;
+  left:0;
+  top:0;
+}
+.mill-prop.can-drop,
+.mill-prop.hover {
+  outline:5px solid rgba(255,235,115,.82);
+  outline-offset:-7px;
+  filter:drop-shadow(0 0 12px rgba(255,230,90,.85));
+}
+.mill-prop.milling img {
+  animation:mashTunPulse .42s ease-in-out 2;
+}
+.mill-prop {
+  position:absolute;
+  left:auto;
+  right:42px;
+  top:12px;
+  width:89px;
+  height:109px;
+  z-index:1;
+  pointer-events:auto;
+}
+.mill-prop img {
+  width:100%;
+  height:100%;
+  left:0;
+  top:0;
+}
+.vat-unit.primary-vat {
+  --vat-scale:1;
+  position:absolute !important;
+  left:50%;
+  bottom:-28px;
+  width:206px !important;
+  height:238px !important;
+  transform:translateX(-50%) scale(var(--vat-scale));
+  transform-origin:center bottom;
+  z-index:4;
+}
+.vat-unit.primary-vat.vat-upgrades-1 { --vat-scale:1.10; }
+.vat-unit.primary-vat.vat-upgrades-2 { --vat-scale:1.21; }
+.vat-unit.primary-vat .vat-sprite {
+  left:50% !important;
+  top:28px !important;
+  width:134px !important;
+  height:180px !important;
+  transform:translateX(-50%) !important;
+}
+.vat-unit.primary-vat .vat-rot-overlay {
+  top:28px !important;
+  width:134px !important;
+  height:180px !important;
+}
+.vat-unit.primary-vat .bar.vertical {
+  top:42px !important;
+  height:150px !important;
+  width:13px !important;
+}
+.vat-unit.primary-vat .bar.vol { left:8px !important; }
+.vat-unit.primary-vat .bar.ferment { right:8px !important; }
+.vat-unit.primary-vat .quality-pill { top:20px !important; }
+.vat-unit.primary-vat .warning-overlay { top:36px !important; }
+.vat-unit.primary-vat .yeast-btn,
+.vat-unit.primary-vat .clean-vat-btn {
+  bottom:0 !important;
+}
+.vat-capacity-buy {
+  white-space:nowrap !important;
+}
+
+/* 2026-06-19 cultivo: almacén, riego y autocosechadora */
+#field {
+  overflow:visible !important;
+  position:absolute !important;
+}
+.field-tile.field-disabled {
+  pointer-events:none;
+  opacity:.82;
+  background:transparent !important;
+}
+.field-upgrade-panel {
+  position:absolute;
+  left:4px;
+  top:-38px;
+  z-index:42;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  pointer-events:auto;
+}
+.field-upgrade-buy {
+  white-space:nowrap;
+}
+.field-upgrade-overlay {
+  position:absolute;
+  z-index:34;
+  pointer-events:none;
+}
+.field-upgrade-overlay img {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
+  filter:drop-shadow(5px 7px 0 rgba(0,0,0,.32));
+  pointer-events:none;
+}
+.irrigation-overlay {
+  top:-20px;
+  bottom:auto;
+  left:50%;
+  width:34%;
+  height:calc(60% + 20px);
+  transform:translateX(-50%);
+  z-index:30;
+  opacity:.86;
+}
+.irrigation-overlay img {
+  object-fit:fill;
+}
+.warehouse-overlay {
+  left:60%;
+  top:68%;
+  width:30%;
+  height:24%;
+  z-index:36;
+  pointer-events:auto;
+  cursor:grab;
+}
+.warehouse-overlay.expanded {
+  left:57%;
+  top:65.6%;
+  width:36%;
+  height:28.8%;
+}
+.warehouse-overlay.hover,
+.warehouse-overlay.can-drop {
+  outline:5px solid rgba(255,235,115,.82);
+  outline-offset:-6px;
+  filter:drop-shadow(0 0 12px rgba(255,230,90,.85));
+}
+.warehouse-overlay span {
+  position:absolute;
+  right:8px;
+  bottom:8px;
+  min-width:38px;
+  padding:3px 6px;
+  border:2px solid #2a160b;
+  background:rgba(255,232,151,.92);
+  color:#2b190b;
+  text-align:center;
+  font:900 12px/1 ui-monospace, monospace;
+  box-shadow:2px 2px 0 rgba(0,0,0,.38);
+}
+.harvester-overlay {
+  left:5%;
+  top:82%;
+  width:40%;
+  height:16%;
+  z-index:37;
+}
+.icon-action-btn,
+.barrel-buy,
+.equipment-buy,
+.field-upgrade-buy,
+.bottle-history-side,
+#buySeeds {
+  min-height:36px !important;
+  height:36px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:7px !important;
+  border:0 !important;
+  border-radius:8px !important;
+  background:rgba(36,25,17,.86) !important;
+  color:#ffe7b5 !important;
+  text-shadow:1px 1px #000 !important;
+  font:900 13px/1 ui-monospace, monospace !important;
+  padding:6px 10px !important;
+  cursor:pointer !important;
+  box-shadow:0 4px 12px rgba(0,0,0,.28) !important;
+}
+.icon-action-btn:hover,
+.barrel-buy:hover,
+.equipment-buy:hover,
+.field-upgrade-buy:hover,
+.bottle-history-side:hover,
+#buySeeds:hover {
+  filter:brightness(1.16);
+}
+.action-btn-icon {
+  width:24px !important;
+  height:24px !important;
+  min-width:24px !important;
+  object-fit:contain !important;
+  image-rendering:pixelated;
+  filter:drop-shadow(2px 2px 0 rgba(0,0,0,.42));
+  pointer-events:none;
+}
+.field-upgrade-buy .action-btn-icon {
+  width:26px !important;
+  height:26px !important;
+}
+.vat-capacity-buy .action-btn-icon {
+  width:22px !important;
+  height:28px !important;
+}
+.barrel-buy .action-btn-icon {
+  width:26px !important;
+  height:28px !important;
+}
+.bottle-history-side {
+  right:10px !important;
+  top:8px !important;
+  width:auto !important;
+}
+.barrel-discard {
+  min-height:36px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  border:0 !important;
+  border-radius:8px !important;
+  background:rgba(92,25,18,.86) !important;
+  color:#ffe0c8 !important;
+  box-shadow:0 4px 12px rgba(0,0,0,.28) !important;
+}
+@keyframes mashTunPulse {
+  50% { transform:scale(1.035); filter:drop-shadow(0 0 12px rgba(125,225,255,.72)); }
+}
+
+/* 2026-06-19 embedded market simulator popup */
+.market-sim-modal {
+  position:fixed;
+  inset:0;
+  z-index:30020;
+  display:grid;
+  place-items:center;
+  background:rgba(0,0,0,.62);
+}
+.market-sim-modal.hidden { display:none !important; }
+.market-sim-window {
+  position:relative;
+  width:min(1180px, calc(100vw - 42px));
+  max-height:min(920px, calc(100vh - 42px));
+  overflow:auto;
+  border-radius:18px;
+  padding:18px;
+  background:linear-gradient(145deg, rgba(63,43,28,.98), rgba(30,20,14,.98));
+  color:#ffe7b5;
+  box-shadow:0 24px 80px rgba(0,0,0,.58);
+}
+.market-sim-window header {
+  margin:0 34px 12px 0;
+}
+.market-sim-window h3 {
+  margin:0 0 4px;
+  color:#e2a64b;
+  font:1000 24px/1 ui-monospace, monospace;
+}
+.market-sim-window p {
+  margin:0;
+  color:#d8c29d;
+  font:900 12px/1.35 ui-monospace, monospace;
+}
+.market-sim-shell {
+  display:grid;
+  grid-template-columns:250px minmax(0,1fr);
+  gap:14px;
+}
+.market-sim-controls {
+  display:grid;
+  gap:10px;
+  align-content:start;
+  padding:12px;
+  border-radius:8px;
+  background:rgba(0,0,0,.20);
+}
+.market-sim-controls label {
+  display:grid;
+  gap:5px;
+  color:#d8c29d;
+  font:1000 11px/1.2 ui-monospace, monospace;
+  text-transform:uppercase;
+}
+.market-sim-controls input {
+  width:100%;
+  min-width:0;
+  border:0;
+  border-radius:8px;
+  padding:8px 9px;
+  background:#ffe8bd;
+  color:#24170d;
+  font:1000 16px ui-monospace, monospace;
+  box-shadow:inset 0 3px 0 rgba(0,0,0,.16);
+}
+.sim-range-label span {
+  color:#ffe16d;
+  font-size:16px;
+}
+.market-sim-controls input[type="range"] {
+  padding:0;
+  accent-color:#e2a64b;
+}
+.market-sim-chart-panel {
+  position:relative;
+  min-width:0;
+  padding:12px;
+  border-radius:8px;
+  background:rgba(0,0,0,.18);
+}
+#marketSimChart {
+  display:block;
+  width:100%;
+  height:360px;
+}
+.market-sim-chart-tip {
+  position:absolute;
+  z-index:2;
+  display:grid;
+  gap:2px;
+  min-width:176px;
+  padding:8px 9px;
+  border-radius:8px;
+  background:rgba(31,24,18,.94);
+  color:#ffe7b5;
+  font:900 11px/1.25 ui-monospace, monospace;
+  pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.market-sim-chart-tip.hidden { display:none !important; }
+.market-sim-chart-tip b { font-size:12px; }
+.market-sim-legend {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:9px;
+}
+.market-sim-legend span {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 8px;
+  border-radius:8px;
+  background:rgba(0,0,0,.24);
+  font:1000 11px ui-monospace, monospace;
+}
+.market-sim-legend i {
+  width:14px;
+  height:5px;
+  border-radius:10px;
+  background:var(--c);
+  box-shadow:0 0 10px var(--c);
+}
+.market-sim-kpis {
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+.market-sim-kpi {
+  min-height:72px;
+  padding:10px;
+  border-radius:8px;
+  background:rgba(0,0,0,.24);
+  display:grid;
+  gap:4px;
+  align-content:center;
+}
+.market-sim-kpi small {
+  color:#d8c29d;
+  font:900 11px/1.15 ui-monospace, monospace;
+}
+.market-sim-kpi strong {
+  color:#fff1c7;
+  font:1000 20px/1 ui-monospace, monospace;
+  overflow-wrap:anywhere;
+}
+.market-sim-formula {
+  display:grid;
+  grid-template-columns:112px minmax(0,1fr);
+  gap:12px;
+  align-items:center;
+  margin-top:12px;
+  padding:12px;
+  border-radius:8px;
+  background:rgba(0,0,0,.18);
+}
+.market-sim-formula img {
+  width:96px;
+  height:96px;
+  object-fit:contain;
+  justify-self:center;
+  filter:drop-shadow(0 10px 14px rgba(0,0,0,.52));
+}
+.market-sim-formula div {
+  display:grid;
+  gap:5px;
+  color:#e8d2aa;
+  font:800 12px/1.35 ui-monospace, monospace;
+}
+@media (max-width: 900px) {
+  .market-sim-shell,
+  .market-sim-formula { grid-template-columns:1fr; }
+  .market-sim-kpis { grid-template-columns:1fr 1fr; }
+  #marketSimChart { height:300px; }
+}
+.scotland-player-card {
+  overflow:visible !important;
+  padding-bottom:26px !important;
+}
+.scotland-player-card .scotland-achievement-badges {
+  overflow:visible !important;
+  max-height:none !important;
+  padding:8px 0 18px !important;
+  margin-bottom:8px !important;
+}
+.scotland-player-card .scotland-achievement-badges::-webkit-scrollbar {
+  display:none !important;
+}
+.scotland-player-card .scotland-achievement-badges img:hover {
+  transform:translateY(-4px) scale(1.10) rotate(-3deg) !important;
+}
