@@ -638,6 +638,14 @@
 .vat-unit.primary-vat .clean-vat-btn {
   bottom:0 !important;
 }
+.vat-unit.primary-vat .yeast-btn {
+  top:0 !important;
+  bottom:auto !important;
+}
+.vat-unit.primary-vat .clean-vat-btn {
+  top:auto !important;
+  bottom:0 !important;
+}
 .vat-capacity-buy {
   white-space:nowrap !important;
 }
@@ -732,12 +740,14 @@
   height:16%;
   z-index:37;
 }
+.harvester-overlay img {
+  animation:harvesterEngine .18s steps(2,end) infinite;
+}
 .icon-action-btn,
 .barrel-buy,
 .equipment-buy,
 .field-upgrade-buy,
-.bottle-history-side,
-#buySeeds {
+.bottle-history-side {
   min-height:36px !important;
   height:36px !important;
   display:inline-flex !important;
@@ -758,30 +768,29 @@
 .barrel-buy:hover,
 .equipment-buy:hover,
 .field-upgrade-buy:hover,
-.bottle-history-side:hover,
-#buySeeds:hover {
+.bottle-history-side:hover {
   filter:brightness(1.16);
 }
 .action-btn-icon {
-  width:24px !important;
-  height:24px !important;
-  min-width:24px !important;
+  width:48px !important;
+  height:48px !important;
+  min-width:48px !important;
   object-fit:contain !important;
   image-rendering:pixelated;
   filter:drop-shadow(2px 2px 0 rgba(0,0,0,.42));
   pointer-events:none;
 }
 .field-upgrade-buy .action-btn-icon {
-  width:26px !important;
-  height:26px !important;
+  width:52px !important;
+  height:52px !important;
 }
 .vat-capacity-buy .action-btn-icon {
-  width:22px !important;
-  height:28px !important;
+  width:44px !important;
+  height:56px !important;
 }
 .barrel-buy .action-btn-icon {
-  width:26px !important;
-  height:28px !important;
+  width:52px !important;
+  height:56px !important;
 }
 .bottle-history-side {
   right:10px !important;
@@ -801,6 +810,10 @@
 }
 @keyframes mashTunPulse {
   50% { transform:scale(1.035); filter:drop-shadow(0 0 12px rgba(125,225,255,.72)); }
+}
+@keyframes harvesterEngine {
+  0% { transform:translateY(-1px); }
+  100% { transform:translateY(1px); }
 }
 
 /* 2026-06-19 embedded market simulator popup */

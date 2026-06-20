@@ -2045,16 +2045,17 @@ function clearDisabledFieldTiles(){
 function addBarleyToWarehouse(kg, quality=100){
   const upgrades=fieldUpgrades();
   if(!upgrades.warehouseBuilt) return 0;
-  const add=Math.min(Math.max(0, Number(kg)||0), warehouseFreeKg());
+  const free=Math.max(0, (Number(upgrades.warehouseCapacity)||0) - (Number(upgrades.warehouseKg)||0));
+  const add=Math.min(Math.max(0, Number(kg)||0), free);
   if(add<=0) return 0;
-  const old=warehouseKg();
+  const old=Number(upgrades.warehouseKg)||0;
   upgrades.warehouseQuality=weightedQuality(old, upgrades.warehouseQuality, add, quality);
   upgrades.warehouseKg=old+add;
   return add;
 }
 function takeBarleyFromWarehouse(kg){
   const upgrades=fieldUpgrades();
-  const take=Math.min(Math.max(0, Number(kg)||0), warehouseKg());
+  const take=Math.min(Math.max(0, Number(kg)||0), Number(upgrades.warehouseKg)||0);
   if(take<=0) return 0;
   upgrades.warehouseKg=Math.max(0, upgrades.warehouseKg-take);
   if(upgrades.warehouseKg<=0) upgrades.warehouseQuality=100;
@@ -2352,7 +2353,7 @@ function renderCards(){
   const discard=document.createElement('div');
   discard.id='barrelDiscard'; discard.className='barrel-discard drop-target';
   discard.dataset.tip='Descartar barriles.\nSuelta aquí cualquier pack cuando quieras retirarlo; se perderá también el líquido que contenga.';
-  discard.textContent='🗑️ Barril 🖐️';
+  discard.textContent='🗑️ Barril';
   aging.appendChild(discard);
   const hist=document.createElement('button');
   hist.id='bottleHistorySide'; hist.className='bottle-history-side icon-action-btn'; hist.type='button';
@@ -2458,8 +2459,10 @@ function buyFieldUpgrade(kind){
 }
 
 function handleDrop(target,data,e){
+  const warehouseDrop=$('.barley-warehouse-drop');
   if(e && data.drag==='box' && pointIn($('#truckDock'), e.clientX, e.clientY)){ sellBox(data.id); return; }
   if(e && data.drag==='box' && pointIn($('#bottling'), e.clientX, e.clientY)){ moveBox(data.id, e, data); return; }
+  if(e && data.drag==='crop' && warehouseDrop && pointIn(warehouseDrop, e.clientX, e.clientY)){ storeCropInWarehouse(data.source); return; }
   if(data.drag==='barrel' && target.closest('#barrelDiscard')){ discardBarrel(data.id); return; }
   if(data.drag==='barrel' && target.classList.contains('barrel-card')){
     if(target.dataset.id !== data.id) transferBarrelToBarrel(data.id, target.dataset.id);
@@ -2497,16 +2500,33 @@ function handleDrop(target,data,e){
 }
 function dropMaltOnMill(source){
   const mill=$('.mill-prop');
+  const malt=takeMaltForMill(source);
+  if(!malt) return;
   mill?.classList.add('milling');
   playFx('fxMillBubblesWater', .78);
+  markDirty(); render(); saveGame();
   setTimeout(()=>{
-    addMaltToVat(0, source);
+    addMaltToVat(0, malt);
     mill?.classList.remove('milling');
     markDirty(); render(); saveGame();
-  }, 800);
+  }, 1120);
+}
+function takeMaltForMill(source){
+  const t=state.malt[+source];
+  if(!t || t.status!=='filled' || !t.heated || t.germ<MALT_HARVEST_START) return null;
+  const v=state.vats[0];
+  if(!v || v.rotten) return null;
+  const maltKg=Number(t.amount)||0;
+  const oldLitres=vatLitres(v), capacityL=vatCapacityLitres(v);
+  const washLitres=Math.min((maltKg/MALT_KG_PER_FULL_VAT)*VAT_WASH_LITRES, Math.max(0, capacityL-oldLitres));
+  if(washLitres<=0){ notice('La tina de fermentación no tiene espacio para más mosto.', 'explain', 'Tina llena'); return null; }
+  const malt={...t, lineage:Array.isArray(t.lineage)?t.lineage.map(x=>({...x})):[]};
+  resetMaltTile(t);
+  return malt;
 }
 function addMaltToVat(vatIndex, source){
-  const t=state.malt[+source], v=state.vats[vatIndex];
+  const fromTile=typeof source!=='object';
+  const t=fromTile ? state.malt[+source] : source, v=state.vats[vatIndex];
   if(!t || !v || t.status!=='filled' || !t.heated || t.germ<MALT_HARVEST_START || v.rotten) return;
   const maltKg=Number(t.amount)||0;
   const oldLitres=vatLitres(v), capacityL=vatCapacityLitres(v);
@@ -2521,7 +2541,7 @@ function addMaltToVat(vatIndex, source){
   if(v.yeast){ v.soleraAddsAfterYeast = (Number(v.soleraAddsAfterYeast)||0) + 1; if(v.soleraAddsAfterYeast >= 5) awardAchievement('solera'); }
   v.ferment = oldLitres ? v.ferment*(oldLitres/(oldLitres+washLitres)) : 0;
   v.volume = vatPctFromL(oldLitres + washLitres, v); v.rotten=false; v.warned=false; v.idle=0; v.overferment=0;
-  resetMaltTile(t);
+  if(fromTile) resetMaltTile(t);
 }
 function transferWashToStill(vatIndex, stillIndex){
   const v=state.vats[vatIndex], s=state.stills[stillIndex];
@@ -3206,6 +3226,10 @@ function dropTargetFromPoint(x, y, data=null){
   if(data?.drag==='malt'){
     const mill=stack.map(el=>el.closest?.('.mill-prop')).find(Boolean);
     if(mill) return mill;
+  }
+  if(data?.drag==='crop'){
+    const warehouse=stack.map(el=>el.closest?.('.barley-warehouse-drop')).find(Boolean);
+    if(warehouse) return warehouse;
   }
   return stack.map(el=>el.closest?.('.drop-target')).find(Boolean) || null;
 }
