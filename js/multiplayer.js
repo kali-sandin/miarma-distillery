@@ -116,9 +116,12 @@ async function login(){
       await auth.signInWithPopup(state.auth, provider);
     }catch(err){
       const code=String(err?.code || '');
-      if(code.includes('popup-blocked') || code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')){
-        setStatus('pending','Redirigiendo a Google…');
-        await auth.signInWithRedirect(state.auth, provider);
+      if(code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')){
+        setStatus('offline','Login cancelado.');
+        return false;
+      } else if(code.includes('popup-blocked')){
+        setStatus('error','Popup bloqueado: permite ventanas emergentes para conectar Google.');
+        return false;
       } else {
         throw err;
       }

@@ -110,6 +110,8 @@ const FIELD_WAREHOUSE_KG_PER_PLOT = MALT_KG_PER_PLOT;
 const FIELD_AUTOHARVEST_QUALITY = 95;
 const FIELD_PLOTS_PER_MAX_BATCH = 8;
 const MALT_TILE_CAPACITY_KG = Math.round((MALT_KG_PER_PLOT * FIELD_PLOTS_PER_MAX_BATCH) / MALT_TILES / 10) * 10;
+const MALT_CAPACITY_UPGRADE_COST = 80;
+const MALT_CAPACITY_UPGRADE_FACTOR = 1.5;
 const MALT_KG_PER_FULL_VAT = MALT_TILE_CAPACITY_KG * MALT_TILES;
 const WASH_ABV_TARGET = 9;
 const LOW_WINES_ABV_TARGET = 33.5;
@@ -122,7 +124,6 @@ const MARKET_HISTORY_MAX = 90;
 const MARKET_MIN = 3;
 const MARKET_MAX = 5;
 const MARKET_MID = (MARKET_MIN + MARKET_MAX) / 2;
-const VAT_CAPACITY_UPGRADE_MULTIPLIER = 1.5;
 const DISTILLATION_TARGETS = {
   1: { abv: LOW_WINES_ABV_TARGET, recovery: .93, label: 'low wines' },
   2: { abv: NEW_MAKE_ABV_TARGET, recovery: .948, label: 'new make' },
@@ -500,6 +501,7 @@ function forceAchievement(id){ awardAchievement(id); markDirty(); render(); save
 function barrelCapacityL(b){ const def=barrelDef(b?.type); return def.litres * (b?.count || BARREL_PACK_SIZE); }
 function barrelLiquidL(b){ return (Number(b?.volume)||0) / 100 * barrelCapacityL(b); }
 function barrelPctFromL(b, litres){ return clamp((litres / barrelCapacityL(b)) * 100, 0, 100); }
+function vatCapacityPctForUpgrades(count=0){ return ROOM_CAPACITY.vatPct + 50 * clamp(Math.round(Number(count)||0), 0, VAT_CAPACITY_UPGRADE_COSTS.length); }
 function vatCapacityPct(v){ return Math.max(ROOM_CAPACITY.vatPct, Number(v?.capacityPct)||ROOM_CAPACITY.vatPct); }
 function vatCapacityLitres(v){ return VAT_WASH_LITRES * vatCapacityPct(v) / ROOM_CAPACITY.vatPct; }
 function vatLitres(v){ return (Number(v?.volume)||0) / 100 * vatCapacityLitres(v); }
@@ -513,6 +515,13 @@ function inferredVatUpgradeCount(v){
 }
 function vatUpgradeCount(v){ return clamp(inferredVatUpgradeCount(v),0,VAT_CAPACITY_UPGRADE_COSTS.length); }
 function nextVatUpgradeCost(v){ return VAT_CAPACITY_UPGRADE_COSTS[vatUpgradeCount(v)] || 0; }
+function nextVatUpgradeInfo(v){
+  const currentUpgrades=vatUpgradeCount(v), cost=nextVatUpgradeCost(v);
+  if(!cost) return null;
+  const currentLitres=VAT_WASH_LITRES * vatCapacityPctForUpgrades(currentUpgrades) / ROOM_CAPACITY.vatPct;
+  const nextLitres=VAT_WASH_LITRES * vatCapacityPctForUpgrades(currentUpgrades + 1) / ROOM_CAPACITY.vatPct;
+  return {cost, currentLitres, nextLitres, deltaLitres:nextLitres-currentLitres, label:currentUpgrades ? '+8.000l' : '+50%'};
+}
 function stillInLitres(s){ return (Number(s?.input)||0) / 100 * STILL_INPUT_LITRES; }
 function stillInPct(litres){ return clamp(litres / STILL_INPUT_LITRES * 100, 0, 100); }
 function stillOutLitres(s){ return (Number(s?.output)||0) / 100 * STILL_OUTPUT_LITRES; }
@@ -541,7 +550,7 @@ const barrelImage = b => { const def=barrelDef(b?.type); return (barrelIsOld(b) 
 const newVat = (unlocked=false) => ({ unlocked, capacityPct:ROOM_CAPACITY.vatPct, capacityUpgrades:0, volume:0, ferment:0, yeast:false, idle:0, overferment:0, rotten:false, warned:false, baseQuality:100, quality:100, abv:0, peatPpm:0, lineage:[] });
 const newStill = (unlocked=false) => ({ unlocked, input:0, inputAbv:0, inputQuality:100, inputPeatPpm:0, inputLineage:[], inputComponents:[], runs:0, output:0, outputAbv:0, outputQuality:100, outputPeatPpm:0, outputLineage:[], outputRuns:0, temp:20, fire:false });
 const newMaltTile = () => ({status:'empty', amount:0, germ:0, moisture:0, baseQuality:100, quality:100, peatPpm:0, heated:false, peat:false, dry:0, stable:0, warned:false, maltStage:'empty', lineage:[]});
-const newFieldUpgrades = () => ({warehouseBuilt:false, warehouseCapacity:0, warehouseKg:0, warehouseQuality:100, warehouseDuplicated:false, autoWater:false, autoHarvester:false});
+const newFieldUpgrades = () => ({warehouseBuilt:false, warehouseCapacity:0, warehouseKg:0, warehouseQuality:100, warehouseDuplicated:false, autoWater:false, autoHarvester:false, maltCapacityUpgraded:false});
 function resetMaltTile(t){ Object.assign(t, newMaltTile()); }
 function normalizeMaltStage(t){
   if(!t || t.status==='empty') return 'empty';
@@ -564,8 +573,8 @@ function normalizeVat(v={}, unlocked=false){
   n.lineage=Array.isArray(n.lineage) ? n.lineage : [];
   n.baseQuality=qualityOrDefault(n.baseQuality, qualityOrDefault(n.quality));
   n.capacityUpgrades=vatUpgradeCount(n);
-  const expectedPct=ROOM_CAPACITY.vatPct * Math.pow(VAT_CAPACITY_UPGRADE_MULTIPLIER, n.capacityUpgrades);
-  n.capacityPct=Number.isFinite(Number(n.capacityPct)) ? Math.max(ROOM_CAPACITY.vatPct, expectedPct, Number(n.capacityPct)) : expectedPct;
+  const expectedPct=vatCapacityPctForUpgrades(n.capacityUpgrades);
+  n.capacityPct=expectedPct;
   n.volume=clamp(Number(n.volume)||0,0,100);
   n.ferment=clamp(Number(n.ferment)||0,0,FERMENT_ROTTEN_AT);
   n.overferment=Math.max(0, Number(n.overferment)||0);
@@ -580,6 +589,7 @@ function normalizeFieldUpgrades(raw={}){
   n.warehouseDuplicated=!!n.warehouseDuplicated;
   n.autoWater=!!n.autoWater;
   n.autoHarvester=!!n.autoHarvester && n.warehouseBuilt && n.autoWater;
+  n.maltCapacityUpgraded=!!n.maltCapacityUpgraded;
   n.warehouseKg=Math.max(0, Number(n.warehouseKg)||0);
   n.warehouseQuality=qualityOrDefault(n.warehouseQuality);
   if(!n.warehouseBuilt){
@@ -977,6 +987,26 @@ function actionIcon(src, alt=''){
 }
 function actionButtonLabel(src, label, alt=''){
   return `${actionIcon(src, alt)}<span>${label}</span>`;
+}
+function actionPrice(cost){ return `<b class="action-price">${cost}k€</b>`; }
+function actionLabel(label, cost=null){ return `${escapeHtml(label)}${cost===null ? '' : ` ${actionPrice(cost)}`}`; }
+function lerpColorHex(a,b,t){
+  const x=Math.max(0,Math.min(1,t));
+  const ca=a.match(/\w\w/g).map(v=>parseInt(v,16)), cb=b.match(/\w\w/g).map(v=>parseInt(v,16));
+  return `rgb(${ca.map((v,i)=>Math.round(v+(cb[i]-v)*x)).join(', ')})`;
+}
+function temperatureColor(temp){
+  const t=Number(temp)||TEMP_MIN;
+  if(t<=64) return lerpColorHex('4aa8ff','5bb765',(t-TEMP_MIN)/(64-TEMP_MIN));
+  if(t<=78.3) return lerpColorHex('5bb765','ff4a32',(t-64)/(78.3-64));
+  if(t<=WATER_BOIL) return lerpColorHex('ff4a32','b91d17',(t-78.3)/(WATER_BOIL-78.3));
+  return lerpColorHex('b91d17','4aa8ff',(t-WATER_BOIL)/(TEMP_MAX-WATER_BOIL));
+}
+function temperatureBarColor(temp){
+  const t=Number(temp)||TEMP_MIN;
+  if(t<=ALCOHOL_BOIL) return lerpColorHex('4aa8ff','ffe16d',(t-TEMP_MIN)/(ALCOHOL_BOIL-TEMP_MIN));
+  if(t<=WATER_BOIL) return lerpColorHex('ffe16d','ff4a32',(t-ALCOHOL_BOIL)/(WATER_BOIL-ALCOHOL_BOIL));
+  return lerpColorHex('ff4a32','4aa8ff',(t-WATER_BOIL)/(TEMP_MAX-WATER_BOIL));
 }
 function escapeAttr(value){ return escapeHtml(value).replace(/'/g, '&#39;'); }
 function hashString(value){ return [...String(value || '')].reduce((acc,ch)=>((acc<<5)-acc+ch.charCodeAt(0))|0,0); }
@@ -1520,7 +1550,10 @@ let publicScotlandPlayers = [];
 let selectedPublicPlayerIds = new Set();
 const SCOTLAND_COMPARE_COLORS = ['#7de1ff', '#ff9ad5', '#a7e184'];
 const SCOTLAND_ZOOM_MIN = .72;
-const SCOTLAND_ZOOM_MAX = 2.35;
+const SCOTLAND_ZOOM_MAX = 2.85;
+function scotlandRegionLayersHtml(){
+  return `<div class="scotland-region-layers">${SCOTLAND_REGION_ORDER.map(region=>`<img class="scotland-region-mask" data-region="${escapeHtml(region.id)}" src="${escapeHtml(region.mask)}" alt="" draggable="false">`).join('')}</div>`;
+}
 function ensureScotlandMapOverlay(){
   let root=$('#scotlandMapOverlay');
   if(root) return root;
@@ -1529,7 +1562,7 @@ function ensureScotlandMapOverlay(){
   root.className='scotland-map-overlay hidden';
   root.innerHTML=`<div class="scotland-map-stage">
     <img class="scotland-base-map" src="img/mapa/mapa.jpg" alt="Mapa de Escocia" draggable="false">
-    <img class="scotland-region-mask" alt="" draggable="false">
+    ${scotlandRegionLayersHtml()}
   </div><div class="scotland-other-markers"></div><figure class="scotland-player-marker hidden"><img class="scotland-player-dest" alt="Destilería" draggable="false"><figcaption></figcaption></figure><aside id="scotlandSocialPanel" class="scotland-social-panel"></aside><aside class="scotland-player-card hidden"></aside><aside class="scotland-region-card hidden"></aside><div class="scotland-select-cursor">📍</div><div class="scotland-map-hint"></div>`;
   document.body.appendChild(root);
   root.addEventListener('pointermove', handleScotlandMapMove);
@@ -1605,12 +1638,15 @@ function scotlandImagePoint(clientX, clientY, root=ensureScotlandMapOverlay()){
 function scotlandRegionAt(clientX, clientY, root=ensureScotlandMapOverlay()){
   const pt=scotlandImagePoint(clientX, clientY, root);
   if(!pt) return null;
+  const offsets=[0, -4, 4, -8, 8, -12, 12];
   for(const region of SCOTLAND_REGION_ORDER){
     const mask=scotlandMaskCache.get(region.id);
     if(!mask?.ctx) continue;
     try{
-      const px=mask.ctx.getImageData(clamp(pt.ix,0,mask.w-1), clamp(pt.iy,0,mask.h-1), 1, 1).data;
-      if(px[3] > 20) return {...region, point:pt};
+      for(const oy of offsets) for(const ox of offsets){
+        const px=mask.ctx.getImageData(clamp(pt.ix+ox,0,mask.w-1), clamp(pt.iy+oy,0,mask.h-1), 1, 1).data;
+        if(px[3] > 12) return {...region, point:pt};
+      }
     }catch(_){ }
   }
   return null;
@@ -1624,16 +1660,20 @@ function regionInfoHtml(region){
   return `<h3 style="--region:${region.color}">${escapeHtml(region.name)}</h3><p>${escapeHtml(region.desc)}</p><dl><dt>Destilerías</dt><dd>${escapeHtml(region.example)}</dd><dt>Bonus</dt><dd><ul class="region-bonus-list">${bonuses}</ul></dd></dl>`;
 }
 function updateScotlandHover(region, clientX=innerWidth/2, clientY=innerHeight/2){
-  const root=ensureScotlandMapOverlay(), mask=root.querySelector('.scotland-region-mask'), card=root.querySelector('.scotland-region-card'), cursor=root.querySelector('.scotland-select-cursor');
+  const root=ensureScotlandMapOverlay(), masks=[...root.querySelectorAll('.scotland-region-mask')], card=root.querySelector('.scotland-region-card'), cursor=root.querySelector('.scotland-select-cursor');
   scotlandMapHover = region;
   root.classList.toggle('valid-region', !!region && scotlandMapMode==='select');
   if(cursor){ cursor.style.left=`${clientX}px`; cursor.style.top=`${clientY}px`; }
+  for(const mask of masks){
+    const active=!!region && mask.dataset.region===region.id;
+    mask.classList.toggle('active', active);
+    mask.style.opacity=active ? (scotlandMapMode==='view' ? '.4' : '.5') : '0';
+  }
   if(region){
     root.style.setProperty('--region', region.color);
-    mask.src=region.mask; mask.style.opacity=scotlandMapMode==='view' ? '.4' : '.5'; mask.style.filter='';
     card.innerHTML=regionInfoHtml(region); card.classList.remove('hidden'); card.style.setProperty('--region', region.color);
   } else {
-    mask.removeAttribute('src'); mask.style.opacity='0'; mask.style.filter='none'; card.classList.add('hidden'); card.innerHTML='';
+    card.classList.add('hidden'); card.innerHTML='';
   }
 }
 function clearScotlandHover(){ updateScotlandHover(null); }
@@ -1782,12 +1822,12 @@ function radarSvg(metrics, comparisons=[]){
   const seriesPointTip=(name,m)=>`${m.icon || ''} ${name} · ${m.label}: ${m.value}||${RADAR_METRIC_INFO[m.key] || 'Métrica pública del radar.'}`;
   const poly=metrics.map((m,i)=>point(m.pct,i).map(v=>v.toFixed(1)).join(',')).join(' ');
   const axes=metrics.map((m,i)=>{
-    const [x,y]=point(1,i), [lx,ly]=point(1.22,i);
+    const [x,y]=point(1,i), [ix,iy]=point(1.21,i), [lx,ly]=point(1.43,i);
     const horizontal=i===2 || i===6;
-    const [vx,vy]=point(horizontal?1.78:1.47,i);
+    const [vx,vy]=point(horizontal?1.78:1.14,i);
     const valueY=horizontal ? vy+13 : vy;
     const tip=`${m.icon || ''} ${m.label}: ${m.value}||${RADAR_METRIC_INFO[m.key] || 'Métrica pública del radar.'}`;
-    return `<g class="radar-axis radar-axis-${escapeHtml(m.key||i)}" data-tip="${escapeHtml(tip)}"><line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/><text class="radar-label" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}">${escapeHtml(`${m.icon || ''} ${m.label}`)}</text><text class="radar-value" x="${vx.toFixed(1)}" y="${valueY.toFixed(1)}">${escapeHtml(String(m.value))}</text></g>`;
+    return `<g class="radar-axis radar-axis-${escapeHtml(m.key||i)}" data-tip="${escapeHtml(tip)}"><line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/><text class="radar-icon" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}">${escapeHtml(m.icon || '')}</text><text class="radar-label" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}">${escapeHtml(m.label)}</text><text class="radar-value" x="${vx.toFixed(1)}" y="${valueY.toFixed(1)}">${escapeHtml(String(m.value))}</text></g>`;
   }).join('');
   const compPolys=comparisons.map((c,i)=>`<polygon class="radar-compare radar-compare-${i}" style="--compare:${escapeHtml(c.color)}" points="${c.metrics.map((m,j)=>point(m.pct,j).map(v=>v.toFixed(1)).join(',')).join(' ')}"/>`).join('');
   const baseName=state.distilleryName || 'Mi destilería';
@@ -2032,6 +2072,8 @@ function warehouseBuilt(){ return !!fieldUpgrades().warehouseBuilt; }
 function warehouseKg(){ return Number(fieldUpgrades().warehouseKg)||0; }
 function warehouseCapacity(){ return Number(fieldUpgrades().warehouseCapacity)||0; }
 function warehouseFreeKg(){ return Math.max(0, warehouseCapacity() - warehouseKg()); }
+function maltTileCapacityKg(){ return Math.round(MALT_TILE_CAPACITY_KG * (fieldUpgrades().maltCapacityUpgraded ? MALT_CAPACITY_UPGRADE_FACTOR : 1)); }
+function availableSeedKg(){ return warehouseBuilt() ? warehouseKg() : (Number(state.seeds)||0); }
 function fieldTileDisabledReason(i){
   const upgrades=fieldUpgrades();
   if(upgrades.warehouseBuilt && FIELD_WAREHOUSE_TILE_SET.has(i)) return 'almacén';
@@ -2079,7 +2121,8 @@ function addWarehouseToMaltTile(i){
     return false;
   }
   const old=Number(dst.amount)||0;
-  const add=Math.min(warehouseKg(), Math.max(0, MALT_TILE_CAPACITY_KG-old));
+  const cap=maltTileCapacityKg();
+  const add=Math.min(warehouseKg(), Math.max(0, cap-old));
   if(add<=0){ notice('Ese montón de malteado ya está lleno.', 'explain', 'Sin espacio'); return false; }
   const q=fieldUpgrades().warehouseQuality;
   takeBarleyFromWarehouse(add);
@@ -2109,7 +2152,7 @@ function autoHarvestCrop(i){
   return true;
 }
 function fieldTip(t){
-  if(t.status==='empty') return `Parcela vacía (${FIELD_PLOT_AREA_HA} ha). Arrastra ${SEED_KG_PER_PLOT} Kg de semillas aquí.`;
+  if(t.status==='empty') return `Parcela vacía (${FIELD_PLOT_AREA_HA} ha). Arrastra ${SEED_KG_PER_PLOT} Kg ${warehouseBuilt() ? 'desde el almacén' : 'de semillas'} aquí.`;
   if(t.status==='dry') return 'Cultivo seco. Pulsa Limpiar en la zona de barritas.';
   if(t.status==='rotten') return 'Cultivo estropeado. Pulsa Limpiar.';
   return `🌾 Cultivo.
@@ -2120,7 +2163,7 @@ Calidad: ${Math.round(cropQuality(t))}.||${fieldUpgrades().autoWater ? 'Riego au
 }
 function maltTip(t){
   if(t.status==='empty') return `Malteado vacío.
-Capacidad: ${MALT_TILE_CAPACITY_KG} Kg de malta.
+Capacidad: ${maltTileCapacityKg()} Kg de malta.
 Suelta cebada madura aquí.||Primero se ara, luego se humedece y por último se seca.`;
   if(t.status==='rotten') return `Malta estropeada.
 Ya no se puede usar: pulsa Limpiar.`;
@@ -2131,13 +2174,13 @@ Calidad: ${Math.round(t.quality || 100)}.
 Turba: ${Math.round(t.peatPpm || 0)}ppm.${maltedWarning(t)?'||Atención: esta malta lleva mucho tiempo secada; si la dejas demasiado, se estropeará.':''}`;
   const stage=normalizeMaltStage(t);
   if(stage==='raw') return `Cebada almacenada en seco.
-Cantidad: ${Math.round(t.amount||0)} Kg / ${MALT_TILE_CAPACITY_KG} Kg.
+Cantidad: ${Math.round(t.amount||0)} Kg / ${maltTileCapacityKg()} Kg.
 Calidad base: ${Math.round(maltBaseQuality(t))}.||Click con el arado para preparar la cebada.`;
   if(stage==='tilled') return `Cebada arada.
-Cantidad: ${Math.round(t.amount||0)} Kg / ${MALT_TILE_CAPACITY_KG} Kg.
+Cantidad: ${Math.round(t.amount||0)} Kg / ${maltTileCapacityKg()} Kg.
 Calidad base: ${Math.round(maltBaseQuality(t))}.||Click con la gota para humedecer y empezar germinación.`;
   return `🌿 Malteado.
-Cantidad: ${Math.round(t.amount||0)} Kg / ${MALT_TILE_CAPACITY_KG} Kg.
+Cantidad: ${Math.round(t.amount||0)} Kg / ${maltTileCapacityKg()} Kg.
 Humedad: ${t.moisture.toFixed(0)}%.
 Germinación: ${t.germ.toFixed(0)}%.
 Calidad: ${Math.round(qNow)}.
@@ -2148,14 +2191,14 @@ function fieldUpgradeButtonsHtml(){
   const upgrades=fieldUpgrades();
   const buttons=[];
   if(!upgrades.warehouseBuilt){
-    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="warehouse" data-tip="Construir almacén de cebada.\nCoste: ${FIELD_WAREHOUSE_COST} k€.\nCapacidad: ${FIELD_WAREHOUSE_CAPACITY_KG.toLocaleString('es-ES')} Kg.">${actionButtonLabel('img/almacen.png', `Almacén · ${FIELD_WAREHOUSE_COST}k€`, 'almacén')}</button>`);
+    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="warehouse" data-tip="Construir almacén de cebada.\nCoste: ${FIELD_WAREHOUSE_COST} k€.\nCapacidad: ${FIELD_WAREHOUSE_CAPACITY_KG.toLocaleString('es-ES')} Kg.">${actionButtonLabel('img/almacen.png', actionLabel('Almacén', FIELD_WAREHOUSE_COST), 'almacén')}</button>`);
   } else if(!upgrades.warehouseDuplicated){
-    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="warehouse-duplicate" data-tip="Duplicar la capacidad del almacén.\nCoste: ${FIELD_WAREHOUSE_DUPLICATE_COST} k€.\nNueva capacidad: ${(FIELD_WAREHOUSE_CAPACITY_KG*2).toLocaleString('es-ES')} Kg.">${actionButtonLabel('img/almacen.png', `Duplicar almacén · ${FIELD_WAREHOUSE_DUPLICATE_COST}k€`, 'duplicar almacén')}</button>`);
+    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="warehouse-duplicate" data-tip="Duplicar la capacidad del almacén.\nCoste: ${FIELD_WAREHOUSE_DUPLICATE_COST} k€.\nNueva capacidad: ${(FIELD_WAREHOUSE_CAPACITY_KG*2).toLocaleString('es-ES')} Kg.">${actionButtonLabel('img/almacen.png', actionLabel('Duplicar', FIELD_WAREHOUSE_DUPLICATE_COST), 'duplicar almacén')}</button>`);
   }
   if(!upgrades.autoWater){
-    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="auto-water" data-tip="Riego automático.\nCoste: ${FIELD_AUTOWATER_COST} k€.\nLas parcelas cultivadas se mantienen al 100% de agua.">${actionButtonLabel('img/riego.gif', `Riego automático · ${FIELD_AUTOWATER_COST}k€`, 'riego automático')}</button>`);
+    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="auto-water" data-tip="Riego automático.\nCoste: ${FIELD_AUTOWATER_COST} k€.\nLas parcelas cultivadas se mantienen al 100% de agua.">${actionButtonLabel('img/riego.gif', actionLabel('Riego', FIELD_AUTOWATER_COST), 'riego automático')}</button>`);
   } else if(upgrades.warehouseBuilt && !upgrades.autoHarvester){
-    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="auto-harvester" data-tip="Autocosechadora.\nCoste: ${FIELD_AUTOHARVESTER_COST} k€.\nCosecha en el punto óptimo y guarda en almacén con Q 95.">${actionButtonLabel('img/cosechadora.png', `Autocosechadora · ${FIELD_AUTOHARVESTER_COST}k€`, 'autocosechadora')}</button>`);
+    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="auto-harvester" data-tip="Autocosechadora.\nCoste: ${FIELD_AUTOHARVESTER_COST} k€.\nCosecha en el punto óptimo y guarda en almacén con Q 95.">${actionButtonLabel('img/cosechadora.png', actionLabel('Autocosechadora', FIELD_AUTOHARVESTER_COST), 'autocosechadora')}</button>`);
   }
   return buttons.length ? `<div class="field-upgrade-panel">${buttons.join('')}</div>` : '';
 }
@@ -2165,9 +2208,10 @@ function renderFieldUpgrades(root){
   if(upgrades.autoWater) root.insertAdjacentHTML('beforeend', '<div class="field-upgrade-overlay irrigation-overlay" aria-hidden="true"><img src="img/riego.gif" alt=""></div>');
   if(upgrades.warehouseBuilt){
     const pctFull=(warehouseKg()/Math.max(1, warehouseCapacity()))*100;
+    root.insertAdjacentHTML('beforeend', '<div class="field-upgrade-overlay warehouse-base-overlay" aria-hidden="true"><img src="img/almacen_base.png" alt=""></div>');
     root.insertAdjacentHTML('beforeend', `<div class="field-upgrade-overlay warehouse-overlay barley-warehouse-drop drop-target ${upgrades.warehouseDuplicated?'expanded':''} ${warehouseKg()>0?'token':''}" data-drag="barley-store" data-label="almacén de cebada" data-tip="Almacén de cebada.\n${Math.round(warehouseKg()).toLocaleString('es-ES')} / ${Math.round(warehouseCapacity()).toLocaleString('es-ES')} Kg.\nQ media: ${Math.round(upgrades.warehouseQuality)}.||Arrastra cosecha aquí para guardar. Arrastra desde aquí a parcelas o a malteado."><img src="img/almacen.png" alt="almacén"><span>${Math.round(pctFull)}%</span></div>`);
   }
-  if(upgrades.autoHarvester) root.insertAdjacentHTML('beforeend', '<div class="field-upgrade-overlay harvester-overlay" data-tip="Autocosechadora: cosecha automáticamente en el punto óptimo y guarda Q 95 en el almacén."><img src="img/cosechadora.png" alt="autocosechadora"></div>');
+  if(upgrades.autoHarvester) root.insertAdjacentHTML('beforeend', '<div class="field-upgrade-overlay harvester-base-overlay" aria-hidden="true"><img src="img/cosechadora_base.png" alt=""></div><div class="field-upgrade-overlay harvester-overlay" data-tip="Autocosechadora: cosecha automáticamente en el punto óptimo y guarda Q 95 en el almacén."><img src="img/cosechadora.png" alt="autocosechadora"></div>');
 }
 
 function renderField(){
@@ -2177,6 +2221,7 @@ function renderField(){
     const disabled=fieldTileDisabledReason(i);
     el.classList.toggle('field-disabled', !!disabled);
     el.classList.toggle('empty', t.status==='empty');
+    el.classList.toggle('dry-crop', !disabled && (t.status==='dry' || t.status==='rotten'));
     el.classList.toggle('needs-water', !disabled && t.status==='planted' && t.growth < FIELD_HARVEST_START && t.moisture < FIELD_WATER_CAP);
     if(disabled){
       el.innerHTML='';
@@ -2211,15 +2256,20 @@ function renderField(){
 }
 
 function renderMalt(){
+  $$('#maltingWrap .malt-upgrade-panel').forEach(el=>el.remove());
+  if(!fieldUpgrades().maltCapacityUpgraded){
+    $('#maltingWrap')?.insertAdjacentHTML('beforeend', `<div class="malt-upgrade-panel"><button class="field-upgrade-buy icon-action-btn malt-capacity-upgrade-buy" type="button" data-upgrade="malt-capacity" data-tip="Ampliar un 50% la capacidad de cebada de las 4 zonas de malteado.\nCoste: ${MALT_CAPACITY_UPGRADE_COST} k€.\nNueva capacidad por zona: ${Math.round(MALT_TILE_CAPACITY_KG*MALT_CAPACITY_UPGRADE_FACTOR).toLocaleString('es-ES')} Kg.">${actionButtonLabel('img/cebada_germinando.png', actionLabel('Capacidad', MALT_CAPACITY_UPGRADE_COST), 'capacidad malteado')}</button></div>`);
+  }
   $$('.malt-tile').forEach(el=>{
     const i=+el.dataset.i, t=state.malt[i];
     const stage=normalizeMaltStage(t);
     t.maltStage=stage;
     el.classList.toggle('empty', t.status==='empty');
+    el.classList.toggle('rotten-malt', t.status==='rotten');
     el.classList.toggle('needs-plough', t.status==='filled' && stage==='raw');
     el.classList.toggle('needs-water', t.status==='filled' && stage==='tilled');
     el.classList.toggle('ready-kiln', t.status==='filled' && stage==='germinating' && !t.heated && t.germ>=MALT_HARVEST_START);
-    const capacityHtml = (Number(t.amount)||0) > 0 ? `<div class="malt-capacity"><i style="height:${pct(((t.amount||0)/MALT_TILE_CAPACITY_KG)*100)}"></i></div>` : '';
+    const capacityHtml = (Number(t.amount)||0) > 0 ? `<div class="malt-capacity"><i style="height:${pct(((t.amount||0)/maltTileCapacityKg())*100)}"></i></div>` : '';
     el.innerHTML = capacityHtml + (t.status==='empty' ? '' : bars(t.moisture, t.germ, MALT_HARVEST_START, MALT_OPTIMAL_END - MALT_HARVEST_START, t.status==='rotten', 'quality'));
     el.dataset.tip = maltTip(t);
     if(t.status==='filled' || t.status==='rotten'){
@@ -2254,8 +2304,8 @@ Turba: ${Math.round(t.peatPpm || 0)}ppm.||Arrástrala a una tina.`;
 function renderVats(){
   const root = $('#fermentation');
   const v0=state.vats[0] || (state.vats[0]=newVat(true));
-  const upgradeCost=nextVatUpgradeCost(v0);
-  root.innerHTML = `<div class="fermentation-props"><div class="mash-tun-prop" data-i="0" data-tip="Tina de maceración: recibe la mezcla tras pasar por el molino."><img src="img/tina_maceracion.png" alt=""></div><div class="mill-prop drop-target" data-i="0" data-tip="Molino / grinder.\nSuelta aquí la malta secada para molerla y macerarla antes de pasarla a fermentación."><img src="img/mill.png" alt=""></div></div>${upgradeCost ? `<div class="equipment-shop vat-shop"><button class="equipment-buy icon-action-btn vat-capacity-buy" type="button" data-equipment="vat-capacity" data-tip="Ampliar la capacidad de la tina de fermentación un 50%.\nCoste: ${upgradeCost} k€.\nCapacidad actual: ${Math.round(vatCapacityLitres(v0)).toLocaleString('es-ES')} l.">${actionButtonLabel('img/tina_fermentacion.png', `Capacidad +50% · ${upgradeCost}k€`, 'tina de fermentación')}</button></div>` : ''}` + state.vats.slice(0,1).map((v,i)=>{
+  const upgrade=nextVatUpgradeInfo(v0);
+  root.innerHTML = `<div class="fermentation-props"><div class="mash-tun-prop" data-i="0" data-tip="Tina de maceración: recibe la mezcla tras pasar por el molino."><img src="img/tina_maceracion.png" alt=""></div><div class="mill-prop drop-target" data-i="0" data-tip="Molino / grinder.\nSuelta aquí la malta secada para molerla y macerarla antes de pasarla a fermentación."><img src="img/mill.png" alt=""></div></div>${upgrade ? `<div class="equipment-shop vat-shop"><button class="equipment-buy icon-action-btn vat-capacity-buy" type="button" data-equipment="vat-capacity" data-tip="Ampliar la capacidad de la tina de fermentación.\nCoste: ${upgrade.cost} k€.\nCapacidad actual: ${Math.round(upgrade.currentLitres).toLocaleString('es-ES')} l.\nNueva capacidad: ${Math.round(upgrade.nextLitres).toLocaleString('es-ES')} l.">${actionButtonLabel('img/tina_fermentacion.png', actionLabel(`Capacidad ${upgrade.label}`, upgrade.cost), 'tina de fermentación')}</button></div>` : ''}` + state.vats.slice(0,1).map((v,i)=>{
     const q = vatDisplayQuality(v);
     const ready = v.volume>0 && v.ferment>=FERMENT_OPTIMAL_START && !v.rotten;
     const drag = ready ? `data-drag="wash" data-vat="${i}" data-label="mosto"` : '';
@@ -2273,7 +2323,7 @@ Pulsa para limpiar.` : (hasLiquid ? `🧪 Tina de fermentación.
 🪵 Turba: ${Math.round(v.peatPpm || 0)}ppm.${warn?'||Atención: si no echas levadura pronto, se estropeará.':''}` : `🧪 Tina de fermentación.
 Capacidad: ${Math.round(capacityL).toLocaleString('es-ES')} l.
 Sin líquido.`);
-    return `<div class="machine-unit vat-unit primary-vat vat-upgrades-${vatUpgradeCount(v)} drop-target ${ready?'ready-drag':''}" data-i="${i}" ${drag} data-tip="${tip}">
+    return `<div class="machine-unit vat-unit primary-vat vat-upgrades-${vatUpgradeCount(v)} drop-target ${ready?'ready-drag':''} ${v.rotten?'rotten-vat':''}" data-i="${i}" ${drag} data-tip="${tip}">
       ${hasLiquid ? qualityHtml(q, v.peatPpm || 0, v.lineage || []) : ''}
       <div class="bar vertical vol"><i style="height:${pct(v.volume)}"></i><span class="bar-abv">Vol</span></div>
       <img class="machine-sprite vat-sprite" src="img/tina_fermentacion.png" alt="tina de fermentación" draggable="false">
@@ -2288,19 +2338,21 @@ Sin líquido.`);
 function renderStills(){
   const root = $('#stillhouse');
   const canBuyStill = state.stills.some((s,i)=>i>0 && !isStillActive(s,i));
-  root.innerHTML = `${canBuyStill ? `<div class="equipment-shop still-shop"><button class="equipment-buy icon-action-btn" type="button" data-equipment="still" data-tip="Comprar un alambique nuevo.\nCoste: ${EQUIPMENT_COST} k€.">${actionButtonLabel('img/alambique.png', `+ Alambique ${EQUIPMENT_COST}k€`, 'alambique')}</button></div>` : ''}` + state.stills.map((s,i)=>{
+  root.innerHTML = `${canBuyStill ? `<div class="equipment-shop still-shop"><button class="equipment-buy icon-action-btn" type="button" data-equipment="still" data-tip="Comprar un alambique nuevo.\nCoste: ${EQUIPMENT_COST} k€.">${actionButtonLabel('img/alambique.png', actionLabel('Comprar', EQUIPMENT_COST), 'alambique')}</button></div>` : ''}` + state.stills.map((s,i)=>{
     const spiritReady = s.output > 0;
     const visualTemp = Number.isFinite(Number(s.tempDisplay)) ? Number(s.tempDisplay) : s.temp;
+    const tempColor=temperatureColor(s.temp);
+    const visualTempColor=temperatureBarColor(visualTemp);
     const hasInput=s.input>0, hasOutput=s.output>0;
     const inputTip=hasInput ? `<p>💧 ${s.input.toFixed(0)}% (${Math.round(s.input/100*STILL_INPUT_LITRES)}l)</p><p>⭐ Calidad ${Math.round(qualityOrDefault(s.inputQuality))}</p><p>🧪 Gradación ${s.inputAbv.toFixed(0)}°</p><p>🪵 Turba ${Math.round(s.inputPeatPpm||0)}ppm</p>` : '<p class="tip-muted">Sin líquido.</p>';
     const outputTip=hasOutput ? `<p>💧 ${s.output.toFixed(1)}% (${Math.round(stillOutLitres(s))}l)</p><p>⭐ Calidad ${Math.round(qualityOrDefault(s.outputQuality))}</p><p>🧪 Gradación ${s.outputAbv.toFixed(0)}°</p><p>🪵 Turba ${Math.round(s.outputPeatPpm||0)}ppm</p>` : '<p class="tip-muted">Sin líquido.</p>';
-    const tip = `<div class="tip-wide still-tip"><div class="tip-head"><b>⚗️ Alambique ${i+1}</b><span class="still-heat">🔥 ${s.temp.toFixed(0)}°C</span></div>
+    const tip = `<div class="tip-wide still-tip"><div class="tip-head"><b>⚗️ Alambique ${i+1}</b><span class="still-heat" style="color:${tempColor}">🔥 ${s.temp.toFixed(0)}°C</span></div>
 <div class="tip-cols"><section><h5>Entrada</h5>${inputTip}</section><section><h5>Salida</h5>${outputTip}</section></div></div>||1ª pasada: low wines ~${LOW_WINES_ABV_TARGET}°. 2ª pasada: new make ~${NEW_MAKE_ABV_TARGET}°. 3ª pasada opcional: triple destilado ~${THIRD_DISTILL_ABV_TARGET}°. Por encima de 100° arrastra agua: más volumen, menos ABV/calidad, nunca más LPA.`;
-    return `<div class="machine-unit still-unit ${s.fire?'fire-on':''} ${isStillActive(s,i)?'':'inactive'}" data-i="${i}" data-tip="${escapeHtml(tip)}">
+    return `<div class="machine-unit still-unit ${i%2===1?'still-mirrored':''} ${s.fire?'fire-on':''} ${isStillActive(s,i)?'':'inactive'}" data-i="${i}" data-tip="${escapeHtml(tip)}">
       ${(hasInput || hasOutput) ? qualityHtml(hasOutput ? s.outputQuality : s.inputQuality, hasOutput ? s.outputPeatPpm : s.inputPeatPpm, hasOutput ? s.outputLineage : s.inputLineage) : ''}
-      <div class="temp-chip">${s.temp.toFixed(0)}°C</div>
+      <div class="temp-chip" style="color:${tempColor}">${s.temp.toFixed(0)}°C</div>
       <div class="bar vertical input"><i style="height:${pct(s.input)}"></i><span class="bar-abv">${hasInput ? `${s.inputAbv.toFixed(0)}°` : ''}</span></div>
-      <div class="bar vertical tempv"><em class="alcohol-zone" style="height:4%;bottom:58%"></em><b class="water-line" style="bottom:80%"></b><i style="height:${tempPct(visualTemp)}"></i><span class="bar-abv">🌡️</span></div>
+      <div class="bar vertical tempv"><em class="alcohol-zone" style="height:4%;bottom:58%"></em><b class="water-line" style="bottom:80%"></b><i style="height:${tempPct(visualTemp)};background:${visualTempColor}"></i><span class="bar-abv">🌡️</span></div>
       <div class="still-visual"><img class="machine-sprite still-sprite" src="img/alambique.png" alt="alambique" draggable="false">${s.fire?'<img class="machine-sprite still-sprite fire-gif" src="img/alambique.gif" alt="fuego" draggable="false">':''}</div>
       <div class="bar vertical output ${s.outputRuns>=3?'run3':''}"><i style="height:${pct(s.output)}"></i><span class="bar-abv">${hasOutput ? `${s.outputAbv.toFixed(0)}°` : ''}</span></div>
       <div class="still-drop in drop-target" data-still="${i}" data-zone="in" data-tip="Entrada del alambique: suelta mosto o destilado para segunda pasada."></div>
@@ -2347,7 +2399,7 @@ function renderCards(){
   aging.innerHTML=''; bottling.innerHTML='';
   const shop=document.createElement('div');
   shop.className=`barrel-shop ${barrelShopOpen?'open':''}`;
-  shop.innerHTML=`<button id="barrelShopToggle" class="barrel-buy icon-action-btn" type="button" data-tip="Comprar packs de ${BARREL_PACK_SIZE} barricas.">${actionButtonLabel('img/barril_bourbon.png', 'Comprar barricas', 'barricas')}</button>`;
+  shop.innerHTML=`<button id="barrelShopToggle" class="barrel-buy icon-action-btn" type="button" data-tip="Comprar packs de ${BARREL_PACK_SIZE} barricas.">${actionButtonLabel('img/barril_bourbon.png', 'Comprar', 'barricas')}</button>`;
   aging.appendChild(shop);
   renderBarrelShopModal();
   const discard=document.createElement('div');
@@ -2358,7 +2410,7 @@ function renderCards(){
   const hist=document.createElement('button');
   hist.id='bottleHistorySide'; hist.className='bottle-history-side icon-action-btn'; hist.type='button';
   hist.dataset.tip='Histórico de botellas embotelladas. Abre fichas de lotes, composición, cata y venta.';
-  hist.innerHTML=actionButtonLabel('img/bottles/bottle_18Q.png', 'Historial', 'historial de botellas');
+  hist.innerHTML=actionButtonLabel('img/bottles/bottle_title.png', 'Historial', 'historial de botellas');
   bottling.appendChild(hist);
   state.barrels.forEach((b,i)=>{
     if(!Number.isFinite(b.x)) b.x=24+i*120; if(!Number.isFinite(b.y)) b.y=56;
@@ -2401,13 +2453,13 @@ function buyEquipment(kind){
     notice('La sala trabaja ahora con una sola tina de fermentación. Usa la mejora de capacidad.', 'explain', 'Tina única');
     return;
   } else if(kind==='vat-capacity'){
-    const v=state.vats[0] || (state.vats[0]=newVat(true)), cost=nextVatUpgradeCost(v);
-    if(!cost){ notice('La tina ya está al máximo de capacidad.', 'explain'); return; }
-    if(state.coins < cost){ notice(`Necesitas ${cost} k€ para ampliar la tina.`, 'explain', 'No hay dinero'); return; }
+    const v=state.vats[0] || (state.vats[0]=newVat(true)), upgrade=nextVatUpgradeInfo(v);
+    if(!upgrade){ notice('La tina ya está al máximo de capacidad.', 'explain'); return; }
+    if(state.coins < upgrade.cost){ notice(`Necesitas ${upgrade.cost} k€ para ampliar la tina.`, 'explain', 'No hay dinero'); return; }
     const litres=vatLitres(v);
-    state.coins -= cost;
+    state.coins -= upgrade.cost;
     v.capacityUpgrades = vatUpgradeCount(v) + 1;
-    v.capacityPct = vatCapacityPct(v) * VAT_CAPACITY_UPGRADE_MULTIPLIER;
+    v.capacityPct = vatCapacityPctForUpgrades(v.capacityUpgrades);
     v.volume = vatPctFromL(litres, v);
     playFx('fxCashRegister', .86);
   } else if(kind==='still'){
@@ -2452,6 +2504,12 @@ function buyFieldUpgrade(kind){
     if(state.coins < cost){ notice(`Necesitas ${cost} k€ para comprar la autocosechadora.`, 'explain', 'No hay dinero'); return; }
     state.coins-=cost;
     upgrades.autoHarvester=true;
+  } else if(kind==='malt-capacity'){
+    if(upgrades.maltCapacityUpgraded) return;
+    cost=MALT_CAPACITY_UPGRADE_COST;
+    if(state.coins < cost){ notice(`Necesitas ${cost} k€ para ampliar el malteado.`, 'explain', 'No hay dinero'); return; }
+    state.coins-=cost;
+    upgrades.maltCapacityUpgraded=true;
   } else return;
   clearDisabledFieldTiles();
   playFx('fxCashRegister', .76);
@@ -2474,7 +2532,7 @@ function handleDrop(target,data,e){
   if(target.classList.contains('field-tile') && (data.drag==='seed' || data.drag==='barley-store')){
     const i=+target.dataset.i, t=state.field[i];
     if(fieldTileDisabledReason(i)) return;
-    if(data.drag==='barley-store'){ plantFieldFromWarehouse(i); return; }
+    if(data.drag==='barley-store' || warehouseBuilt()){ plantFieldFromWarehouse(i); return; }
     if(t.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:fieldUpgrades().autoWater ? FIELD_WATER_CAP : 0, dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); }
     else if(t.status==='empty') notice('No tienes semillas suficientes. Compra semillas en el menú principal.', 'explain', 'Sin semillas');
   }
@@ -2482,10 +2540,10 @@ function handleDrop(target,data,e){
   if(target.classList.contains('malt-tile') && data.drag==='barley-store'){ addWarehouseToMaltTile(+target.dataset.i); return; }
   if(target.classList.contains('malt-tile') && data.drag==='crop'){
     const dst=state.malt[+target.dataset.i], src=state.field[+data.source];
-    if(dst && src?.growth>=FIELD_HARVEST_START && (dst.amount||0)<MALT_TILE_CAPACITY_KG){
+    if(dst && src?.growth>=FIELD_HARVEST_START && (dst.amount||0)<maltTileCapacityKg()){
       const stage=normalizeMaltStage(dst);
       if(stage==='germinating' || stage==='kilned' || dst.heated){ notice('Cuando la cebada ya está germinando o secada, no puedes añadir más cosecha a ese montón.', 'explain', 'Ese montón ya va por otro paso'); return; }
-      const add=Math.min(MALT_KG_PER_PLOT, MALT_TILE_CAPACITY_KG-(dst.amount||0)), old=dst.amount||0;
+      const add=Math.min(MALT_KG_PER_PLOT, maltTileCapacityKg()-(dst.amount||0)), old=dst.amount||0;
       const baseQ=weightedQuality(old, dst.baseQuality ?? dst.quality ?? 100, add, cropQuality(src));
       Object.assign(dst,{status:'filled', amount:old+add, germ:0, moisture:0, baseQuality:baseQ, quality:baseQ, lineage:mergeLineage(dst.lineage||[], [{stage:'cultivo', q:cropQuality(src), barleyKg:FIELD_BARLEY_KG_PER_PLOT, maltKg:add, areaHa:FIELD_PLOT_AREA_HA}]), heated:false, peat:dst.peat||false, dry:0, stable:0, warned:false, maltStage:'raw'});
       Object.assign(src,{status:'empty', growth:0, moisture:0, dry:0, overdue:0, quality:100});
@@ -2951,12 +3009,15 @@ function render(){
   $('#distilleryName').value = state.distilleryName;
   $('#reputation').textContent = `${Math.round(distillery().reputation||0)}`;
   $('#coins').textContent = `${state.coins.toFixed(0)} k€`;
-  $('#seeds').textContent = `${state.seeds.toFixed(0)} Kg`;
+  $('#seeds').textContent = `${availableSeedKg().toFixed(0)} Kg`;
   $('#bottles').textContent = `${state.bottles}`;
+  $('#seedInventory').dataset.tip = warehouseBuilt()
+    ? `🌾 Cebada disponible en el almacén.\nArrastra este icono a una parcela vacía para plantar ${SEED_KG_PER_PLOT} Kg desde el almacén.`
+    : `🌾 Semillas disponibles.\nArrastra este icono a una parcela vacía para plantar ${SEED_KG_PER_PLOT} Kg.`;
   $('#bottleStat')?.setAttribute('data-tip', '🍾 Botellas en tienda. Click para abrir el histórico completo de lotes embotellados.');
   updateMarketHud();
   const warehouseText = warehouseBuilt() ? ` · 🏚️ Almacén ${Math.round(warehouseKg()).toLocaleString('es-ES')}/${Math.round(warehouseCapacity()).toLocaleString('es-ES')} Kg Q${Math.round(fieldUpgrades().warehouseQuality)}` : '';
-  $('#resources').dataset.tip = `Recursos:\n🏆 Reputación ${Math.round(distillery().reputation||0)} · 🪙 Monedas ${state.coins.toFixed(0)} k€ · 🌾 Semillas ${state.seeds.toFixed(0)} Kg (${SEED_KG_PER_PLOT} Kg/parcela)${warehouseText} · 🍾 Botellas ${state.bottles} · 📈 Mercado ${state.market.toFixed(2)} € x botella x años`;
+  $('#resources').dataset.tip = `Recursos:\n🏆 Reputación ${Math.round(distillery().reputation||0)} · 🪙 Monedas ${state.coins.toFixed(0)} k€ · 🌾 ${warehouseBuilt() ? 'Almacén/siembra' : 'Semillas'} ${availableSeedKg().toFixed(0)} Kg (${SEED_KG_PER_PLOT} Kg/parcela)${warehouseText} · 🍾 Botellas ${state.bottles} · 📈 Mercado ${state.market.toFixed(2)} € x botella x años`;
   $('#scotlandMapButton')?.classList.toggle('hidden', !state.scotlandLocation);
   $('#scotlandMapButton')?.setAttribute('data-tip', state.scotlandLocation ? `Mapa de Escocia. Localización: ${regionName(state.scotlandLocation.region)}.` : 'Mapa de Escocia.');
   $('#game').classList.toggle('debug-tools-visible', debugToolsVisible);
@@ -2964,7 +3025,7 @@ function render(){
   $('#speedSlider').value = state.speedStep;
   $('#speedSlider')?.style.setProperty('--speed-unlock', `${((achievementMaxSpeedStep()+4)/13*100).toFixed(1)}%`);
   $('#speedLabel').textContent = speedLabel();
-  $('#seedInventory').classList.toggle('disabled', state.seeds < SEED_KG_PER_PLOT);
+  $('#seedInventory').classList.toggle('disabled', availableSeedKg() < SEED_KG_PER_PLOT);
   $('#game').classList.toggle('debug-zones', !!state.debugQuality);
   $('#toggleDebugView').classList.toggle('on', !!state.debugQuality);
   refreshAudioToggles();
@@ -3152,8 +3213,15 @@ function heatMalt(i){
   markDirty(); render(); saveGame();
 }
 
+function isStagePanSurfaceTarget(target){
+  if(!target?.closest?.('#game')) return false;
+  if(target.closest('button,input,label,select,textarea,a,[data-drag],.drop-target,.field-tile,.malt-tile,.machine-unit,.card,.clean,.bar,.quality-pill,.warning-overlay,.field-upgrade-panel,.field-upgrade-overlay,.equipment-shop,.barrel-shop,.barrel-discard,#hud,#hudIcon,#tooltip,.game-popup,.bottle-modal,.market-sim-modal,.scotland-map-overlay')) return false;
+  return !!target.closest('#game,#finca,#fincaRoofs');
+}
 function startStagePan(e){
-  if(e.button !== 1 || !e.target.closest('#game')) return false;
+  const middlePan=e.button===1 && e.target.closest('#game');
+  const surfacePan=e.button===0 && isStagePanSurfaceTarget(e.target);
+  if(!middlePan && !surfacePan) return false;
   e.preventDefault(); e.stopPropagation();
   stagePan = { pointerId:e.pointerId, x:e.clientX, y:e.clientY, startX:stageOffsetX, startY:stageOffsetY };
   e.target.setPointerCapture?.(e.pointerId);
@@ -3176,7 +3244,7 @@ function endStagePan(e){
 }
 function dragDataFrom(el){
   const type = el.dataset.drag;
-  if(type==='seed' && state.seeds < SEED_KG_PER_PLOT) return null;
+  if(type==='seed' && availableSeedKg() < SEED_KG_PER_PLOT) return null;
   if(type==='barley-store' && warehouseKg()<=0) return null;
   return {...el.dataset, label: el.dataset.label || el.textContent.trim() || type};
 }
@@ -3281,22 +3349,35 @@ document.addEventListener('click', e=>{
     const i=+fieldTile.dataset.i, t=state.field[i];
     if(fieldTileDisabledReason(i)) return;
     if(t?.status==='dry' || t?.status==='rotten'){ Object.assign(t,{status:'empty',growth:0,moisture:0,dry:0,overdue:0,quality:100}); playFx('fxDropGrain'); markDirty(); render(); saveGame(); return; }
-    if(t?.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:fieldUpgrades().autoWater ? FIELD_WATER_CAP : 0, dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); markDirty(); render(); }
+    if(t?.status==='empty' && warehouseBuilt()){ plantFieldFromWarehouse(i); markDirty(); render(); saveGame(); }
+    else if(t?.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:fieldUpgrades().autoWater ? FIELD_WATER_CAP : 0, dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); markDirty(); render(); }
     else waterField(fieldTile);
   }
   const maltTile=e.target.closest('.malt-tile');
   if(maltTile){ const t=state.malt[+maltTile.dataset.i]; if(t?.status==='rotten'){ resetMaltTile(t); playFx('fxDropGrain'); markDirty(); render(); saveGame(); return; } if(advanceMaltTile(maltTile)) return; }
   const vat=e.target.closest('.vat-unit');
-  if(vat){ const v=state.vats[+vat.dataset.i]; if(v?.rotten){ clearVat(v); markDirty(); render(); } }
+  if(vat){
+    const i=+vat.dataset.i, v=state.vats[i];
+    if(v?.rotten){ clearVat(v); markDirty(); render(); }
+    else if(e.target.closest('.vat-sprite')) addYeastToVat(i);
+  }
 });
 document.addEventListener('click', e=>{
   const cleanVat=e.target.closest('.clean-vat-btn'); if(cleanVat){ e.preventDefault(); e.stopPropagation(); const v=state.vats[+cleanVat.dataset.i]; if(v?.rotten){ clearVat(v); markDirty(); render(); saveGame(); } return; }
   const peatIcon=e.target.closest('.peat-icon'); if(peatIcon){ e.preventDefault(); e.stopPropagation(); const t=state.malt[+peatIcon.dataset.i]; if(t && t.status==='filled' && !t.heated){ t.peat=!t.peat; markDirty(); render(); } return; }
   const heat=e.target.closest('.heat-tile'); if(heat) heatMalt(heat.dataset.i);
-  const yeast=e.target.closest('.yeast-btn'); if(yeast){ const v=state.vats[+yeast.dataset.i]; if(v?.volume>0 && !v.rotten){ v.yeast=true; v.warned=false; v.idle=0; v.soleraAddsAfterYeast=0; v.maltAdds=Number(v.maltAdds)||0; markDirty(); render(); } }
+  const yeast=e.target.closest('.yeast-btn'); if(yeast){ addYeastToVat(+yeast.dataset.i); }
   const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; markDirty(); render(); } }
   const empty=e.target.closest('.empty-still-btn'); if(empty){ emptyStillInput(+empty.dataset.i); }
 });
+
+function addYeastToVat(i){
+  const v=state.vats[+i];
+  if(!v || v.volume<=0 || v.rotten || v.yeast) return false;
+  v.yeast=true; v.warned=false; v.idle=0; v.soleraAddsAfterYeast=0; v.maltAdds=Number(v.maltAdds)||0;
+  markDirty(); render(); saveGame();
+  return true;
+}
 
 async function emptyStillInput(i){
   const s=state.stills[i]; if(!s) return;
@@ -3333,7 +3414,7 @@ function debugFill(){
     const germ=heated ? rnd(MALT_HARVEST_START,96) : rnd(0,96);
     const peat=heated && Math.random()<.5;
     const baseQ=rnd(78,100), q=heated?maltFinalQuality({germ, baseQuality:baseQ}):(germ>=MALT_HARVEST_START?maltFinalQuality({germ, baseQuality:baseQ}):baseQ);
-    Object.assign(t,{status:'filled', amount:rnd(MALT_TILE_CAPACITY_KG*.35,MALT_TILE_CAPACITY_KG), germ, moisture:heated?0:rnd(12,78), baseQuality:baseQ, quality:q, heated, peat, peatPpm:peat?TURBA_MAX_PPM:0, lineage:[{stage:'debug_malta', baseQ, q, germ}], dry:0, stable:0, warned:false, maltStage:heated?'kilned':(germ>0?'germinating':'raw')});
+    Object.assign(t,{status:'filled', amount:rnd(maltTileCapacityKg()*.35,maltTileCapacityKg()), germ, moisture:heated?0:rnd(12,78), baseQuality:baseQ, quality:q, heated, peat, peatPpm:peat?TURBA_MAX_PPM:0, lineage:[{stage:'debug_malta', baseQ, q, germ}], dry:0, stable:0, warned:false, maltStage:heated?'kilned':(germ>0?'germinating':'raw')});
   }
   state.vats = [newVat(true)];
   state.vats[0] = {unlocked:true, capacityPct:ROOM_CAPACITY.vatPct, volume:rnd(35,92), ferment:rnd(FERMENT_OPTIMAL_START,FERMENT_OPTIMAL_END), yeast:true, idle:0, rotten:false, baseQuality:95, quality:95, peatPpm:Math.random()<.4?rnd(0,60):0, lineage:[{stage:'debug_vat'}], abv:0};
@@ -3380,7 +3461,14 @@ document.addEventListener('click', e=>{
   const dist=e.target.closest('#distilleryStat'); if(dist){ e.preventDefault(); e.stopPropagation(); showDistilleryStats(); }
   const market=e.target.closest('#marketStat'); if(market){ e.preventDefault(); e.stopPropagation(); openMarketSimulator({toggle:true}); }
 });
-$('#buySeeds').onclick=()=>{ if(state.coins + 1e-6 >= SEED_PACK_COST){ state.coins=Math.max(0, state.coins-SEED_PACK_COST); state.seeds+=SEED_PACK_KG; playFx('fxCashRegister', .72); markDirty(); render(); } else notice(`Necesitas ${SEED_PACK_COST} k€ para comprar semillas.`, 'explain', 'No hay dinero'); };
+$('#buySeeds').onclick=()=>{
+  if(state.coins + 1e-6 < SEED_PACK_COST){ notice(`Necesitas ${SEED_PACK_COST} k€ para comprar semillas.`, 'explain', 'No hay dinero'); return; }
+  if(warehouseBuilt() && warehouseFreeKg() < SEED_PACK_KG){ notice('El almacén está lleno; no cabe más cebada para plantar.', 'explain', 'Almacén lleno'); return; }
+  state.coins=Math.max(0, state.coins-SEED_PACK_COST);
+  if(warehouseBuilt()) addBarleyToWarehouse(SEED_PACK_KG, 100);
+  else state.seeds+=SEED_PACK_KG;
+  playFx('fxCashRegister', .72); markDirty(); render();
+};
 $('#distilleryName').addEventListener('input', e=>{ state.distilleryName=e.target.value || 'Mi destilería'; markDirty(); });
 $('#editName').onclick=()=>{ nameEditing=true; render(); $('#distilleryName').focus(); $('#distilleryName').select(); };
 function acceptName(){ nameEditing=false; state.distilleryName=$('#distilleryName').value.trim() || 'Mi destilería'; markPublicProfileDirty('name-changed'); markDirty(); render(); saveGame(); }

@@ -816,6 +816,118 @@
   100% { transform:translateY(1px); }
 }
 
+/* 2026-06-21 UI/mecánica polish */
+.field-upgrade-panel {
+  top:-62px !important;
+}
+.malt-upgrade-panel {
+  position:absolute;
+  left:8px;
+  top:-70px;
+  z-index:42;
+  display:flex;
+  pointer-events:auto;
+}
+.equipment-shop {
+  top:-38px !important;
+}
+.vat-shop {
+  top:-74px !important;
+}
+.barrel-shop {
+  top:auto !important;
+  bottom:8px !important;
+}
+.bottle-history-side {
+  top:auto !important;
+  bottom:8px !important;
+}
+.icon-action-btn,
+.barrel-buy,
+.equipment-buy,
+.field-upgrade-buy,
+.bottle-history-side,
+.barrel-discard {
+  height:40px !important;
+  min-height:40px !important;
+  gap:8px !important;
+}
+.action-btn-icon {
+  width:58px !important;
+  height:58px !important;
+  min-width:58px !important;
+}
+.field-upgrade-buy .action-btn-icon,
+.malt-capacity-upgrade-buy .action-btn-icon {
+  width:62px !important;
+  height:62px !important;
+}
+.vat-capacity-buy .action-btn-icon {
+  width:53px !important;
+  height:67px !important;
+}
+.barrel-buy .action-btn-icon,
+.bottle-history-side .action-btn-icon {
+  width:62px !important;
+  height:67px !important;
+}
+.action-price {
+  color:#fff05a !important;
+  font-weight:1000 !important;
+  text-shadow:1px 1px #000, 0 0 7px rgba(255,224,50,.65) !important;
+}
+.warehouse-base-overlay {
+  left:50%;
+  top:60%;
+  width:50%;
+  height:40%;
+  z-index:35;
+}
+.warehouse-base-overlay img,
+.harvester-base-overlay img {
+  object-fit:fill !important;
+}
+.harvester-base-overlay {
+  left:0;
+  top:80%;
+  width:50%;
+  height:20%;
+  z-index:36;
+}
+.harvester-overlay {
+  z-index:37;
+}
+.harvester-overlay img {
+  animation:harvesterEngine .9s steps(2,end) infinite !important;
+}
+.field-tile.dry-crop,
+.vat-unit.rotten-vat {
+  cursor:pointer !important;
+}
+.vat-unit.primary-vat .yeast-btn {
+  top:auto !important;
+  bottom:4px !important;
+}
+.mash-tun-prop {
+  pointer-events:auto !important;
+  cursor:help !important;
+}
+.temp-chip,
+#tooltip .still-heat {
+  text-shadow:1px 1px #000, 0 0 7px currentColor !important;
+}
+.scotland-radar text.radar-icon {
+  fill:#fff3cf !important;
+  font:1000 15px ui-monospace, monospace !important;
+  paint-order:stroke;
+  stroke:#000;
+  stroke-width:2px;
+  stroke-linejoin:round;
+}
+.scotland-radar text.radar-label {
+  font:1000 7.8px ui-monospace, monospace !important;
+}
+
 /* 2026-06-19 embedded market simulator popup */
 .market-sim-modal {
   position:fixed;
@@ -1007,4 +1119,90 @@
 }
 .scotland-player-card .scotland-achievement-badges img:hover {
   transform:translateY(-4px) scale(1.10) rotate(-3deg) !important;
+}
+
+/* 2026-06-21 final polish batch */
+.scotland-region-layers {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.scotland-region-layers .scotland-region-mask {
+  opacity:0;
+  filter:none !important;
+  animation:none !important;
+}
+.scotland-region-layers .scotland-region-mask.active {
+  filter:drop-shadow(0 0 3px var(--region, #ffe873)) drop-shadow(0 0 9px var(--region, #ffe873)) !important;
+  animation:scotlandRegionGlowShort 2.15s ease-in-out infinite !important;
+}
+
+.still-unit .bar.tempv {
+  background:linear-gradient(to top, #2498ff 0%, #2498ff 12%, #171c1f 12%, #171c1f 58.3%, #5bb765 58.3%, #5bb765 80%, #d3aa3d 80%, #ffba35 100%) !important;
+}
+
+.barrel-shop,
+.bottle-history-side,
+.barrel-discard {
+  top:-40px !important;
+  bottom:auto !important;
+}
+.barrel-shop { left:10px !important; }
+.bottle-history-side { right:10px !important; }
+
+.still-unit.still-mirrored .still-visual .still-sprite {
+  transform:scaleX(-1) !important;
+}
+.still-unit.still-mirrored .bar.input {
+  left:auto !important;
+  right:4px !important;
+}
+.still-unit.still-mirrored .bar.tempv {
+  left:auto !important;
+  right:21px !important;
+}
+.still-unit.still-mirrored .bar.output {
+  left:4px !important;
+  right:auto !important;
+}
+.still-unit.still-mirrored .still-drop.in {
+  left:auto !important;
+  right:31px !important;
+  width:84px !important;
+}
+.still-unit.still-mirrored .still-drop.out {
+  left:8px !important;
+  right:auto !important;
+  width:54px !important;
+}
+
+.vat-unit.primary-vat .yeast-btn,
+.vat-unit.primary-vat .clean-vat-btn {
+  top:auto !important;
+  bottom:14px !important;
+}
+.vat-unit.primary-vat .vat-sprite {
+  cursor:pointer;
+}
+.malt-tile.rotten-malt,
+.malt-tile:has(.clean) {
+  cursor:pointer !important;
+}
+
+.warehouse-base-overlay img,
+.harvester-base-overlay img {
+  filter:none !important;
+  box-shadow:none !important;
+}
+.harvester-overlay img {
+  animation:harvesterEngineSlow .333s steps(2,end) infinite !important;
+}
+@keyframes harvesterEngineSlow {
+  0% { transform:translateY(-2px) rotate(-.25deg); }
+  100% { transform:translateY(2px) rotate(.25deg); }
+}
+
+.scotland-radar text.radar-value {
+  font:1000 8.4px ui-monospace, monospace !important;
+  fill:#ffe16d !important;
 }
