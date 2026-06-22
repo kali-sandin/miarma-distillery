@@ -1332,3 +1332,114 @@
   font:1000 8.4px ui-monospace, monospace !important;
   fill:#ffe16d !important;
 }
+
+/* 2026-06-22 stillhouse thermostat, warehouse tier and harvester fixes */
+.warehouse-overlay.expanded-2 {
+  left:53% !important;
+  top:63.6% !important;
+  width:42% !important;
+  height:31.8% !important;
+}
+
+.harvester-overlay {
+  --harvester-target-left:5%;
+  --harvester-target-top:82%;
+  left:5% !important;
+  top:82% !important;
+  transform:none !important;
+}
+.harvester-overlay.traveling {
+  animation:harvesterTravelToPlot 1.72s cubic-bezier(.22,.72,.22,1) both !important;
+}
+.harvester-overlay.traveling img {
+  animation:harvesterTravelEngineSoft 1.72s steps(2,end) both !important;
+}
+@keyframes harvesterTravelToPlot {
+  0% { left:5%; top:82%; }
+  42% { left:var(--harvester-target-left); top:var(--harvester-target-top); }
+  74% { left:var(--harvester-target-left); top:var(--harvester-target-top); }
+  100% { left:5%; top:82%; }
+}
+@keyframes harvesterTravelEngineSoft {
+  0%,41% { transform:scaleX(var(--harvester-out-face)) translateY(0) rotate(0); }
+  14%,30%,48%,64% { transform:scaleX(var(--harvester-out-face)) translateX(-2px) translateY(-1px) rotate(-.22deg); }
+  22%,38%,56%,72% { transform:scaleX(var(--harvester-out-face)) translateX(2px) translateY(1px) rotate(.22deg); }
+  75%,100% { transform:scaleX(var(--harvester-return-face)) translateY(0) rotate(0); }
+}
+
+.thermostat-overlay {
+  position:absolute;
+  inset:0;
+  z-index:2;
+  display:block;
+  padding:0;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  cursor:pointer;
+  pointer-events:auto;
+}
+.thermostat-overlay img {
+  width:100%;
+  height:100%;
+  object-fit:fill;
+  image-rendering:pixelated;
+  opacity:.86;
+  filter:drop-shadow(0 0 12px rgba(255,180,60,.24));
+  pointer-events:none;
+}
+.thermostat-overlay.off img {
+  opacity:.68;
+  filter:saturate(.82) brightness(.84);
+}
+.still-unit {
+  z-index:4;
+}
+.still-shop {
+  z-index:28 !important;
+}
+.thermostat-buy .action-btn-icon {
+  width:58px !important;
+  height:58px !important;
+}
+
+.still-unit .still-drop {
+  top:71px !important;
+  height:78px !important;
+}
+.still-unit .still-drop.out {
+  width:38px !important;
+  right:24px !important;
+}
+.still-unit.still-mirrored .still-drop.out {
+  left:24px !important;
+  right:auto !important;
+  width:38px !important;
+}
+
+.still-unit .still-control-row {
+  gap:5px !important;
+}
+.still-unit .still-control-row .empty-still-btn,
+.still-unit .still-control-row .fire-btn {
+  width:30px !important;
+  min-width:30px !important;
+  height:29px !important;
+}
+.still-unit .still-control-row .empty-still-btn .empty-icon,
+.still-unit .still-control-row .fire-btn .fire-icon {
+  font-size:26px !important;
+  transition:transform .16s ease, filter .16s ease !important;
+}
+.still-unit .still-control-row .empty-still-btn.empty-side-left .empty-icon {
+  transform:rotate(-52deg) !important;
+}
+.still-unit .still-control-row .empty-still-btn.empty-side-right .empty-icon {
+  transform:rotate(52deg) !important;
+}
+.still-unit .still-control-row .empty-still-btn.empty-side-left:hover .empty-icon {
+  transform:rotate(-66deg) translateY(-1px) !important;
+}
+.still-unit .still-control-row .empty-still-btn.empty-side-right:hover .empty-icon {
+  transform:rotate(66deg) translateY(-1px) !important;
+}

@@ -103,6 +103,7 @@ const FIELD_WAREHOUSE_TILE_SET = new Set(FIELD_WAREHOUSE_TILES);
 const FIELD_HARVESTER_TILE_SET = new Set(FIELD_HARVESTER_TILES);
 const FIELD_WAREHOUSE_COST = 30;
 const FIELD_WAREHOUSE_DUPLICATE_COST = 100;
+const FIELD_WAREHOUSE_SECOND_DUPLICATE_COST = 180;
 const FIELD_AUTOWATER_COST = 80;
 const FIELD_AUTOHARVESTER_COST = 120;
 const FIELD_WAREHOUSE_CAPACITY_KG = MALT_KG_PER_PLOT * 12;
@@ -119,6 +120,8 @@ const NEW_MAKE_ABV_TARGET = 70;
 const THIRD_DISTILL_ABV_TARGET = 82;
 const DISTILL_TAKE_L_PER_TICK = 16;
 const DISTILL_WATER_TAKE_L_PER_TICK = 26;
+const THERMOSTAT_COST = 150;
+const THERMOSTAT_TEMP_MAX = 101;
 const MARKET_HISTORY_SAMPLE_MS = 1000;
 const MARKET_HISTORY_MAX = 90;
 const MARKET_MIN = 3;
@@ -411,7 +414,7 @@ const ACHIEVEMENTS = [
   {id:'monster_peat', name:'Monster Peat', img:'img/logros/monster peat.png', desc:'¡Cough cough! ¡Aggghhh! Esto es como masticar tierra quemada... ¡qué exquisita textura!', condition:'Crear botellas con turba entre 45 y 50 ppm.', reward:'+20 reputación'},
   {id:'professional_distillery', name:'Destilería profesional', img:'img/logros/destileria profesional.png', desc:'¿Qué estás buscando? ...¡Lo tenemos!', condition:'Vender al menos una caja NAS, 10, 12, 15 y 18 años; además una sin turba, una con turba y una triple destilación.', reward:'+50 k€ · +10 reputación'},
   {id:'solera', name:'Solera', img:'img/logros/solera.png', desc:'¡Eres todo un experto en ingeniería de la fermentación! No es fácil combinar 5 líquidos diferentes en un mismo proceso de fermentación en una misma tina. Like a pro.', condition:'Con levadura ya añadida, sumar al menos cuatro tandas nuevas de malta a la misma tina: 5 tandas en un proceso.', reward:'+10 reputación'},
-  {id:'master_blender', name:'Master Blender', img:'img/logros/master blender.png', desc:'Un poquito de aquí... otra pizca de allá... me llevo una... No sé ni lo que estoy haciendo... ¡hip!', condition:'Crear una tanda de botellas con al menos 5 líquidos diferentes.', reward:'1 pack Sherry Butt + 1 pack Port Pipe + 1 pack Virgin Oak Hogshead · +10 k€'},
+  {id:'master_blender', name:'Master Blender', img:'img/logros/master blender.png', desc:'Un poquito de aquí... otra pizca de allá... me llevo una... No sé ni lo que estoy haciendo... ¡hip!', condition:'Crear una tanda de botellas con al menos 5 líquidos diferentes.', reward:'1 pack 🛢️ Sherry Butt + 1 pack 🛢️ Port Pipe · 💰 +10 k€'},
   {id:'the_factory', name:'The factory', img:'img/logros/the factory.png', desc:'Aún no tenemos robots humanoides, pero... tampoco es que nos hagan falta a estas alturas, ¡lo tenemos todo totalmente automatizado! (¡menos las catas, por supuesto!)', condition:'Comprar todas las mejoras disponibles para la destilería.', reward:'Fin de juego actual: futura segunda destilería'}
 ];
 const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map(a=>[a.id,a]));
@@ -419,7 +422,11 @@ let suppressAchievements = false;
 let achievementPopupQueue = [];
 let achievementPopupActive = false;
 function defaultDistillery(){ return {reputation:0, achievements:{}, stats:{lotsSold:0,bottlesSold:0,litresSold:0,maxBottlesLot:0,oldestSoldAge:0,maxBottlePrice:0, soldCategories:{nas:false,y10:false,y12:false,y15:false,y18:false,unpeated:false,peated:false,triple:false}}, debugStats:false, secondDistilleryUnlocked:false}; }
-function normalizeDistillery(d){ const fresh=defaultDistillery(), src=d||{}; return {...fresh, ...src, achievements:{...fresh.achievements, ...(src.achievements||{})}, stats:{...fresh.stats, ...(src.stats||{}), soldCategories:{...fresh.stats.soldCategories, ...(src.stats?.soldCategories||{})}}}; }
+function normalizeAchievements(raw={}){
+  if(Array.isArray(raw)) return Object.fromEntries(raw.filter(Boolean).map(id=>[id, {at:Date.now(), migrated:true}]));
+  return {...(raw || {})};
+}
+function normalizeDistillery(d){ const fresh=defaultDistillery(), src=d||{}; return {...fresh, ...src, achievements:{...fresh.achievements, ...normalizeAchievements(src.achievements)}, stats:{...fresh.stats, ...(src.stats||{}), soldCategories:{...fresh.stats.soldCategories, ...(src.stats?.soldCategories||{})}}}; }
 function distillery(){ state.distillery = normalizeDistillery(state.distillery); return state.distillery; }
 function normalizeScotlandLocation(loc){
   if(!loc || !SCOTLAND_REGIONS[loc.region]) return null;
@@ -452,7 +459,7 @@ function awardAchievement(id){
   if(suppressAchievements) return false;
   const d=distillery(); if(d.achievements[id]) return false;
   d.achievements[id] = {at:Date.now()};
-  const rewards={first_whisky:{rep:10}, rat_dignity:{rep:-5, coins:50}, double_cask:{rep:10}, triple_cask:{rep:20}, serious_business:{rep:10}, woody_taste:{rep:15}, angels_share:{rep:20}, collectors_item:{rep:30}, max_q:{rep:20}, triple_distillation:{rep:20, coins:10}, monster_peat:{rep:20}, professional_distillery:{coins:50, rep:10}, solera:{rep:10}, master_blender:{coins:10, barrels:['sherry_butt','port_pipe','virgin_oak_hogshead']}, the_factory:{factory:true}};
+  const rewards={first_whisky:{rep:10}, rat_dignity:{rep:-5, coins:50}, double_cask:{rep:10}, triple_cask:{rep:20}, serious_business:{rep:10}, woody_taste:{rep:15}, angels_share:{rep:20}, collectors_item:{rep:30}, max_q:{rep:20}, triple_distillation:{rep:20, coins:10}, monster_peat:{rep:20}, professional_distillery:{coins:50, rep:10}, solera:{rep:10}, master_blender:{coins:10, barrels:['sherry_butt','port_pipe']}, the_factory:{factory:true}};
   const r=rewards[id]||{};
   if(r.rep) addReputation(r.rep);
   if(r.coins) state.coins += r.coins;
@@ -482,7 +489,7 @@ function checkLotAchievements(lot, achievementsBefore={...(distillery().achievem
   if(allComponentsTripleDistilled(lot)) got('triple_distillation');
   if(peat>=45 && peat<=50) got('monster_peat');
   if(comps.length>=5) got('master_blender');
-  if((state.vats||[]).every(v=>v.unlocked) && (state.stills||[]).every(st=>st.unlocked) && (state.barrels||[]).length>=8 && fieldUpgrades().warehouseBuilt && fieldUpgrades().warehouseDuplicated && fieldUpgrades().autoWater && fieldUpgrades().autoHarvester) got('the_factory');
+  if((state.vats||[]).every(v=>v.unlocked) && (state.stills||[]).every(st=>st.unlocked) && (state.barrels||[]).length>=8 && fieldUpgrades().warehouseBuilt && fieldUpgrades().warehouseDuplicated && fieldUpgrades().warehouseSecondExpanded && fieldUpgrades().autoWater && fieldUpgrades().autoHarvester && fieldUpgrades().thermostatBuilt) got('the_factory');
   if(unlocked.length) lot.achievements=[...(lot.achievements||[]), ...unlocked.filter(id=>!(lot.achievements||[]).includes(id))];
   return unlocked;
 }
@@ -498,10 +505,16 @@ function noteLotCreated(lot){
 function reevaluateExistingBottleAchievements(){
   const before=Object.keys(distillery().achievements||{}).length;
   const seen=new Set();
-  for(const lot of [...(state.bottleHistory||[]), ...(state.boxes||[])]){
-    if(!lot || seen.has(lot.id)) continue;
-    seen.add(lot.id);
-    checkLotAchievements(lot);
+  const wasSuppressing=suppressAchievements;
+  suppressAchievements = true;
+  try{
+    for(const lot of [...(state.bottleHistory||[]), ...(state.boxes||[])]){
+      if(!lot || seen.has(lot.id)) continue;
+      seen.add(lot.id);
+      checkLotAchievements(lot);
+    }
+  } finally {
+    suppressAchievements = wasSuppressing;
   }
   if(Object.keys(distillery().achievements||{}).length > before){ markDirty(); saveGame(); render(); }
 }
@@ -566,7 +579,7 @@ const barrelImage = b => { const def=barrelDef(b?.type); return (barrelIsOld(b) 
 const newVat = (unlocked=false) => ({ unlocked, capacityPct:ROOM_CAPACITY.vatPct, capacityUpgrades:0, volume:0, ferment:0, yeast:false, idle:0, overferment:0, rotten:false, warned:false, baseQuality:100, quality:100, abv:0, peatPpm:0, lineage:[] });
 const newStill = (unlocked=false) => ({ unlocked, input:0, inputAbv:0, inputQuality:100, inputPeatPpm:0, inputLineage:[], inputComponents:[], runs:0, output:0, outputAbv:0, outputQuality:100, outputPeatPpm:0, outputLineage:[], outputRuns:0, temp:20, fire:false });
 const newMaltTile = () => ({status:'empty', amount:0, germ:0, moisture:0, baseQuality:100, quality:100, peatPpm:0, heated:false, peat:false, dry:0, stable:0, warned:false, maltStage:'empty', lineage:[]});
-const newFieldUpgrades = () => ({warehouseBuilt:false, warehouseCapacity:0, warehouseKg:0, warehouseQuality:100, warehouseDuplicated:false, autoWater:false, autoHarvester:false, maltCapacityUpgraded:false});
+const newFieldUpgrades = () => ({warehouseBuilt:false, warehouseCapacity:0, warehouseKg:0, warehouseQuality:100, warehouseDuplicated:false, warehouseSecondExpanded:false, autoWater:false, autoHarvester:false, maltCapacityUpgraded:false, thermostatBuilt:false, thermostatOn:true});
 function resetMaltTile(t){ Object.assign(t, newMaltTile()); }
 function normalizeMaltStage(t){
   if(!t || t.status==='empty') return 'empty';
@@ -603,9 +616,13 @@ function normalizeFieldUpgrades(raw={}){
   const n={...newFieldUpgrades(), ...(raw || {})};
   n.warehouseBuilt=!!n.warehouseBuilt;
   n.warehouseDuplicated=!!n.warehouseDuplicated;
+  n.warehouseSecondExpanded=!!n.warehouseSecondExpanded || Number(n.warehouseCapacity)>=FIELD_WAREHOUSE_CAPACITY_KG*4;
+  if(n.warehouseSecondExpanded) n.warehouseDuplicated=true;
   n.autoWater=!!n.autoWater;
   n.autoHarvester=!!n.autoHarvester && n.warehouseBuilt && n.autoWater;
   n.maltCapacityUpgraded=!!n.maltCapacityUpgraded;
+  n.thermostatBuilt=!!n.thermostatBuilt;
+  n.thermostatOn=n.thermostatBuilt ? n.thermostatOn !== false : true;
   n.warehouseKg=Math.max(0, Number(n.warehouseKg)||0);
   n.warehouseQuality=qualityOrDefault(n.warehouseQuality);
   if(!n.warehouseBuilt){
@@ -613,12 +630,13 @@ function normalizeFieldUpgrades(raw={}){
     n.warehouseKg=0;
     n.warehouseQuality=100;
     n.warehouseDuplicated=false;
+    n.warehouseSecondExpanded=false;
     n.autoHarvester=false;
     return n;
   }
-  const minimumCapacity = n.warehouseBuilt ? FIELD_WAREHOUSE_CAPACITY_KG : 0;
-  const duplicatedCapacity = n.warehouseDuplicated ? FIELD_WAREHOUSE_CAPACITY_KG * 2 : minimumCapacity;
-  n.warehouseCapacity=Math.max(minimumCapacity, duplicatedCapacity, Number(n.warehouseCapacity)||0);
+  const minimumCapacity = FIELD_WAREHOUSE_CAPACITY_KG;
+  const expectedCapacity = FIELD_WAREHOUSE_CAPACITY_KG * (n.warehouseSecondExpanded ? 4 : (n.warehouseDuplicated ? 2 : 1));
+  n.warehouseCapacity=Math.max(minimumCapacity, expectedCapacity, Number(n.warehouseCapacity)||0);
   n.warehouseKg=Math.min(n.warehouseKg, n.warehouseCapacity || 0);
   if(n.warehouseKg<=0) n.warehouseQuality=100;
   return n;
@@ -2136,6 +2154,8 @@ function warehouseBuilt(){ return !!fieldUpgrades().warehouseBuilt; }
 function warehouseKg(){ return Number(fieldUpgrades().warehouseKg)||0; }
 function warehouseCapacity(){ return Number(fieldUpgrades().warehouseCapacity)||0; }
 function warehouseFreeKg(){ return Math.max(0, warehouseCapacity() - warehouseKg()); }
+function thermostatBuilt(){ return !!fieldUpgrades().thermostatBuilt; }
+function thermostatActive(){ const upgrades=fieldUpgrades(); return !!upgrades.thermostatBuilt && upgrades.thermostatOn !== false; }
 function maltTileCapacityKg(){ return Math.round(MALT_TILE_CAPACITY_KG * (fieldUpgrades().maltCapacityUpgraded ? MALT_CAPACITY_UPGRADE_FACTOR : 1)); }
 function availableSeedKg(){ return warehouseBuilt() ? warehouseKg() : (Number(state.seeds)||0); }
 function fieldTileDisabledReason(i){
@@ -2217,9 +2237,9 @@ function triggerHarvesterAnimation(i){
   }
   const outFace = left < HARVESTER_PARK.left ? -1 : 1;
   harvesterAnim={left, top, outFace, returnFace:-outFace};
-  playFx('fxHarvester', .82);
+  playFx('fxHarvester', .41);
   clearTimeout(harvesterAnimTimer);
-  harvesterAnimTimer=setTimeout(()=>{ harvesterAnim=null; render(); }, 1360);
+  harvesterAnimTimer=setTimeout(()=>{ harvesterAnim=null; render(); }, 1760);
 }
 function autoHarvestCrop(i){
   const t=state.field[+i];
@@ -2274,6 +2294,8 @@ function fieldUpgradeButtonsHtml(){
     buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="warehouse" data-tip="Construir almacén de cebada.\nCoste: ${FIELD_WAREHOUSE_COST} k€.\nCapacidad: ${FIELD_WAREHOUSE_CAPACITY_KG.toLocaleString('es-ES')} Kg.">${actionButtonLabel('img/almacen.png', actionLabel('Almacén', FIELD_WAREHOUSE_COST), 'almacén')}</button>`);
   } else if(!upgrades.warehouseDuplicated){
     buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="warehouse-duplicate" data-tip="Duplicar la capacidad del almacén.\nCoste: ${FIELD_WAREHOUSE_DUPLICATE_COST} k€.\nNueva capacidad: ${(FIELD_WAREHOUSE_CAPACITY_KG*2).toLocaleString('es-ES')} Kg.">${actionButtonLabel('img/almacen.png', actionLabel('Duplicar', FIELD_WAREHOUSE_DUPLICATE_COST), 'duplicar almacén')}</button>`);
+  } else if(!upgrades.warehouseSecondExpanded){
+    buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="warehouse-second-expansion" data-tip="Nueva ampliación del almacén.\nCoste: ${FIELD_WAREHOUSE_SECOND_DUPLICATE_COST} k€.\nNueva capacidad: ${(FIELD_WAREHOUSE_CAPACITY_KG*4).toLocaleString('es-ES')} Kg.">${actionButtonLabel('img/almacen.png', actionLabel('Ampliar', FIELD_WAREHOUSE_SECOND_DUPLICATE_COST), 'ampliar almacén')}</button>`);
   }
   if(!upgrades.autoWater){
     buttons.push(`<button class="field-upgrade-buy icon-action-btn" type="button" data-upgrade="auto-water" data-tip="Riego automático.\nCoste: ${FIELD_AUTOWATER_COST} k€.\nLas parcelas cultivadas se mantienen al 100% de agua.">${actionButtonLabel('img/riego.gif', actionLabel('Riego', FIELD_AUTOWATER_COST), 'riego automático')}</button>`);
@@ -2289,11 +2311,11 @@ function renderFieldUpgrades(root){
   if(upgrades.warehouseBuilt){
     const pctFull=(warehouseKg()/Math.max(1, warehouseCapacity()))*100;
     root.insertAdjacentHTML('beforeend', '<div class="field-upgrade-overlay warehouse-base-overlay" aria-hidden="true"><img src="img/almacen_base.png" alt=""></div>');
-    root.insertAdjacentHTML('beforeend', `<div class="field-upgrade-overlay warehouse-overlay barley-warehouse-drop drop-target ${upgrades.warehouseDuplicated?'expanded':''} ${warehouseKg()>0?'token':''}" data-drag="barley-store" data-label="almacén de cebada" data-tip="Almacén de cebada.\n${Math.round(warehouseKg()).toLocaleString('es-ES')} / ${Math.round(warehouseCapacity()).toLocaleString('es-ES')} Kg.\nQ media: ${Math.round(upgrades.warehouseQuality)}.||Arrastra cosecha aquí para guardar. Arrastra desde aquí a parcelas o a malteado."><img src="img/almacen.png" alt="almacén"><div class="warehouse-stock-bar bar vertical" aria-hidden="true"><i style="height:${pct(pctFull)}"></i></div></div>`);
+    root.insertAdjacentHTML('beforeend', `<div class="field-upgrade-overlay warehouse-overlay barley-warehouse-drop drop-target ${upgrades.warehouseDuplicated?'expanded':''} ${upgrades.warehouseSecondExpanded?'expanded-2':''} ${warehouseKg()>0?'token':''}" data-drag="barley-store" data-label="almacén de cebada" data-tip="Almacén de cebada.\n${Math.round(warehouseKg()).toLocaleString('es-ES')} / ${Math.round(warehouseCapacity()).toLocaleString('es-ES')} Kg.\nQ media: ${Math.round(upgrades.warehouseQuality)}.||Arrastra cosecha aquí para guardar. Arrastra desde aquí a parcelas o a malteado."><img src="img/almacen.png" alt="almacén"><div class="warehouse-stock-bar bar vertical" aria-hidden="true"><i style="height:${pct(pctFull)}"></i></div></div>`);
   }
   if(upgrades.autoHarvester){
     const anim=harvesterAnim;
-    const style=anim ? ` style="--harvester-dx:${(anim.left-HARVESTER_PARK.left).toFixed(2)}%;--harvester-dy:${(anim.top-HARVESTER_PARK.top).toFixed(2)}%;--harvester-out-face:${anim.outFace};--harvester-return-face:${anim.returnFace}"` : '';
+    const style=anim ? ` style="--harvester-target-left:${anim.left.toFixed(2)}%;--harvester-target-top:${anim.top.toFixed(2)}%;--harvester-out-face:${anim.outFace};--harvester-return-face:${anim.returnFace}"` : '';
     root.insertAdjacentHTML('beforeend', `<div class="field-upgrade-overlay harvester-base-overlay" aria-hidden="true"><img src="img/cosechadora_base.png" alt=""></div><div class="field-upgrade-overlay harvester-overlay ${anim?'traveling':''}"${style} data-tip="Autocosechadora: cosecha automáticamente en el punto óptimo y guarda Q 95 en el almacén."><img src="img/cosechadora.png" alt="autocosechadora"></div>`);
   }
 }
@@ -2423,7 +2445,12 @@ Sin líquido.`);
 function renderStills(){
   const root = $('#stillhouse');
   const canBuyStill = state.stills.some((s,i)=>i>0 && !isStillActive(s,i));
-  root.innerHTML = `${canBuyStill ? `<div class="equipment-shop still-shop"><button class="equipment-buy icon-action-btn" type="button" data-equipment="still" data-tip="Comprar un alambique nuevo.\nCoste: ${EQUIPMENT_COST} k€.">${actionButtonLabel('img/alambique.png', actionLabel('Comprar', EQUIPMENT_COST), 'alambique')}</button></div>` : ''}` + state.stills.map((s,i)=>{
+  const upgrades=fieldUpgrades();
+  const shopButtons=[];
+  if(canBuyStill) shopButtons.push(`<button class="equipment-buy icon-action-btn" type="button" data-equipment="still" data-tip="Comprar un alambique nuevo.\nCoste: ${EQUIPMENT_COST} k€.">${actionButtonLabel('img/alambique.png', actionLabel('Comprar', EQUIPMENT_COST), 'alambique')}</button>`);
+  if(!upgrades.thermostatBuilt) shopButtons.push(`<button class="equipment-buy icon-action-btn thermostat-buy" type="button" data-equipment="thermostat" data-tip="Termostato para la sala de alambiques.\nCoste: ${THERMOSTAT_COST} k€.\nEncendido limita el fuego a ${THERMOSTAT_TEMP_MAX}°C y las teclas f/g/h/j gobiernan todos los alambiques.">${actionButtonLabel('img/termostato_ON.png', actionLabel('Termostato', THERMOSTAT_COST), 'termostato')}</button>`);
+  const thermostatOverlay=upgrades.thermostatBuilt ? `<button class="thermostat-overlay ${upgrades.thermostatOn===false?'off':'on'}" type="button" data-tip="Termostato ${upgrades.thermostatOn===false?'apagado':'encendido'}.\nClick para ${upgrades.thermostatOn===false?'encender':'apagar'}.\nEncendido: f/g/h/j alternan todos los fuegos y el calor se limita a ${THERMOSTAT_TEMP_MAX}°C."><img src="${upgrades.thermostatOn===false?'img/termostato.png':'img/termostato_ON.png'}" alt="termostato" draggable="false"></button>` : '';
+  root.innerHTML = `${shopButtons.length ? `<div class="equipment-shop still-shop">${shopButtons.join('')}</div>` : ''}${thermostatOverlay}` + state.stills.map((s,i)=>{
     const spiritReady = s.output > 0;
     const visualTemp = Number.isFinite(Number(s.tempDisplay)) ? Number(s.tempDisplay) : s.temp;
     const tempColor=temperatureColor(s.temp);
@@ -2435,6 +2462,10 @@ function renderStills(){
 <div class="tip-cols"><section><h5>Entrada</h5>${inputTip}</section><section><h5>Salida</h5>${outputTip}</section></div></div>||1ª pasada: low wines ~${LOW_WINES_ABV_TARGET}°. 2ª pasada: new make ~${NEW_MAKE_ABV_TARGET}°. 3ª pasada opcional: triple destilado ~${THIRD_DISTILL_ABV_TARGET}°. Por encima de 100° arrastra agua: más volumen, menos ABV/calidad, nunca más LPA.`;
     const mirrored=i%2===1;
     const inputSide=mirrored?'right':'left', outputSide=mirrored?'left':'right';
+    const inputBtn=`<button class="pixel-btn small empty-still-btn empty-still-input empty-side-${inputSide}" type="button" data-i="${i}" data-zone="input" data-tip="Vaciar entrada del alambique.\nDescarta el líquido del lado de entrada."><span class="empty-icon">🪣</span></button>`;
+    const fireBtn=`<button class="pixel-btn small fire-btn" type="button" data-i="${i}" data-tip="Fuego.\nEnciende o apaga el calentamiento."><span class="fire-icon">🔥</span></button>`;
+    const outputBtn=`<button class="pixel-btn small empty-still-btn empty-still-output empty-side-${outputSide}" type="button" data-i="${i}" data-zone="output" data-tip="Vaciar salida del alambique.\nDescarta el destilado del lado de salida."><span class="empty-icon">🪣</span></button>`;
+    const controlRow=mirrored ? `${outputBtn}${fireBtn}${inputBtn}` : `${inputBtn}${fireBtn}${outputBtn}`;
     return `<div class="machine-unit still-unit ${i%2===1?'still-mirrored':''} ${s.fire?'fire-on':''} ${isStillActive(s,i)?'':'inactive'}" data-i="${i}" data-tip="${escapeHtml(tip)}">
       ${(hasInput || hasOutput) ? qualityHtml(hasOutput ? s.outputQuality : s.inputQuality, hasOutput ? s.outputPeatPpm : s.inputPeatPpm, hasOutput ? s.outputLineage : s.inputLineage) : ''}
       <div class="temp-chip" style="color:${tempColor}">${s.temp.toFixed(0)}°C</div>
@@ -2444,7 +2475,7 @@ function renderStills(){
       <div class="bar vertical output ${s.outputRuns>=3?'run3':''}"><i style="height:${pct(s.output)}"></i><span class="bar-abv">${hasOutput ? `${s.outputAbv.toFixed(0)}°` : ''}</span></div>
       <div class="still-drop in drop-target" data-still="${i}" data-zone="in" data-tip="Entrada del alambique: suelta mosto o destilado para segunda pasada."></div>
       <div class="still-drop out ${spiritReady?'ready-drag':''}" data-still="${i}" data-zone="out" ${spiritReady ? 'data-drag="spirit" data-label="destilado"' : ''} data-tip="Salida del alambique: arrastra de aquí a IN para segunda pasada o a barricas."></div>
-      <div class="still-control-row"><button class="pixel-btn small empty-still-btn empty-still-input empty-side-${inputSide}" type="button" data-i="${i}" data-zone="input" data-tip="Vaciar entrada del alambique.\nDescarta el líquido del lado de entrada."><span class="empty-icon">🪣</span></button><button class="pixel-btn small fire-btn" type="button" data-i="${i}" data-tip="Fuego.\nEnciende o apaga el calentamiento."><span class="fire-icon">🔥</span></button><button class="pixel-btn small empty-still-btn empty-still-output empty-side-${outputSide}" type="button" data-i="${i}" data-zone="output" data-tip="Vaciar salida del alambique.\nDescarta el destilado del lado de salida."><span class="empty-icon">🪣</span></button></div>
+      <div class="still-control-row">${controlRow}</div>
     </div>`;
   }).join('');
 }
@@ -2556,6 +2587,14 @@ function buyEquipment(kind){
     state.coins -= EQUIPMENT_COST;
     state.stills[idx] = newStill(true);
     playFx('fxCashRegister', .72);
+  } else if(kind==='thermostat'){
+    const upgrades=fieldUpgrades();
+    if(upgrades.thermostatBuilt) return;
+    if(state.coins < THERMOSTAT_COST){ notice(`Necesitas ${THERMOSTAT_COST} k€ para comprar el termostato.`, 'explain', 'No hay dinero'); return; }
+    state.coins -= THERMOSTAT_COST;
+    upgrades.thermostatBuilt=true;
+    upgrades.thermostatOn=true;
+    playFx('fxCashRegister', .78);
   } else return;
   markDirty(); render(); saveGame();
 }
@@ -2576,6 +2615,13 @@ function buyFieldUpgrade(kind){
     state.coins-=cost;
     upgrades.warehouseDuplicated=true;
     upgrades.warehouseCapacity=FIELD_WAREHOUSE_CAPACITY_KG*2;
+  } else if(kind==='warehouse-second-expansion'){
+    if(!upgrades.warehouseBuilt || !upgrades.warehouseDuplicated || upgrades.warehouseSecondExpanded) return;
+    cost=FIELD_WAREHOUSE_SECOND_DUPLICATE_COST;
+    if(state.coins < cost){ notice(`Necesitas ${cost} k€ para ampliar el almacén.`, 'explain', 'No hay dinero'); return; }
+    state.coins-=cost;
+    upgrades.warehouseSecondExpanded=true;
+    upgrades.warehouseCapacity=FIELD_WAREHOUSE_CAPACITY_KG*4;
   } else if(kind==='auto-water'){
     if(upgrades.autoWater) return;
     cost=FIELD_AUTOWATER_COST;
@@ -3178,8 +3224,10 @@ function simulate(timeStep=1, speed=speedMultiplier()){
       if(v.yeast && (Number(v.overferment)||0)>FERMENT_ROTTEN_GRACE) v.rotten=true;
     }
   }
+  const thermostatHeatCap=thermostatActive() ? THERMOSTAT_TEMP_MAX : TEMP_MAX;
   for(const s of state.stills){
-    s.temp = clamp(s.temp + (s.fire ? .66*sp : -.38*sp), TEMP_MIN, TEMP_MAX);
+    const maxTemp=s.fire ? thermostatHeatCap : TEMP_MAX;
+    s.temp = clamp(s.temp + (s.fire ? .66*sp : -.38*sp), TEMP_MIN, maxTemp);
     s.tempDisplay = Number.isFinite(Number(s.tempDisplay)) ? s.tempDisplay + (s.temp - s.tempDisplay) * Math.min(1, .18*sp) : s.temp;
     if(s.input>0 && s.temp>=ALCOHOL_BOIL){
       const waterRange = s.temp>=WATER_BOIL;
@@ -3454,7 +3502,8 @@ document.addEventListener('click', e=>{
   const peatIcon=e.target.closest('.peat-icon'); if(peatIcon){ e.preventDefault(); e.stopPropagation(); const t=state.malt[+peatIcon.dataset.i]; if(t && t.status==='filled' && !t.heated){ t.peat=!t.peat; markDirty(); render(); } return; }
   const heat=e.target.closest('.heat-tile'); if(heat) heatMalt(heat.dataset.i);
   const yeast=e.target.closest('.yeast-btn'); if(yeast){ addYeastToVat(+yeast.dataset.i); }
-  const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; markDirty(); render(); } }
+  const thermostat=e.target.closest('.thermostat-overlay'); if(thermostat){ const upgrades=fieldUpgrades(); if(upgrades.thermostatBuilt){ upgrades.thermostatOn = upgrades.thermostatOn === false; markDirty(); render(); saveGame(); } return; }
+  const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; markDirty(); render(); saveGame(); } }
   const empty=e.target.closest('.empty-still-btn'); if(empty){ emptyStillZone(+empty.dataset.i, empty.dataset.zone); }
 });
 
@@ -3484,6 +3533,13 @@ async function emptyStillZone(i, zone='input'){
 function toggleStillFire(i){
   const s=state.stills[i]; if(!s || !isStillActive(s,i)) return;
   s.fire=!s.fire; markDirty(); render(); saveGame();
+}
+function toggleAllStillFires(){
+  const active=state.stills.map((s,i)=>({s,i})).filter(({s,i})=>isStillActive(s,i));
+  if(!active.length) return;
+  const next=!active.every(({s})=>s.fire);
+  active.forEach(({s})=>{ s.fire=next; });
+  markDirty(); render(); saveGame();
 }
 
 function debugFill(){
@@ -3574,7 +3630,7 @@ document.addEventListener('keydown', e=>{
   if(e.key==='3'){ e.preventDefault(); setSpeedStep(4); render(); return; }
   if(e.key==='4'){ e.preventDefault(); setSpeedStep(9); render(); return; }
   const fireKey={f:0,g:1,h:2,j:3}[e.key.toLowerCase()];
-  if(fireKey!==undefined){ e.preventDefault(); toggleStillFire(fireKey); return; }
+  if(fireKey!==undefined){ e.preventDefault(); thermostatActive() ? toggleAllStillFires() : toggleStillFire(fireKey); return; }
   if(e.key.toLowerCase()==='m'){ e.preventDefault(); setMusicEnabled(state.musicEnabled === false); saveGame(); return; }
   if(e.key.toLowerCase()==='b'){
     e.preventDefault();
