@@ -1467,3 +1467,28 @@
   animation:none !important;
   transition:none !important;
 }
+
+/* 2026-06-22 follow-up: thermostat click layer and field action cursor */
+.field-tile.click-plantable {
+  cursor:pointer !important;
+}
+.thermostat-overlay img,
+.thermostat-overlay.off img {
+  opacity:1 !important;
+  filter:none !important;
+}
+.still-unit {
+  pointer-events:none !important;
+}
+.still-unit .still-drop,
+.still-unit .bar,
+.still-unit .temp-chip,
+.still-unit .quality-pill,
+.still-unit .still-control-row,
+.still-unit .still-control-row button {
+  pointer-events:auto !important;
+}
+.still-unit .still-visual,
+.still-unit .still-visual img {
+  pointer-events:none !important;
+}

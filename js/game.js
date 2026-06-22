@@ -518,12 +518,52 @@ function reevaluateExistingBottleAchievements(){
   }
   if(Object.keys(distillery().achievements||{}).length > before){ markDirty(); saveGame(); render(); }
 }
-function updateSoldStats(lot, euros=0){
-  const d=distillery(), st=d.stats, bottles=Number(lot.bottles)||0, age=Number(lot.age)||0, peat=Number(lot.peatPpm)||0, price=euros/Math.max(1,bottles);
-  checkLotAchievements(lot);
-  st.lotsSold += 1; st.bottlesSold += bottles; st.litresSold += bottles*BOTTLE_LITRES; st.maxBottlesLot = Math.max(st.maxBottlesLot||0, bottles); st.oldestSoldAge=Math.max(st.oldestSoldAge||0, age); st.maxBottlePrice=Math.max(st.maxBottlePrice||0, price);
+function soldLotsFromHistory(){
+  const seen=new Set();
+  return (state.bottleHistory||[]).filter(lot=>{
+    if(!lot?.sold || seen.has(lot.id)) return false;
+    seen.add(lot.id);
+    return true;
+  });
+}
+function emptySoldCategories(){ return {...defaultDistillery().stats.soldCategories}; }
+function noteSoldCategory(st, lot){
+  const age=Number(lot.age)||0, peat=Number(lot.peatPpm)||0;
   if(age<10) st.soldCategories.nas=true; if(age>=10) st.soldCategories.y10=true; if(age>=12) st.soldCategories.y12=true; if(age>=15) st.soldCategories.y15=true; if(age>=18) st.soldCategories.y18=true;
   if(peat<=0) st.soldCategories.unpeated=true; if(peat>0) st.soldCategories.peated=true; if(allComponentsTripleDistilled(lot)) st.soldCategories.triple=true;
+}
+function rebuildSoldStatsFromHistory({award=false, save=false}={}){
+  const d=distillery();
+  const next={...defaultDistillery().stats, soldCategories:emptySoldCategories()};
+  for(const lot of soldLotsFromHistory()){
+    const bottles=Number(lot.bottles)||0, age=Number(lot.age)||0;
+    const price=Number(lot.salePricePerBottle) || ((Number(lot.saleTotal)||0)/Math.max(1,bottles));
+    next.lotsSold += 1;
+    next.bottlesSold += bottles;
+    next.litresSold += bottles*BOTTLE_LITRES;
+    next.maxBottlesLot = Math.max(next.maxBottlesLot||0, bottles);
+    next.oldestSoldAge = Math.max(next.oldestSoldAge||0, age);
+    next.maxBottlePrice = Math.max(next.maxBottlePrice||0, price);
+    noteSoldCategory(next, lot);
+  }
+  const before=JSON.stringify(d.stats||{});
+  d.stats=next;
+  if(before!==JSON.stringify(next)){
+    markPublicProfileDirty('sold-stats');
+    if(save){ markDirty(); saveGame(); }
+  }
+  const c=next.soldCategories;
+  if(award && c.nas&&c.y10&&c.y12&&c.y15&&c.y18&&c.unpeated&&c.peated&&c.triple) awardAchievement('professional_distillery');
+  return next;
+}
+function updateSoldStats(lot, euros=0){
+  if(lot){
+    lot.sold=true;
+    if(euros && !lot.saleTotal) lot.saleTotal=euros;
+    if(euros && !lot.salePricePerBottle) lot.salePricePerBottle=euros/Math.max(1, Number(lot.bottles)||0);
+    checkLotAchievements(lot);
+  }
+  const st=rebuildSoldStatsFromHistory({award:true});
   const c=st.soldCategories; if(c.nas&&c.y10&&c.y12&&c.y15&&c.y18&&c.unpeated&&c.peated&&c.triple) awardAchievement('professional_distillery');
 }
 function forceAchievement(id){ awardAchievement(id); markDirty(); render(); saveGame(); }
@@ -977,7 +1017,13 @@ function setupSplash(){
   document.addEventListener('pointerdown', startMainLoop, {once:true, capture:true});
 }
 function loadGame(){
-  try { const raw = localStorage.getItem(STORAGE_KEY); if(raw) state = normaliseLoaded(JSON.parse(raw)); }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      state = normaliseLoaded(JSON.parse(raw));
+      rebuildSoldStatsFromHistory({save:true});
+    }
+  }
   catch(err) { console.warn('No se pudo cargar la partida guardada', err); }
 }
 function saveGame(){
@@ -1292,6 +1338,7 @@ function achievementCardHtml(a){
 function showDistilleryStats(){
   let root=$('#distilleryModal');
   if(!root){ root=document.createElement('div'); root.id='distilleryModal'; root.className='distillery-modal hidden'; document.body.appendChild(root); }
+  rebuildSoldStatsFromHistory({save:true});
   const d=distillery(), st=d.stats, got=Object.keys(d.achievements||{}).length, loc=state.scotlandLocation, region=loc?SCOTLAND_REGIONS[loc.region]:null;
   const regionBonusHtml=region ? (region.bonusLines||[region.bonus]).map(x=>`<li>${formatBonusInfoLine(x)}</li>`).join('') : '';
   root.innerHTML=`<div class="distillery-window"><button class="game-popup-close" type="button" aria-label="Cerrar">×</button><header><div class="trophy-mark">🏆</div><div><h3>${escapeHtml(state.distilleryName || 'Mi destilería')}</h3><p>Ficha de destilería, marcadores y logros.</p></div></header><section class="distillery-score-grid"><b><span><i>🏆</i><em>Reputación</em></span><strong>${Math.round(d.reputation||0)}</strong></b><b><span><i>📦</i><em>Lotes vendidos</em></span><strong>${Math.round(st.lotsSold||0)}</strong></b><b><span><i>🍾</i><em>Botellas vendidas</em></span><strong>${Math.round(st.bottlesSold||0)}</strong></b><b><span><i>🍾/📦</i><em>Mayor lote</em></span><strong>${Math.round(st.maxBottlesLot||0)} bot.</strong></b><b><span><i>🧪</i><em>Litros vendidos</em></span><strong>${Math.round(Number(st.litresSold)||0)} l.</strong></b><b><span><i>🕰️</i><em>Mayor edad</em></span><strong>${(Number(st.oldestSoldAge)||0).toFixed(1)}a</strong></b><b><span><i>💎</i><em>Botella más cara</em></span><strong>${(Number(st.maxBottlePrice)||0).toFixed(2)}€</strong></b><b><span><i>🏅</i><em>Logros</em></span><strong>${got}/${ACHIEVEMENTS.length}</strong></b></section>${region?`<section class="distillery-region-summary" style="--region:${region.color}"><b>🗺️ ${escapeHtml(region.name)}</b><ul class="region-bonus-list region-summary-bonuses">${regionBonusHtml}</ul></section>`:''}<h4 class="achievement-title">Logros</h4><section class="achievement-list">${ACHIEVEMENTS.map(achievementCardHtml).join('')}</section></div>`;
@@ -2404,6 +2451,7 @@ function renderField(){
     el.classList.toggle('empty', t.status==='empty');
     el.classList.toggle('dry-crop', !disabled && (t.status==='dry' || t.status==='rotten'));
     el.classList.toggle('needs-water', !disabled && t.status==='planted' && t.growth < FIELD_HARVEST_START && t.moisture < FIELD_WATER_CAP);
+    el.classList.toggle('click-plantable', !disabled && t.status==='empty' && availableSeedKg() >= SEED_KG_PER_PLOT);
     if(disabled){
       el.innerHTML='';
       el.dataset.tip=disabled==='almacén' ? 'Parcela ocupada por el almacén de cebada.' : 'Parcela ocupada por la autocosechadora.';
@@ -3205,6 +3253,7 @@ function sellBox(id){
   soldLot.salePricePerBottle=euros/Math.max(1,b.bottles);
   soldLot.saleTotal=euros;
   soldLot.soldAt=Date.now();
+  if(!hist) state.bottleHistory.unshift({...soldLot});
   updateSoldStats(soldLot, euros);
   state.coins += euros/1000;
   state.bottles = Math.max(0, (Number(state.bottles)||0) - (Number(b.bottles)||0));
