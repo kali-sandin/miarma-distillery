@@ -1443,3 +1443,27 @@
 .still-unit .still-control-row .empty-still-btn.empty-side-right:hover .empty-icon {
   transform:rotate(66deg) translateY(-1px) !important;
 }
+
+/* 2026-06-22 harvester/state fixes */
+.harvester-overlay {
+  left:var(--harvester-left, 5%) !important;
+  top:var(--harvester-top, 82%) !important;
+  transform:none !important;
+  transition:none !important;
+}
+.harvester-overlay img {
+  transform:scaleX(var(--harvester-face, 1)) !important;
+  animation:none !important;
+}
+.harvester-overlay.working img {
+  animation:harvesterEngineWork .14s steps(2,end) infinite !important;
+}
+@keyframes harvesterEngineWork {
+  0% { transform:scaleX(var(--harvester-face, 1)) translateY(-2px) rotate(-.4deg); }
+  100% { transform:scaleX(var(--harvester-face, 1)) translateY(2px) rotate(.4deg); }
+}
+
+.still-unit .still-control-row .empty-still-btn .empty-icon {
+  animation:none !important;
+  transition:none !important;
+}

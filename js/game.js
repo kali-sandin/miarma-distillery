@@ -714,9 +714,13 @@ let debugToolsVisible = false;
 let truckBusy = false;
 let currentTruck = null;
 let truckTimerIds = [];
-let harvesterAnim = null;
-let harvesterAnimTimer = null;
 const HARVESTER_PARK = {left:5, top:82};
+const HARVESTER_MOVE_MS = 620;
+const HARVESTER_WORK_MS = 1000;
+let harvesterQueue = [];
+let harvesterQueuedTiles = new Set();
+let harvesterRun = null;
+let harvesterTimer = null;
 let roofFadeTimer = null;
 let konamiIndex = 0;
 const KONAMI_SEQUENCE = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a','Enter'];
@@ -760,6 +764,7 @@ function normaliseLoaded(s){
   merged.distillery = normalizeDistillery(s.distillery);
   merged.scotlandLocation = normalizeScotlandLocation(s.scotlandLocation);
   merged.fieldUpgrades = normalizeFieldUpgrades(s.fieldUpgrades);
+  merged.field.forEach(t=>{ delete t.autoHarvesting; });
   merged.debugQuality = !!merged.debugQuality;
   merged.musicEnabled = s.musicEnabled !== false;
   merged.fxEnabled = s.fxEnabled !== false;
@@ -2164,7 +2169,7 @@ function fieldTileDisabledReason(i){
   if(upgrades.autoHarvester && FIELD_HARVESTER_TILE_SET.has(i)) return 'autocosechadora';
   return '';
 }
-function resetFieldTile(t){ Object.assign(t,{status:'empty', growth:0, moisture:0, dry:0, overdue:0, quality:100, peatPpm:0}); }
+function resetFieldTile(t){ Object.assign(t,{status:'empty', growth:0, moisture:0, dry:0, overdue:0, quality:100, peatPpm:0}); delete t.autoHarvesting; }
 function clearDisabledFieldTiles(){
   state.field.forEach((t,i)=>{ if(fieldTileDisabledReason(i)) resetFieldTile(t); });
 }
@@ -2226,7 +2231,7 @@ function plantFieldFromWarehouse(i){
   playFx('fxDropGrain');
   return true;
 }
-function triggerHarvesterAnimation(i){
+function harvesterTileTarget(i){
   const tile=$(`.field-tile[data-i="${i}"]`), field=$('#field');
   let left=HARVESTER_PARK.left, top=HARVESTER_PARK.top;
   if(tile && field){
@@ -2235,21 +2240,91 @@ function triggerHarvesterAnimation(i){
     left=clamp((centerX/fw)*100 - 20, -2, 62);
     top=clamp((centerY/fh)*100 - 8, -2, 86);
   }
-  const outFace = left < HARVESTER_PARK.left ? -1 : 1;
-  harvesterAnim={left, top, outFace, returnFace:-outFace};
+  return {left, top};
+}
+function harvesterCurrentPosition(now=Date.now()){
+  if(!harvesterRun) return {...HARVESTER_PARK};
+  if(harvesterRun.phase==='working') return {...harvesterRun.to};
+  const p=clamp((now-harvesterRun.start)/Math.max(1, harvesterRun.duration),0,1);
+  const eased=p<.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+  return {
+    left:harvesterRun.from.left + (harvesterRun.to.left-harvesterRun.from.left)*eased,
+    top:harvesterRun.from.top + (harvesterRun.to.top-harvesterRun.from.top)*eased
+  };
+}
+function scheduleHarvester(fn, ms){
+  clearTimeout(harvesterTimer);
+  harvesterTimer=setTimeout(fn, ms);
+}
+function startHarvesterQueue(){
+  if(harvesterRun || harvesterTimer) return;
+  beginNextHarvesterJob(harvesterCurrentPosition());
+}
+function beginNextHarvesterJob(from=HARVESTER_PARK){
+  clearTimeout(harvesterTimer); harvesterTimer=null;
+  while(harvesterQueue.length){
+    const i=harvesterQueue.shift();
+    harvesterQueuedTiles.delete(i);
+    const t=state.field[+i];
+    if(!t || t.status!=='planted' || t.growth<FIELD_OPTIMAL_MID || fieldTileDisabledReason(+i) || warehouseFreeKg()<FIELD_WAREHOUSE_KG_PER_PLOT){
+      if(t) delete t.autoHarvesting;
+      continue;
+    }
+    const to=harvesterTileTarget(i);
+    const distance=Math.hypot(to.left-from.left, to.top-from.top);
+    const duration=clamp(distance*18, 320, HARVESTER_MOVE_MS);
+    harvesterRun={phase:'moving', tile:+i, from:{...from}, to, start:Date.now(), duration, face:to.left<from.left ? -1 : 1};
+    render({force:true});
+    scheduleHarvester(beginHarvesterWork, duration);
+    return;
+  }
+  beginHarvesterReturn(from);
+}
+function beginHarvesterWork(){
+  if(!harvesterRun) return;
+  harvesterRun={...harvesterRun, phase:'working', start:Date.now(), duration:HARVESTER_WORK_MS};
   playFx('fxHarvester', .41);
-  clearTimeout(harvesterAnimTimer);
-  harvesterAnimTimer=setTimeout(()=>{ harvesterAnim=null; render(); }, 1760);
+  render({force:true});
+  scheduleHarvester(finishHarvesterWork, HARVESTER_WORK_MS);
+}
+function finishHarvesterWork(){
+  if(!harvesterRun) return;
+  const i=harvesterRun.tile, t=state.field[+i], from={...harvesterRun.to};
+  if(t){
+    if(t.status==='planted' && t.growth>=FIELD_OPTIMAL_MID && warehouseFreeKg()>=FIELD_WAREHOUSE_KG_PER_PLOT){
+      const accepted=addBarleyToWarehouse(FIELD_WAREHOUSE_KG_PER_PLOT, FIELD_AUTOHARVEST_QUALITY);
+      if(accepted>0){ resetFieldTile(t); playFx('fxDropGrain', .45); markDirty(); saveGame(); }
+      else delete t.autoHarvesting;
+    } else {
+      delete t.autoHarvesting;
+    }
+  }
+  harvesterRun=null;
+  render({force:true});
+  beginNextHarvesterJob(from);
+}
+function beginHarvesterReturn(from=harvesterCurrentPosition()){
+  const distance=Math.hypot(HARVESTER_PARK.left-from.left, HARVESTER_PARK.top-from.top);
+  if(distance<.5){ harvesterRun=null; render({force:true}); return; }
+  const duration=clamp(distance*18, 320, HARVESTER_MOVE_MS);
+  harvesterRun={phase:'returning', tile:null, from:{...from}, to:{...HARVESTER_PARK}, start:Date.now(), duration, face:HARVESTER_PARK.left<from.left ? -1 : 1};
+  render({force:true});
+  scheduleHarvester(()=>{ harvesterRun=null; harvesterTimer=null; render({force:true}); if(harvesterQueue.length) beginNextHarvesterJob({...HARVESTER_PARK}); }, duration);
+}
+function queueAutoHarvest(i){
+  const t=state.field[+i];
+  if(!t || t.autoHarvesting || harvesterQueuedTiles.has(+i)) return !!t?.autoHarvesting;
+  if(warehouseFreeKg()<FIELD_WAREHOUSE_KG_PER_PLOT) return false;
+  t.autoHarvesting=true;
+  harvesterQueuedTiles.add(+i);
+  harvesterQueue.push(+i);
+  startHarvesterQueue();
+  return true;
 }
 function autoHarvestCrop(i){
   const t=state.field[+i];
   if(!t || !fieldUpgrades().autoHarvester || t.status!=='planted' || t.growth<FIELD_OPTIMAL_MID) return false;
-  const accepted=addBarleyToWarehouse(FIELD_WAREHOUSE_KG_PER_PLOT, FIELD_AUTOHARVEST_QUALITY);
-  if(accepted<=0) return false;
-  resetFieldTile(t);
-  triggerHarvesterAnimation(i);
-  playFx('fxDropGrain', .45);
-  return true;
+  return queueAutoHarvest(+i);
 }
 function fieldTip(t){
   if(t.status==='empty') return `Parcela vacía (${FIELD_PLOT_AREA_HA} ha). Arrastra ${SEED_KG_PER_PLOT} Kg ${warehouseBuilt() ? 'desde el almacén' : 'de semillas'} aquí.`;
@@ -2314,9 +2389,9 @@ function renderFieldUpgrades(root){
     root.insertAdjacentHTML('beforeend', `<div class="field-upgrade-overlay warehouse-overlay barley-warehouse-drop drop-target ${upgrades.warehouseDuplicated?'expanded':''} ${upgrades.warehouseSecondExpanded?'expanded-2':''} ${warehouseKg()>0?'token':''}" data-drag="barley-store" data-label="almacén de cebada" data-tip="Almacén de cebada.\n${Math.round(warehouseKg()).toLocaleString('es-ES')} / ${Math.round(warehouseCapacity()).toLocaleString('es-ES')} Kg.\nQ media: ${Math.round(upgrades.warehouseQuality)}.||Arrastra cosecha aquí para guardar. Arrastra desde aquí a parcelas o a malteado."><img src="img/almacen.png" alt="almacén"><div class="warehouse-stock-bar bar vertical" aria-hidden="true"><i style="height:${pct(pctFull)}"></i></div></div>`);
   }
   if(upgrades.autoHarvester){
-    const anim=harvesterAnim;
-    const style=anim ? ` style="--harvester-target-left:${anim.left.toFixed(2)}%;--harvester-target-top:${anim.top.toFixed(2)}%;--harvester-out-face:${anim.outFace};--harvester-return-face:${anim.returnFace}"` : '';
-    root.insertAdjacentHTML('beforeend', `<div class="field-upgrade-overlay harvester-base-overlay" aria-hidden="true"><img src="img/cosechadora_base.png" alt=""></div><div class="field-upgrade-overlay harvester-overlay ${anim?'traveling':''}"${style} data-tip="Autocosechadora: cosecha automáticamente en el punto óptimo y guarda Q 95 en el almacén."><img src="img/cosechadora.png" alt="autocosechadora"></div>`);
+    const pos=harvesterCurrentPosition(), phase=harvesterRun?.phase || 'idle', face=harvesterRun?.face || 1;
+    const style=` style="--harvester-left:${pos.left.toFixed(2)}%;--harvester-top:${pos.top.toFixed(2)}%;--harvester-face:${face}"`;
+    root.insertAdjacentHTML('beforeend', `<div class="field-upgrade-overlay harvester-base-overlay" aria-hidden="true"><img src="img/cosechadora_base.png" alt=""></div><div class="field-upgrade-overlay harvester-overlay ${phase}"${style} data-tip="Autocosechadora: cosecha automáticamente en el punto óptimo y guarda Q 95 en el almacén."><img src="img/cosechadora.png" alt="autocosechadora"></div>`);
   }
 }
 
@@ -3125,17 +3200,25 @@ function sellBox(id){
   const b=state.boxes.splice(i,1)[0];
   const euros=b.bottles * Math.max(.1,b.age) * state.market * ((b.quality || 100)/100);
   const hist=(state.bottleHistory||[]).find(x=>x.id===b.id);
-  if(hist){ hist.sold=true; hist.salePricePerBottle=euros/Math.max(1,b.bottles); hist.saleTotal=euros; hist.soldAt=Date.now(); updateSoldStats(hist, euros); }
-  state.coins += euros/1000; state.bottles -= b.bottles;
+  const soldLot=hist || b;
+  soldLot.sold=true;
+  soldLot.salePricePerBottle=euros/Math.max(1,b.bottles);
+  soldLot.saleTotal=euros;
+  soldLot.soldAt=Date.now();
+  updateSoldStats(soldLot, euros);
+  state.coins += euros/1000;
+  state.bottles = Math.max(0, (Number(state.bottles)||0) - (Number(b.bottles)||0));
   markPublicProfileDirty('box-sold');
   playFx('fxCashRegister', .78);
   animateTruckSale();
+  markDirty(); render(); saveGame();
 }
 
 
-function render(){
+function render(opts={}){
+  const force=!!opts.force;
   normalizeEquipmentUnlocks();
-  if(dragging || pointerActive){ updateMarketHud(); updateDragMarketChart(); renderPending = true; return; }
+  if((dragging || pointerActive) && !force){ updateMarketHud(); updateDragMarketChart(); renderPending = true; return; }
   renderPending = false;
   $('.name-field').classList.toggle('editing', nameEditing);
   $('#distilleryNameView').textContent = state.distilleryName;
@@ -3503,7 +3586,7 @@ document.addEventListener('click', e=>{
   const heat=e.target.closest('.heat-tile'); if(heat) heatMalt(heat.dataset.i);
   const yeast=e.target.closest('.yeast-btn'); if(yeast){ addYeastToVat(+yeast.dataset.i); }
   const thermostat=e.target.closest('.thermostat-overlay'); if(thermostat){ const upgrades=fieldUpgrades(); if(upgrades.thermostatBuilt){ upgrades.thermostatOn = upgrades.thermostatOn === false; markDirty(); render(); saveGame(); } return; }
-  const fire=e.target.closest('.fire-btn'); if(fire){ const s=state.stills[+fire.dataset.i]; if(s){ s.fire=!s.fire; markDirty(); render(); saveGame(); } }
+  const fire=e.target.closest('.fire-btn'); if(fire){ thermostatActive() ? toggleAllStillFires() : toggleStillFire(+fire.dataset.i); return; }
   const empty=e.target.closest('.empty-still-btn'); if(empty){ emptyStillZone(+empty.dataset.i, empty.dataset.zone); }
 });
 
