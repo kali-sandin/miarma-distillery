@@ -720,18 +720,24 @@
   outline-offset:-6px;
   filter:drop-shadow(0 0 12px rgba(255,230,90,.85));
 }
-.warehouse-overlay span {
-  position:absolute;
-  right:8px;
-  bottom:8px;
-  min-width:38px;
-  padding:3px 6px;
-  border:2px solid #2a160b;
-  background:rgba(255,232,151,.92);
-  color:#2b190b;
-  text-align:center;
-  font:900 12px/1 ui-monospace, monospace;
-  box-shadow:2px 2px 0 rgba(0,0,0,.38);
+.warehouse-stock-bar {
+  position:absolute !important;
+  right:-13px !important;
+  top:24% !important;
+  bottom:16% !important;
+  width:12px !important;
+  height:auto !important;
+  border:2px solid #241911 !important;
+  background:rgba(35,25,17,.88) !important;
+  box-shadow:2px 2px 0 rgba(0,0,0,.38) !important;
+  overflow:hidden !important;
+  display:flex !important;
+  align-items:flex-end !important;
+}
+.warehouse-stock-bar i {
+  width:100% !important;
+  background:linear-gradient(180deg,#fff2a8 0%,#e3a53a 45%,#9b5a16 100%) !important;
+  display:block !important;
 }
 .harvester-overlay {
   left:5%;
@@ -1131,10 +1137,11 @@
   opacity:0;
   filter:none !important;
   animation:none !important;
+  will-change:opacity;
 }
 .scotland-region-layers .scotland-region-mask.active {
-  filter:drop-shadow(0 0 3px var(--region, #ffe873)) drop-shadow(0 0 9px var(--region, #ffe873)) !important;
-  animation:scotlandRegionGlowShort 2.15s ease-in-out infinite !important;
+  filter:none !important;
+  animation:none !important;
 }
 
 .still-unit .bar.tempv {
@@ -1182,7 +1189,11 @@
   bottom:14px !important;
 }
 .vat-unit.primary-vat .vat-sprite {
-  cursor:pointer;
+  cursor:default;
+}
+.vat-unit.primary-vat.can-yeast .vat-sprite {
+  pointer-events:auto !important;
+  cursor:pointer !important;
 }
 .malt-tile.rotten-malt,
 .malt-tile:has(.clean) {
@@ -1194,12 +1205,102 @@
   filter:none !important;
   box-shadow:none !important;
 }
-.harvester-overlay img {
-  animation:harvesterEngineSlow .333s steps(2,end) infinite !important;
+.harvester-overlay {
+  --harvester-face:1;
+  --harvester-out-face:1;
+  --harvester-return-face:-1;
+  --harvester-target-left:5%;
+  --harvester-target-top:82%;
+  left:5% !important;
+  top:82% !important;
+  transition:none !important;
 }
-@keyframes harvesterEngineSlow {
-  0% { transform:translateY(-2px) rotate(-.25deg); }
-  100% { transform:translateY(2px) rotate(.25deg); }
+.harvester-overlay img {
+  animation:none !important;
+  transform:scaleX(var(--harvester-face));
+}
+.harvester-overlay.traveling {
+  animation:harvesterTravel 1.34s linear both !important;
+}
+.harvester-overlay.traveling img {
+  animation:harvesterTravelEngine 1.34s steps(2,end) both !important;
+}
+@keyframes harvesterTravel {
+  0% { left:5%; top:82%; }
+  12% { left:var(--harvester-target-left); top:var(--harvester-target-top); }
+  88% { left:var(--harvester-target-left); top:var(--harvester-target-top); }
+  100% { left:5%; top:82%; }
+}
+@keyframes harvesterTravelEngine {
+  0%,11% { transform:scaleX(var(--harvester-out-face)) translateY(0) rotate(0); }
+  12%,24%,36%,48%,60%,72%,84% { transform:scaleX(var(--harvester-out-face)) translateX(-4px) translateY(-2px) rotate(-.35deg); }
+  18%,30%,42%,54%,66%,78%,88% { transform:scaleX(var(--harvester-out-face)) translateX(4px) translateY(2px) rotate(.35deg); }
+  89%,100% { transform:scaleX(var(--harvester-return-face)) translateY(0) rotate(0); }
+}
+
+.still-unit .empty-still-btn {
+  bottom:2px !important;
+  width:34px !important;
+  min-width:34px !important;
+  height:32px !important;
+  padding:0 !important;
+  z-index:22 !important;
+}
+.still-unit .empty-still-btn.empty-side-left {
+  left:calc(50% - 72px) !important;
+  right:auto !important;
+}
+.still-unit .empty-still-btn.empty-side-right {
+  left:calc(50% + 48px) !important;
+  right:auto !important;
+}
+.still-unit .empty-still-btn .empty-icon {
+  display:block !important;
+  font-size:30px !important;
+  line-height:1 !important;
+  transition:transform .14s ease !important;
+}
+.still-unit .empty-still-btn.empty-side-left .empty-icon {
+  transform:rotate(-62deg) !important;
+}
+.still-unit .empty-still-btn.empty-side-right .empty-icon {
+  transform:rotate(62deg) !important;
+}
+.still-unit .empty-still-btn.empty-side-left:hover .empty-icon {
+  transform:rotate(-78deg) translateY(-1px) !important;
+}
+.still-unit .empty-still-btn.empty-side-right:hover .empty-icon {
+  transform:rotate(78deg) translateY(-1px) !important;
+}
+
+#tooltip .tip-head .still-heat {
+  color:var(--still-temp-color, #ff5436) !important;
+}
+
+.malt-smoke {
+  width:178px !important;
+}
+.malt-smoke::before,
+.malt-smoke::after,
+.malt-smoke i {
+  background:
+    radial-gradient(ellipse at 48% 82%, rgba(18,12,8,.78) 0 14%, transparent 32%),
+    radial-gradient(ellipse at 52% 58%, rgba(94,62,31,.62) 0 18%, transparent 36%),
+    radial-gradient(ellipse at 44% 34%, rgba(36,27,18,.54) 0 16%, transparent 36%),
+    radial-gradient(ellipse at 55% 15%, rgba(122,88,44,.42) 0 14%, transparent 33%) !important;
+  filter:blur(2px) saturate(1.22) contrast(1.08) !important;
+}
+.malt-smoke::after { width:92px !important; height:112px !important; }
+.malt-smoke i:nth-child(1) { width:84px !important; height:104px !important; }
+.malt-smoke i:nth-child(2) { width:62px !important; height:78px !important; }
+.malt-smoke i:nth-child(3) { width:70px !important; height:88px !important; }
+@keyframes maltSmokeGlobal {
+  0% { transform:translate3d(-50%,16px,0) scale(.56) rotate(-3deg); opacity:0; }
+  15% { opacity:.78; }
+  34% { transform:translate3d(-74%,-12px,0) scale(1.02) rotate(3deg); opacity:.62; }
+  55% { transform:translate3d(-30%,-38px,0) scale(1.26) rotate(-3deg); opacity:.48; }
+  78% { transform:translate3d(-82%,-68px,0) scale(1.48) rotate(2deg); opacity:.30; }
+  100% { transform:translate3d(-18%,-96px,0) scale(1.72) rotate(5deg); opacity:0; }
 }
 
 .scotland-radar text.radar-value {
