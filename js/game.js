@@ -2293,7 +2293,7 @@ function renderFieldUpgrades(root){
   }
   if(upgrades.autoHarvester){
     const anim=harvesterAnim;
-    const style=anim ? ` style="--harvester-target-left:${anim.left.toFixed(2)}%;--harvester-target-top:${anim.top.toFixed(2)}%;--harvester-out-face:${anim.outFace};--harvester-return-face:${anim.returnFace}"` : '';
+    const style=anim ? ` style="--harvester-dx:${(anim.left-HARVESTER_PARK.left).toFixed(2)}%;--harvester-dy:${(anim.top-HARVESTER_PARK.top).toFixed(2)}%;--harvester-out-face:${anim.outFace};--harvester-return-face:${anim.returnFace}"` : '';
     root.insertAdjacentHTML('beforeend', `<div class="field-upgrade-overlay harvester-base-overlay" aria-hidden="true"><img src="img/cosechadora_base.png" alt=""></div><div class="field-upgrade-overlay harvester-overlay ${anim?'traveling':''}"${style} data-tip="Autocosechadora: cosecha automáticamente en el punto óptimo y guarda Q 95 en el almacén."><img src="img/cosechadora.png" alt="autocosechadora"></div>`);
   }
 }
@@ -2444,7 +2444,7 @@ function renderStills(){
       <div class="bar vertical output ${s.outputRuns>=3?'run3':''}"><i style="height:${pct(s.output)}"></i><span class="bar-abv">${hasOutput ? `${s.outputAbv.toFixed(0)}°` : ''}</span></div>
       <div class="still-drop in drop-target" data-still="${i}" data-zone="in" data-tip="Entrada del alambique: suelta mosto o destilado para segunda pasada."></div>
       <div class="still-drop out ${spiritReady?'ready-drag':''}" data-still="${i}" data-zone="out" ${spiritReady ? 'data-drag="spirit" data-label="destilado"' : ''} data-tip="Salida del alambique: arrastra de aquí a IN para segunda pasada o a barricas."></div>
-      <button class="pixel-btn small empty-still-btn empty-still-input empty-side-${inputSide}" type="button" data-i="${i}" data-zone="input" data-tip="Vaciar entrada del alambique.\nDescarta el líquido del lado de entrada."><span class="empty-icon">🪣</span></button><button class="pixel-btn small fire-btn" type="button" data-i="${i}" data-tip="Fuego.\nEnciende o apaga el calentamiento."><span class="fire-icon">🔥</span><span class="control-label">${s.fire?'Apagar':'Fuego'}</span></button><button class="pixel-btn small empty-still-btn empty-still-output empty-side-${outputSide}" type="button" data-i="${i}" data-zone="output" data-tip="Vaciar salida del alambique.\nDescarta el destilado del lado de salida."><span class="empty-icon">🪣</span></button>
+      <div class="still-control-row"><button class="pixel-btn small empty-still-btn empty-still-input empty-side-${inputSide}" type="button" data-i="${i}" data-zone="input" data-tip="Vaciar entrada del alambique.\nDescarta el líquido del lado de entrada."><span class="empty-icon">🪣</span></button><button class="pixel-btn small fire-btn" type="button" data-i="${i}" data-tip="Fuego.\nEnciende o apaga el calentamiento."><span class="fire-icon">🔥</span></button><button class="pixel-btn small empty-still-btn empty-still-output empty-side-${outputSide}" type="button" data-i="${i}" data-zone="output" data-tip="Vaciar salida del alambique.\nDescarta el destilado del lado de salida."><span class="empty-icon">🪣</span></button></div>
     </div>`;
   }).join('');
 }
