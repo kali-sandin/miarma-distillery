@@ -1618,6 +1618,27 @@
   opacity:1 !important;
   filter:none !important;
 }
+
+/* 2026-06-25 automation polish */
+.still-unit .still-control-row {
+  gap:9px !important;
+}
+.field-upgrade-toggle.off {
+  opacity:.72 !important;
+  filter:saturate(.72) brightness(.86) !important;
+}
+.field-upgrade-toggle.on {
+  outline:2px solid rgba(134,255,126,.62) !important;
+  outline-offset:2px !important;
+}
+.harvester-overlay.off img {
+  opacity:.55 !important;
+  filter:grayscale(.55) brightness(.82) !important;
+}
+#bottleHistorySide .action-btn-icon {
+  transform:rotate(-40deg) !important;
+  transform-origin:48% 58% !important;
+}
 .still-unit {
   pointer-events:none !important;
 }

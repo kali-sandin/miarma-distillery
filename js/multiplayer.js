@@ -2,6 +2,7 @@ const FIREBASE_VERSION = '10.12.5';
 const PROFILE_KEY = 'miarma-social-public-name-v1';
 const LAST_PROFILE_KEY = 'miarma-social-last-profile-v1';
 const TOP10_CACHE_MS = 10 * 60 * 1000;
+const BACKUP_CHUNK_SIZE = 240000;
 const AUTO_PUBLISH_REASONS = new Set(['box-sold','achievement','region-selected','name-changed','bottled','manual','auth','map-open','reputation']);
 
 const state = {
@@ -141,6 +142,73 @@ async function logout(){
   catch(err){ setStatus('error', `Error logout: ${err.message}`); return false; }
 }
 
+function requireLoggedUser(){
+  if(!state.user) throw new Error('Conecta Google primero');
+  return state.user;
+}
+function backupChunks(text){
+  const chunks=[];
+  for(let i=0;i<text.length;i+=BACKUP_CHUNK_SIZE) chunks.push(text.slice(i, i+BACKUP_CHUNK_SIZE));
+  return chunks;
+}
+async function backupAccount(){
+  try{
+    await loadOptionalConfig();
+    if(!window.MIARMA_FIREBASE_CONFIG){ setStatus('error','Firebase no configurado.'); return false; }
+    const {firestore}=await ensureFirebase();
+    const user=requireLoggedUser();
+    const local=window.MiarmaGame?.exportLocalAccountData?.();
+    if(!local) throw new Error('No se pudo leer la partida local');
+    const payload={schemaVersion:1, publicName:state.publicName || user.displayName || 'Jugador', savedAtClient:Date.now(), local};
+    const text=JSON.stringify(payload);
+    const chunks=backupChunks(text);
+    setStatus('pending', `Subiendo backup (${chunks.length})…`);
+    const metaRef=firestore.doc(state.db, 'accountBackups', user.uid);
+    const oldSnap=await firestore.getDoc(metaRef).catch(()=>null);
+    const oldCount=Number(oldSnap?.exists?.() ? oldSnap.data()?.chunkCount : 0) || 0;
+    const batch=firestore.writeBatch(state.db);
+    batch.set(metaRef, {
+      schemaVersion:1,
+      chunkCount:chunks.length,
+      bytes:new Blob([text]).size,
+      updatedAtClient:Date.now(),
+      updatedAt:firestore.serverTimestamp()
+    }, {merge:false});
+    chunks.forEach((chunk, index)=>batch.set(firestore.doc(state.db, 'accountBackups', user.uid, 'chunks', String(index).padStart(5,'0')), {index, chunk}, {merge:false}));
+    for(let i=chunks.length;i<oldCount;i++) batch.delete(firestore.doc(state.db, 'accountBackups', user.uid, 'chunks', String(i).padStart(5,'0')));
+    await batch.commit();
+    setStatus('connected','Backup de cuenta subido.');
+    return true;
+  }catch(err){ console.warn('[SimDistillery:sync] Error backup cuenta', err); setStatus('error', `Backup: ${err.message}`); return false; }
+}
+async function restoreAccount(){
+  try{
+    await loadOptionalConfig();
+    if(!window.MIARMA_FIREBASE_CONFIG){ setStatus('error','Firebase no configurado.'); return false; }
+    const {firestore}=await ensureFirebase();
+    const user=requireLoggedUser();
+    if(!window.confirm('¿Restaurar la cuenta desde Firebase? Se sustituirá la partida local de este navegador.')) return false;
+    setStatus('pending','Restaurando backup…');
+    const metaRef=firestore.doc(state.db, 'accountBackups', user.uid);
+    const metaSnap=await firestore.getDoc(metaRef);
+    if(!metaSnap.exists()) throw new Error('No hay backup remoto para esta cuenta');
+    const count=Number(metaSnap.data()?.chunkCount)||0;
+    if(count<=0 || count>500) throw new Error('Backup remoto inválido');
+    const parts=await Promise.all(Array.from({length:count}, (_,i)=>firestore.getDoc(firestore.doc(state.db, 'accountBackups', user.uid, 'chunks', String(i).padStart(5,'0')))));
+    const text=parts.map((snap,i)=>{
+      if(!snap.exists()) throw new Error(`Falta chunk ${i}`);
+      return String(snap.data()?.chunk || '');
+    }).join('');
+    const payload=JSON.parse(text);
+    if(payload.publicName) savePublicName(payload.publicName);
+    window.MiarmaGame?.importLocalAccountData?.(payload.local);
+    setStatus('connected','Cuenta restaurada en este navegador.');
+    renderMapControls();
+    markDirty('manual');
+    return true;
+  }catch(err){ console.warn('[SimDistillery:sync] Error restaurando cuenta', err); setStatus('error', `Restaurar: ${err.message}`); return false; }
+}
+
 async function publishProfile(reason='manual', {force=false}={}){
   try{
     await loadOptionalConfig();
@@ -219,10 +287,12 @@ function renderMapControls(){
   const statusText=visibleStatusText();
   const nameValue=esc(state.publicName || user?.displayName || 'Jugador');
   const nameEditor=user && state.editingName ? `<label class="social-public-name"><span>Nombre visible</span><input id="mpPublicName" maxlength="48" value="${nameValue}" autocomplete="off"><button id="mpSaveName" class="pixel-btn small" type="button">Guardar</button></label>` : '';
-  root.innerHTML=`<div class="social-map-title">🌐 Sim Distillery</div><div id="multiplayerStatus" class="multiplayer-status compact" data-status="${esc(state.status)}">${esc(statusText)}${staleTxt?`<br><small>${esc(staleTxt)}</small>`:''}</div>${nameEditor}<div class="social-map-actions">${user?'<button id="mpEditName" class="pixel-btn small" type="button">Cambiar nombre</button><button id="mpLogout" class="pixel-btn small danger" type="button">Desconectar cuenta</button>':'<button id="mpLogin" class="pixel-btn small" type="button">Login Google</button>'}</div>`;
+  root.innerHTML=`<div class="social-map-title">🌐 Sim Distillery</div><div id="multiplayerStatus" class="multiplayer-status compact" data-status="${esc(state.status)}">${esc(statusText)}${staleTxt?`<br><small>${esc(staleTxt)}</small>`:''}</div>${nameEditor}<div class="social-map-actions">${user?'<button id="mpEditName" class="pixel-btn small" type="button">Cambiar nombre</button><button id="mpBackupAccount" class="pixel-btn small" type="button">Backup cuenta</button><button id="mpRestoreAccount" class="pixel-btn small" type="button">Restaurar cuenta</button><button id="mpLogout" class="pixel-btn small danger" type="button">Desconectar cuenta</button>':'<button id="mpLogin" class="pixel-btn small" type="button">Login Google</button>'}</div>`;
   root.querySelectorAll('button,input').forEach(el=>el.addEventListener('pointerdown', e=>e.stopPropagation()));
   $('#mpLogin',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); state.mapLoginAttempted=true; login(); });
   $('#mpLogout',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); logout(); });
+  $('#mpBackupAccount',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); backupAccount(); });
+  $('#mpRestoreAccount',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); restoreAccount(); });
   $('#mpEditName',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); state.editingName=true; renderMapControls(); setTimeout(()=>$('#mpPublicName',root)?.focus(),0); });
   $('#mpSaveName',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); savePublicName($('#mpPublicName',root)?.value); });
   $('#mpPublicName',root)?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); savePublicName(e.currentTarget.value); } });
@@ -246,5 +316,5 @@ function init(){
   loadOptionalConfig().then(configured=>{ if(configured) ensureFirebase().catch(err=>setStatus('error', `Firebase: ${err.message}`)); });
 }
 
-window.MiarmaMultiplayer = {init, login, logout, publishProfile, fetchTop10, fetchTop10IfStale, markDirty, getCachedTopPlayers, currentProfile, currentUserId, renderMapControls, onScotlandMapOpen, savePublicName};
+window.MiarmaMultiplayer = {init, login, logout, publishProfile, backupAccount, restoreAccount, fetchTop10, fetchTop10IfStale, markDirty, getCachedTopPlayers, currentProfile, currentUserId, renderMapControls, onScotlandMapOpen, savePublicName};
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
