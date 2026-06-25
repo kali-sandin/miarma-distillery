@@ -127,6 +127,8 @@ const MARKET_HISTORY_MAX = 90;
 const MARKET_MIN = 3;
 const MARKET_MAX = 5;
 const MARKET_MID = (MARKET_MIN + MARKET_MAX) / 2;
+const AD_CAMPAIGN_COSTS = [10, 20, 30, 50, 75, 100, 125, 150];
+const AD_MARKET_STEP = .25;
 const DISTILLATION_TARGETS = {
   1: { abv: LOW_WINES_ABV_TARGET, recovery: .93, label: 'low wines' },
   2: { abv: NEW_MAKE_ABV_TARGET, recovery: .948, label: 'new make' },
@@ -142,8 +144,9 @@ const FIELD_OPTIMAL_START = 70;
 const FIELD_OPTIMAL_MID = 82;
 const FIELD_OPTIMAL_END = 95;
 const FIELD_FULL_GROWTH = 100;
-const FIELD_DRY_SECONDS = 7;
-const FIELD_OVERDUE_SECONDS = 5;
+const FIELD_INITIAL_MOISTURE = FIELD_WATER_CAP * .10;
+const FIELD_DRY_SECONDS = 14;
+const FIELD_OVERDUE_SECONDS = 10;
 const MALT_HARVEST_START = 50;
 const MALT_OPTIMAL_START = 68;
 const MALT_OPTIMAL_MID = 79;
@@ -388,6 +391,7 @@ const PRELOAD_IMAGE_ASSETS = [
   'img/barriles/port_pipe_old.png',
   'img/barriles/virgin_oak_hogshead.png',
   'img/barriles/virgin_oak_hogshead_old.png',
+  ...AD_CAMPAIGN_COSTS.map((_,i)=>`img/adds/add${String(i+1).padStart(2,'0')}.jpg`),
   'img/truck1.png',
   'img/truck2.png',
   'img/truck3.png',
@@ -411,7 +415,7 @@ const ACHIEVEMENTS = [
   {id:'collectors_item', name:'Collectors item', img:'img/logros/collectors item.png', desc:'Este no se bebe, va directo a la vitrina.', condition:'Angel’s share + tanda de 30 años o más.', reward:'Desbloquea tiempo x10 · +30 reputación'},
   {id:'max_q', name:'Max Q', img:'img/logros/max q.png', desc:'Nada de diluir a 40º, chill filtered, Non Age Statement o E-150a... ¡Aquí seleccionamos con lupa hasta el último grano de cebada para que todo sea perfecto!', condition:'Whisky mínimo 46º, 12 años, Q ≥ 99, sin chill filtered y sin colorante.', reward:'+20 reputación'},
   {id:'triple_distillation', name:'Triple destilación', img:'img/logros/triple destilacion.png', desc:'¿En serio es necesario? ¿Otra vez?', condition:'Todo el líquido de la tanda ha sido triplemente destilado.', reward:'+20 reputación · +10 k€'},
-  {id:'monster_peat', name:'Monster Peat', img:'img/logros/monster peat.png', desc:'¡Cough cough! ¡Aggghhh! Esto es como masticar tierra quemada... ¡qué exquisita textura!', condition:'Crear botellas con turba entre 45 y 50 ppm.', reward:'+20 reputación'},
+  {id:'monster_peat', name:'Monster Peat', img:'img/logros/monster peat.png', desc:'¡Cough cough! ¡Aggghhh! Esto es como masticar tierra quemada... ¡qué exquisita textura!', condition:'Crear botellas con turba entre 40 y 45 ppm.', reward:'+20 reputación'},
   {id:'professional_distillery', name:'Destilería profesional', img:'img/logros/destileria profesional.png', desc:'¿Qué estás buscando? ...¡Lo tenemos!', condition:'Vender al menos una caja NAS, 10, 12, 15 y 18 años; además una sin turba, una con turba y una triple destilación.', reward:'+50 k€ · +10 reputación'},
   {id:'solera', name:'Solera', img:'img/logros/solera.png', desc:'¡Eres todo un experto en ingeniería de la fermentación! No es fácil combinar 5 líquidos diferentes en un mismo proceso de fermentación en una misma tina. Like a pro.', condition:'Con levadura ya añadida, sumar al menos cuatro tandas nuevas de malta a la misma tina: 5 tandas en un proceso.', reward:'+10 reputación'},
   {id:'master_blender', name:'Master Blender', img:'img/logros/master blender.png', desc:'Un poquito de aquí... otra pizca de allá... me llevo una... No sé ni lo que estoy haciendo... ¡hip!', condition:'Crear una tanda de botellas con al menos 5 líquidos diferentes.', reward:'1 pack 🛢️ Sherry Butt + 1 pack 🛢️ Port Pipe · 💰 +10 k€'},
@@ -487,7 +491,7 @@ function checkLotAchievements(lot, achievementsBefore={...(distillery().achievem
   else if(achievementsBefore.angels_share && !achievementsBefore.collectors_item && age>=30) got('collectors_item');
   if(Number(lot.abv)>=46 && age>=12 && q>=99 && !lotHasBottleAdditive(lot,'chillFilter') && !lotHasBottleAdditive(lot,'caramelColor')) got('max_q');
   if(allComponentsTripleDistilled(lot)) got('triple_distillation');
-  if(peat>=45 && peat<=50) got('monster_peat');
+  if(peat>=40 && peat<=45) got('monster_peat');
   if(comps.length>=5) got('master_blender');
   if((state.vats||[]).every(v=>v.unlocked) && (state.stills||[]).every(st=>st.unlocked) && (state.barrels||[]).length>=8 && fieldUpgrades().warehouseBuilt && fieldUpgrades().warehouseDuplicated && fieldUpgrades().warehouseSecondExpanded && fieldUpgrades().autoWater && fieldUpgrades().autoHarvester && fieldUpgrades().thermostatBuilt) got('the_factory');
   if(unlocked.length) lot.achievements=[...(lot.achievements||[]), ...unlocked.filter(id=>!(lot.achievements||[]).includes(id))];
@@ -720,6 +724,7 @@ const defaultState = () => ({
   marketTrendUntil: Date.now(),
   marketHistory: [{t: Date.now(), p: 3.5}],
   marketHistoryAt: Date.now(),
+  advertisingCampaigns: 0,
   distillery: defaultDistillery(),
   debugQuality: false,
   musicEnabled: true,
@@ -747,6 +752,8 @@ let renderPending = false;
 let suppressNextClick = false;
 let suppressClickTimer = null;
 let barrelShopOpen = false;
+let advertisingShopOpen = false;
+let advertisingCarouselIndex = 0;
 let marketSimOpen = false;
 let marketSimChartPoints = [];
 let stagePan = null;
@@ -793,11 +800,13 @@ function normaliseLoaded(s){
   if(!merged.bottleHistory.length && merged.boxes.length) merged.bottleHistory = merged.boxes.map((b,i)=>({...b, seq:i+1, image:b.image || chooseBottleArt(b), bottledAt:Date.now()-i, sold:false, salePricePerBottle:0, saleTotal:0, components:(b.components||[]).map(c=>({...c})), lineage:(b.lineage||[]).map(x=>({...x}))}));
   merged.bottleHistorySeq = Math.max(Number(s.bottleHistorySeq)||0, ...merged.bottleHistory.map(x=>Number(x.seq)||0), 0);
   merged.speedStep = 0;
-  merged.marketHistory = Array.isArray(s.marketHistory) ? s.marketHistory.map(x=>({t:Number(x.t)||Date.now(), p:clamp(Number(x.p)||merged.market, MARKET_MIN, MARKET_MAX)})).slice(-MARKET_HISTORY_MAX) : [{t:Date.now(), p:merged.market}];
+  merged.advertisingCampaigns = clamp(Math.floor(Number(s.advertisingCampaigns)||0), 0, AD_CAMPAIGN_COSTS.length);
+  const mMin = marketLowerBound(merged.advertisingCampaigns), mMax = marketUpperBound(merged.advertisingCampaigns);
+  merged.marketHistory = Array.isArray(s.marketHistory) ? s.marketHistory.map(x=>({t:Number(x.t)||Date.now(), p:clamp(Number(x.p)||merged.market, mMin, mMax)})).slice(-MARKET_HISTORY_MAX) : [{t:Date.now(), p:merged.market}];
   merged.marketHistoryAt = Number(s.marketHistoryAt) || Date.now();
-  merged.market = clamp(Number(merged.market)||MARKET_MID, MARKET_MIN, MARKET_MAX);
+  merged.market = clamp(Number(merged.market)||MARKET_MID, mMin, mMax);
   merged.marketTrend = Number(s.marketTrend) || 0;
-  merged.marketTarget = clamp(Number(s.marketTarget) || merged.market || MARKET_MID, MARKET_MIN, MARKET_MAX);
+  merged.marketTarget = clamp(Number(s.marketTarget) || merged.market || MARKET_MID, mMin, mMax);
   merged.marketVelocity = clamp(Number(s.marketVelocity) || 0, -.12, .12);
   merged.marketVolatility = clamp(Number(s.marketVolatility) || .012, .004, .026);
   merged.marketTrendUntil = Number(s.marketTrendUntil) || Date.now();
@@ -1055,6 +1064,10 @@ function tempPct(n){ return pct((n - TEMP_MIN) / (TEMP_MAX - TEMP_MIN) * 100); }
 function qualityOrDefault(q, fallback=100){ const n=Number(q); return Number.isFinite(n) ? n : fallback; }
 function weightedQuality(oldVol, oldQ, addVol, addQ){ const o=qualityOrDefault(oldQ), a=qualityOrDefault(addQ); return oldVol>0 ? (o * oldVol + a * addVol) / (oldVol + addVol) : a; }
 function weightedValue(oldVol, oldValue, addVol, addValue){ return oldVol>0 ? ((oldValue || 0) * oldVol + (addValue || 0) * addVol) / (oldVol + addVol) : (addValue || 0); }
+function advertisingBought(count=state?.advertisingCampaigns){ return clamp(Math.floor(Number(count)||0), 0, AD_CAMPAIGN_COSTS.length); }
+function marketLowerBound(count=state?.advertisingCampaigns){ return MARKET_MIN + advertisingBought(count) * AD_MARKET_STEP; }
+function marketUpperBound(count=state?.advertisingCampaigns){ return MARKET_MAX + advertisingBought(count) * AD_MARKET_STEP; }
+function fieldPlantMoisture(){ return fieldUpgrades().autoWater ? FIELD_WATER_CAP : FIELD_INITIAL_MOISTURE; }
 function qualityCurve(value, start, mid, end){
   if(value < start) return 0;
   if(value <= mid) return 80 + (value - start) / (mid - start) * 20;
@@ -1392,6 +1405,7 @@ function closeTopPopupByEsc(){
   if(distilleryModal){ distilleryModal.querySelector('.game-popup-close')?.click(); return true; }
   const bottleHistory=$('#bottleHistoryModal:not(.hidden)');
   if(bottleHistory){ bottleHistory.querySelector('.game-popup-close')?.click(); return true; }
+  if(closeAdvertisingShop(true)) return true;
   if(barrelShopOpen) return closeBarrelShop(true);
   const bottleModal=$('#bottleModal');
   if(bottleModal){ $('#bottleCancel')?.click(); return true; }
@@ -1407,17 +1421,18 @@ function clearStillOutput(s){ const unlocked=!!s?.unlocked; Object.assign(s,{unl
 function recordMarketSample(now=Date.now(), force=false){
   if(!Array.isArray(state.marketHistory)) state.marketHistory=[];
   if(force || !state.marketHistory.length || now-(state.marketHistoryAt||0)>=MARKET_HISTORY_SAMPLE_MS){
-    state.marketHistory.push({t:now, p:clamp(Number(state.market)||MARKET_MID, MARKET_MIN, MARKET_MAX)});
+    state.marketHistory.push({t:now, p:clamp(Number(state.market)||MARKET_MID, marketLowerBound(), marketUpperBound())});
     state.marketHistory=state.marketHistory.slice(-MARKET_HISTORY_MAX);
     state.marketHistoryAt=now;
   }
 }
 function updateMarketTrend(now=Date.now()){
   if(now >= (state.marketTrendUntil || 0)){
+    const min=marketLowerBound(), max=marketUpperBound();
     const r = Math.random();
-    state.marketTarget = r < .24 ? rnd(MARKET_MIN + .02, MARKET_MIN + .25)
-      : r > .76 ? rnd(MARKET_MAX - .25, MARKET_MAX - .02)
-      : rnd(MARKET_MIN + .20, MARKET_MAX - .20);
+    state.marketTarget = r < .24 ? rnd(min + .02, min + .25)
+      : r > .76 ? rnd(max - .25, max - .02)
+      : rnd(min + .20, max - .20);
     state.marketTrend = rnd(-.006, .006);
     state.marketVolatility = rnd(.010, .030);
     state.marketTrendUntil = now + rnd(7000, 26000);
@@ -1434,8 +1449,9 @@ function marketSparklineHtml(){
 function updateMarketHud(){
   const market=$('#market');
   if(!market) return;
+  const min=marketLowerBound(), max=marketUpperBound();
   market.textContent = `${state.market.toFixed(2)} €`;
-  market.closest('.stat, .market')?.setAttribute('data-tip', `Precio de mercado: ${state.market.toFixed(2)} € x botella x años.\nLa calidad multiplica el precio: Q90 = x0.90.\nClick: abrir simulador de embotellado.\n${marketSparklineHtml()}`);
+  market.closest('.stat, .market')?.setAttribute('data-tip', `Precio de mercado: ${state.market.toFixed(2)} € x botella x años.\nRango actual: ${min.toFixed(2)}€ - ${max.toFixed(2)}€.\nLa calidad multiplica el precio: Q90 = x0.90.\nClick: abrir simulador de embotellado.\n${marketSparklineHtml()}`);
 }
 function ensureDragMarketChart(){
   let el=$('#dragMarketChart');
@@ -1475,9 +1491,9 @@ function ensureMarketSimModal(){
         <canvas id="marketSimChart" width="960" height="420"></canvas>
         <div class="market-sim-chart-tip hidden" id="marketSimChartTip"></div>
         <div class="market-sim-legend">
-          <span><i style="--c:#ff7c65"></i>Mercado mínimo 3€</span>
-          <span><i style="--c:#f0b75b"></i>Mercado medio 4€</span>
-          <span><i style="--c:#a8e36f"></i>Mercado máximo 5€</span>
+          <span id="simLegendMin"><i style="--c:#ff7c65"></i></span>
+          <span id="simLegendMid"><i style="--c:#f0b75b"></i></span>
+          <span id="simLegendMax"><i style="--c:#a8e36f"></i></span>
         </div>
         <div class="market-sim-kpis">
           <div class="market-sim-kpi"><small>⏳ Óptimo medio</small><strong id="simBestYear">-</strong></div>
@@ -1501,7 +1517,7 @@ function ensureMarketSimModal(){
   return root;
 }
 function marketSimEls(root=ensureMarketSimModal()){
-  return Object.fromEntries(['simLitres','simQuality','simInitialAbv','simBottleAbv','simBottleAbvLabel','simYears','simBestYear','simBestMoney','simBestBottles','simBestLitres','marketSimFormula','marketSimChart','marketSimChartTip'].map(id=>[id, root.querySelector(`#${id}`)]));
+  return Object.fromEntries(['simLitres','simQuality','simInitialAbv','simBottleAbv','simBottleAbvLabel','simYears','simBestYear','simBestMoney','simBestBottles','simBestLitres','marketSimFormula','marketSimChart','marketSimChartTip','simLegendMin','simLegendMid','simLegendMax'].map(id=>[id, root.querySelector(`#${id}`)]));
 }
 function setMarketSimDefaults(root=ensureMarketSimModal()){
   const els=marketSimEls(root), d=MARKET_SIM_DEFAULTS;
@@ -1548,10 +1564,14 @@ function smoothMarketSimLine(ctx, pts){
 }
 function drawMarketSimulator(){
   const root=ensureMarketSimModal(), els=marketSimEls(root), v=marketSimValues(root);
+  const min=marketLowerBound(), max=marketUpperBound(), mid=(min+max)/2;
+  els.simLegendMin.innerHTML='<i style="--c:#ff7c65"></i>Mercado mínimo '+min.toFixed(2)+'€';
+  els.simLegendMid.innerHTML='<i style="--c:#f0b75b"></i>Mercado medio '+mid.toFixed(2)+'€';
+  els.simLegendMax.innerHTML='<i style="--c:#a8e36f"></i>Mercado máximo '+max.toFixed(2)+'€';
   const series=[
-    {price:MARKET_MIN, color:'#ff7c65', label:'mínimo'},
-    {price:MARKET_MID, color:'#f0b75b', label:'medio'},
-    {price:MARKET_MAX, color:'#a8e36f', label:'máximo'}
+    {price:min, color:'#ff7c65', label:'mínimo'},
+    {price:mid, color:'#f0b75b', label:'medio'},
+    {price:max, color:'#a8e36f', label:'máximo'}
   ].map(s=>({...s, data:marketSimEnvelope(s.price, v)}));
   const best=series[1].data.reduce((a,b)=>b.money>a.money?b:a, series[1].data[0]);
   els.simBestYear.textContent=`${best.year.toFixed(1)} años`;
@@ -1621,6 +1641,110 @@ function closeMarketSimulator(play=true){
   if(play) playFx('fxAhhh', .58);
   return true;
 }
+function advertisingImage(n){ return `img/adds/add${String(n).padStart(2,'0')}.jpg`; }
+function advertisingNextCost(){ return AD_CAMPAIGN_COSTS[advertisingBought()] ?? null; }
+function advertisingEffectLine(count=advertisingBought()){
+  return `${marketLowerBound(count).toFixed(2)}€ - ${marketUpperBound(count).toFixed(2)}€`;
+}
+function ensureAdvertisingShopModal(){
+  let root=$('#advertisingShopModal');
+  if(root) return root;
+  root=document.createElement('div');
+  root.id='advertisingShopModal';
+  root.className='advertising-shop-modal hidden';
+  document.body.appendChild(root);
+  return root;
+}
+function renderAdvertisingShopModal(){
+  const root=ensureAdvertisingShopModal();
+  if(!advertisingShopOpen){ root.classList.add('hidden'); root.innerHTML=''; return; }
+  const bought=advertisingBought();
+  advertisingCarouselIndex=clamp(advertisingCarouselIndex, 0, Math.max(0, bought-1));
+  const nextCost=advertisingNextCost();
+  const canBuy=nextCost!==null && state.coins>=nextCost;
+  const current=bought ? advertisingCarouselIndex + 1 : 1;
+  const img=advertisingImage(current);
+  const title=bought ? `Campaña ${current}/${bought}` : 'Sin campañas compradas';
+  const effectNext=nextCost===null ? 'Todas las campañas compradas.' : `Rango de mercado: ${advertisingEffectLine(bought)} → ${advertisingEffectLine(bought+1)}.`;
+  root.innerHTML=`<div class="advertising-shop-window">
+    <button class="game-popup-close advertising-shop-close" type="button" aria-label="Cerrar">×</button>
+    <header><h3>Publicidad</h3><p>Campañas compradas: ${bought}/${AD_CAMPAIGN_COSTS.length}. Cada campaña sube 0,25€ el mínimo y el máximo del mercado.</p></header>
+    <section class="advertising-carousel ${bought ? '' : 'empty'}">
+      <button class="ad-carousel-arrow prev" type="button" ${bought>1?'':'disabled'} aria-label="Campaña anterior">‹</button>
+      <figure>
+        <img src="${escapeHtml(img)}" alt="${escapeHtml(title)}" draggable="false" onerror="this.src='img/adds/add01.jpg'">
+        <figcaption>${escapeHtml(title)}<small>Mercado actual: ${advertisingEffectLine()}</small></figcaption>
+      </figure>
+      <button class="ad-carousel-arrow next" type="button" ${bought>1?'':'disabled'} aria-label="Campaña siguiente">›</button>
+    </section>
+    <button class="pixel-btn advertising-buy ${canBuy?'':'locked'}" type="button" ${nextCost===null?'disabled':''}>
+      ${nextCost===null ? 'Campañas agotadas' : `Comprar Campaña Publicitaria ${actionPrice(nextCost)}`}
+    </button>
+    <p class="advertising-effect">${escapeHtml(effectNext)}${nextCost!==null && !canBuy ? ` Necesitas ${nextCost} k€.` : ''}</p>
+  </div>`;
+  root.classList.remove('hidden');
+}
+function closeAdvertisingShop(play=true){
+  const root=$('#advertisingShopModal');
+  if(!advertisingShopOpen && (!root || root.classList.contains('hidden'))) return false;
+  advertisingShopOpen=false;
+  renderAdvertisingShopModal();
+  if(play) playFx('fxAhhh', .58);
+  return true;
+}
+function playMarchOnce(){
+  const march=$('#fxMarch'), main=$('#mainLoop');
+  if(state.fxEnabled === false || !march) return Promise.resolve();
+  const shouldResume=!!(main && state.musicEnabled !== false && !main.paused);
+  if(main && shouldResume) main.pause();
+  return new Promise(resolve=>{
+    const finish=()=>{
+      march.removeEventListener('ended', finish);
+      march.removeEventListener('error', finish);
+      if(shouldResume){ musicStarted=false; startMainLoop(); }
+      resolve();
+    };
+    march.currentTime=0;
+    march.volume=.82;
+    march.addEventListener('ended', finish, {once:true});
+    march.addEventListener('error', finish, {once:true});
+    march.play().catch(finish);
+  });
+}
+async function showAdvertisingCampaign(n){
+  const marchPromise=playMarchOnce();
+  await gamePopup({
+    title:'Campaña publicitaria',
+    mood:'happy',
+    html:`<div class="advertising-unlock"><img src="${escapeHtml(advertisingImage(n))}" alt="Campaña publicitaria ${n}" onerror="this.src='img/adds/add01.jpg'"><p><b>Campaña ${n} activada.</b><br>El mercado queda en ${advertisingEffectLine()}.</p></div>`,
+    ok:'Perfecto',
+    closeFx:'fxAhhh'
+  });
+  await marchPromise;
+}
+async function buyAdvertisingCampaign(){
+  const bought=advertisingBought(), cost=advertisingNextCost();
+  if(cost===null){ notice('Ya has comprado todas las campañas publicitarias.', 'happy', 'Publicidad completa'); return; }
+  if(state.coins<cost){ notice(`Necesitas ${cost} k€ para esta campaña publicitaria.`, 'explain', 'No hay dinero'); return; }
+  const ok=await gamePopup({
+    title:'Comprar campaña',
+    mood:'warn',
+    confirm:true,
+    ok:'Comprar',
+    cancel:'Cancelar',
+    html:`<p>¿Comprar campaña publicitaria por <b>${cost} k€</b>?</p>`
+  });
+  if(!ok){ renderAdvertisingShopModal(); return; }
+  state.coins=Math.max(0, state.coins-cost);
+  state.advertisingCampaigns=bought+1;
+  state.market=clamp((Number(state.market)||MARKET_MID)+AD_MARKET_STEP, marketLowerBound(), marketUpperBound());
+  state.marketTarget=clamp((Number(state.marketTarget)||state.market)+AD_MARKET_STEP, marketLowerBound(), marketUpperBound());
+  advertisingCarouselIndex=state.advertisingCampaigns-1;
+  recordMarketSample(Date.now(), true);
+  playFx('fxCashRegister', .70);
+  markDirty(); render(); saveGame(); renderAdvertisingShopModal();
+  await showAdvertisingCampaign(state.advertisingCampaigns);
+}
 function maltedWarning(t){ return t.status==='filled' && t.heated && (t.stable || 0) > MALT_KILNED_GRACE/2; }
 function shouldWarnMalted(t){ return maltedWarning(t) && !t.warned; }
 const SCOT_MOODS = {
@@ -1659,6 +1783,8 @@ let scotlandTransitioning = false;
 let scotlandZoom = {scale:1, x:0, y:0};
 let scotlandPan = null;
 let scotlandSuppressClick = false;
+let scotlandSelectPointerHandled = false;
+let scotlandSelectClickBusy = false;
 let scotlandReturnHudCollapsed = null;
 let publicScotlandPlayers = [];
 let selectedPublicPlayerIds = new Set();
@@ -1684,6 +1810,7 @@ function ensureScotlandMapOverlay(){
   root.addEventListener('click', handleScotlandMapClick);
   root.addEventListener('wheel', handleScotlandWheel, {passive:false});
   root.addEventListener('pointerdown', startScotlandPan);
+  root.addEventListener('pointerup', handleScotlandSelectPointerUp);
   root.addEventListener('pointerup', endScotlandPan);
   root.addEventListener('pointercancel', endScotlandPan);
   return root;
@@ -1734,6 +1861,17 @@ function endScotlandPan(e){
     if(scotlandPan.moved) scotlandSuppressClick=true;
     scotlandPan=null;
   }
+}
+function isScotlandControlTarget(target){
+  return !!target?.closest?.('.scotland-social-panel,.scotland-player-marker,.scotland-player-card,.scotland-region-card,.scotland-map-hint,.scotland-other-marker');
+}
+function handleScotlandSelectPointerUp(e){
+  const root=e.currentTarget;
+  if(e.button!==0 || !root.classList.contains('visible') || !root.classList.contains('select-mode')) return;
+  if(scotlandTransitioning || scotlandPan || isScotlandControlTarget(e.target)) return;
+  e.preventDefault(); e.stopPropagation();
+  scotlandSelectPointerHandled = true;
+  handleScotlandMapClick(e, {fromPointer:true});
 }
 function scotlandMapBox(root=ensureScotlandMapOverlay()){
   const img=root.querySelector('.scotland-base-map');
@@ -1944,23 +2082,20 @@ function normalizeRadarSeries(baseMetrics, comparisons=[]){
 function radarSvg(metrics, comparisons=[]){
   const norm=normalizeRadarSeries(metrics, comparisons);
   metrics=norm.base; comparisons=norm.comparisons;
-  const cx=110, cy=104, r=72, n=metrics.length;
+  const cx=110, cy=110, r=78, n=metrics.length;
   const point=(pct,i)=>{ const a=-Math.PI/2 + i*2*Math.PI/n; return [cx+Math.cos(a)*r*pct, cy+Math.sin(a)*r*pct]; };
   const seriesPointTip=(name,m)=>`${m.icon || ''} ${name} · ${m.label}: ${m.value}||${RADAR_METRIC_INFO[m.key] || 'Métrica pública del radar.'}`;
   const poly=metrics.map((m,i)=>point(m.pct,i).map(v=>v.toFixed(1)).join(',')).join(' ');
   const axes=metrics.map((m,i)=>{
-    const [x,y]=point(1,i), [ix,iy]=point(1.21,i), [lx,ly]=point(1.43,i);
-    const horizontal=i===2 || i===6;
-    const [vx,vy]=point(horizontal?1.78:1.14,i);
-    const valueY=horizontal ? vy+13 : vy;
+    const [x,y]=point(1,i), [ix,iy]=point(1.34,i), [vx,vy]=point(1.13,i);
     const tip=`${m.icon || ''} ${m.label}: ${m.value}||${RADAR_METRIC_INFO[m.key] || 'Métrica pública del radar.'}`;
-    return `<g class="radar-axis radar-axis-${escapeHtml(m.key||i)}" data-tip="${escapeHtml(tip)}"><line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/><text class="radar-icon" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}">${escapeHtml(m.icon || '')}</text><text class="radar-label" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}">${escapeHtml(m.label)}</text><text class="radar-value" x="${vx.toFixed(1)}" y="${valueY.toFixed(1)}">${escapeHtml(String(m.value))}</text></g>`;
+    return `<g class="radar-axis radar-axis-${escapeHtml(m.key||i)}" data-tip="${escapeHtml(tip)}"><line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/><text class="radar-value" x="${vx.toFixed(1)}" y="${vy.toFixed(1)}">${escapeHtml(String(m.value))}</text><text class="radar-icon" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}">${escapeHtml(m.icon || '')}</text></g>`;
   }).join('');
   const compPolys=comparisons.map((c,i)=>`<polygon class="radar-compare radar-compare-${i}" style="--compare:${escapeHtml(c.color)}" points="${c.metrics.map((m,j)=>point(m.pct,j).map(v=>v.toFixed(1)).join(',')).join(' ')}"/>`).join('');
   const baseName=state.distilleryName || 'Mi destilería';
   const basePoints=metrics.map((m,i)=>{ const [x,y]=point(m.pct,i); return `<circle class="radar-point radar-point-base" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.3" data-tip="${escapeHtml(seriesPointTip(baseName,m))}"/>`; }).join('');
   const compPoints=comparisons.map((c,ci)=>c.metrics.map((m,i)=>{ const [x,y]=point(m.pct,i); return `<circle class="radar-point radar-point-compare radar-point-compare-${ci}" style="--compare:${escapeHtml(c.color)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.3" data-tip="${escapeHtml(seriesPointTip(c.label,m))}"/>`; }).join('')).join('');
-  return `<svg class="scotland-radar" viewBox="0 0 220 214" aria-label="Radar de desempeño"><g class="radar-grid"><polygon points="${metrics.map((_,i)=>point(.33,i).map(v=>v.toFixed(1)).join(',')).join(' ')}"/><polygon points="${metrics.map((_,i)=>point(.66,i).map(v=>v.toFixed(1)).join(',')).join(' ')}"/><polygon points="${metrics.map((_,i)=>point(1,i).map(v=>v.toFixed(1)).join(',')).join(' ')}"/>${axes}</g><polygon class="radar-shape" points="${poly}"/>${compPolys}<g class="radar-points">${basePoints}${compPoints}</g></svg>`;
+  return `<svg class="scotland-radar" viewBox="0 0 220 220" aria-label="Radar de desempeño"><g class="radar-grid"><polygon points="${metrics.map((_,i)=>point(.33,i).map(v=>v.toFixed(1)).join(',')).join(' ')}"/><polygon points="${metrics.map((_,i)=>point(.66,i).map(v=>v.toFixed(1)).join(',')).join(' ')}"/><polygon points="${metrics.map((_,i)=>point(1,i).map(v=>v.toFixed(1)).join(',')).join(' ')}"/>${axes}</g><polygon class="radar-shape" points="${poly}"/>${compPolys}<g class="radar-points">${basePoints}${compPoints}</g></svg>`;
 }
 function playerScotlandCardHtml(){
   const loc=state.scotlandLocation, metrics=distilleryRadarData();
@@ -2010,10 +2145,12 @@ function confirmScotlandLocation(region){
     root.onclick=e=>{ if(e.target===root) done(false); };
   });
 }
-async function handleScotlandMapClick(e){
+async function handleScotlandMapClick(e, {fromPointer=false}={}){
   if(scotlandTransitioning) return;
   if(scotlandPan) return;
+  if(!fromPointer && scotlandSelectPointerHandled){ scotlandSelectPointerHandled=false; return; }
   if(scotlandSuppressClick){ scotlandSuppressClick=false; return; }
+  if(scotlandSelectClickBusy) return;
   const root=ensureScotlandMapOverlay();
   if(scotlandMapMode==='view'){
     if(e.target.closest('.scotland-social-panel')) return;
@@ -2022,25 +2159,29 @@ async function handleScotlandMapClick(e){
     if(e.target.closest('.scotland-player-marker')) return closeScotlandMapToDistillery();
     return;
   }
+  scotlandSelectClickBusy = true;
   const clickX=e.clientX, clickY=e.clientY;
-  const clickedPoint=scotlandImagePoint(clickX, clickY, root);
-  let region=scotlandRegionFromImagePoint(clickedPoint);
-  if(!region && !scotlandSelectionPrepared){
-    root.querySelector('.scotland-map-hint').textContent='Leyendo región…';
-    await scotlandSelectionReady(root);
-    region=scotlandRegionFromImagePoint(clickedPoint) || scotlandRegionAt(clickX, clickY, root);
+  try{
+    if(!scotlandSelectionPrepared){
+      root.querySelector('.scotland-map-hint').textContent='Leyendo región…';
+      await scotlandSelectionReady(root);
+    }
+    const clickedPoint=scotlandImagePoint(clickX, clickY, root);
+    let region=scotlandRegionFromImagePoint(clickedPoint) || scotlandRegionAt(clickX, clickY, root);
+    if(!region && scotlandMapHover?.id && clickedPoint) region=scotlandMapHover;
+    if(!region) return;
+    const pt=clickedPoint || region.point;
+    if(!pt) return;
+    const choice=await confirmScotlandLocation(region);
+    if(!choice.ok) return;
+    state.distilleryName=choice.name || 'Mi destilería';
+    state.scotlandLocation={region:region.id, x:pt.x, y:pt.y, dest:chosenDistilleryAsset()};
+    markPublicProfileDirty('region-selected');
+    markDirty(); saveGame(); render();
+    await transitionScotlandMapToDistillery(clickX, clickY, true);
+  } finally {
+    scotlandSelectClickBusy = false;
   }
-  if(!region && scotlandMapHover?.id && clickedPoint) region=scotlandMapHover;
-  if(!region) return;
-  const pt=clickedPoint || region.point;
-  if(!pt) return;
-  const choice=await confirmScotlandLocation(region);
-  if(!choice.ok) return;
-  state.distilleryName=choice.name || 'Mi destilería';
-  state.scotlandLocation={region:region.id, x:pt.x, y:pt.y, dest:chosenDistilleryAsset()};
-  markPublicProfileDirty('region-selected');
-  markDirty(); saveGame(); render();
-  await transitionScotlandMapToDistillery(clickX, clickY, true);
 }
 function openScotlandMap(mode='view'){
   startScotlandMaskPreload();
@@ -2048,6 +2189,10 @@ function openScotlandMap(mode='view'){
   scotlandReturnHudCollapsed=$('#hud')?.classList.contains('collapsed') ?? null;
   const root=ensureScotlandMapOverlay();
   scotlandTransitioning=false;
+  scotlandPan=null;
+  scotlandSuppressClick=false;
+  scotlandSelectPointerHandled=false;
+  scotlandSelectClickBusy=false;
   root.className=`scotland-map-overlay visible ${mode==='select'?'select-mode':'view-mode'}`;
   resetScotlandZoom(root);
   root.querySelector('.scotland-map-hint').textContent = mode==='select' && !scotlandSelectionPrepared ? 'Preparando regiones…' : (mode==='select' ? 'Elige una región válida para fundar la destilería' : 'ESC o click en tu destilería para volver');
@@ -2272,9 +2417,8 @@ function plantFieldFromWarehouse(i){
   if(!t || fieldTileDisabledReason(+i)) return false;
   if(t.status!=='empty') return false;
   if(warehouseKg()<SEED_KG_PER_PLOT){ notice('No quedan semillas suficientes en el almacén.', 'explain', 'Sin semillas'); return false; }
-  const q=fieldUpgrades().warehouseQuality;
   takeBarleyFromWarehouse(SEED_KG_PER_PLOT);
-  Object.assign(t,{status:'planted', growth:0, moisture:fieldUpgrades().autoWater ? FIELD_WATER_CAP : 0, dry:0, overdue:0, quality:q, peatPpm:0});
+  Object.assign(t,{status:'planted', growth:0, moisture:fieldPlantMoisture(), dry:0, overdue:0, quality:100, peatPpm:0});
   playFx('fxDropGrain');
   return true;
 }
@@ -2653,6 +2797,12 @@ function renderCards(){
   hist.dataset.tip='Histórico de botellas embotelladas. Abre fichas de lotes, composición, cata y venta.';
   hist.innerHTML=actionButtonLabel('img/bottles/bottle_title.png', 'Historial', 'historial de botellas');
   bottling.appendChild(hist);
+  const ad=document.createElement('button');
+  ad.id='advertisingShopToggle'; ad.className='advertising-side icon-action-btn'; ad.type='button';
+  ad.dataset.tip=`Publicidad.\nCampañas compradas: ${advertisingBought()}/${AD_CAMPAIGN_COSTS.length}.\nCada campaña sube 0,25€ el mínimo y máximo del mercado.`;
+  ad.innerHTML=actionButtonLabel('img/adds/add01.jpg', 'Publicidad', 'publicidad');
+  bottling.appendChild(ad);
+  renderAdvertisingShopModal();
   state.barrels.forEach((b,i)=>{
     if(!Number.isFinite(b.x)) b.x=24+i*120; if(!Number.isFinite(b.y)) b.y=56;
     const type=barrelDef(b.type), key=barrelTypeKey(b.type);
@@ -2789,7 +2939,7 @@ function handleDrop(target,data,e){
     const i=+target.dataset.i, t=state.field[i];
     if(fieldTileDisabledReason(i)) return;
     if(data.drag==='barley-store' || warehouseBuilt()){ plantFieldFromWarehouse(i); return; }
-    if(t.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:fieldUpgrades().autoWater ? FIELD_WATER_CAP : 0, dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); }
+    if(t.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:fieldPlantMoisture(), dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); }
     else if(t.status==='empty') notice('No tienes semillas suficientes. Compra semillas en el menú principal.', 'explain', 'Sin semillas');
   }
   if(target.classList.contains('barley-warehouse-drop') && data.drag==='crop'){ storeCropInWarehouse(data.source); return; }
@@ -3302,16 +3452,17 @@ function simulate(timeStep=1, speed=speedMultiplier()){
   const sp = Math.max(0, speed) * Math.max(0, timeStep);
   if(sp<=0) return;
   updateMarketTrend(Date.now());
+  const min=marketLowerBound(), max=marketUpperBound();
   const damp = Math.pow(.91, Math.min(sp, 30));
-  const target = clamp(Number(state.marketTarget) || MARKET_MID, MARKET_MIN, MARKET_MAX);
+  const target = clamp(Number(state.marketTarget) || MARKET_MID, min, max);
   const drift = (target - state.market) * .015 * sp + (Number(state.marketTrend)||0) * sp;
   const noise = (Math.random() + Math.random() - 1) * (Number(state.marketVolatility)||.016) * Math.sqrt(Math.max(.2, sp));
   state.marketVelocity = clamp((Number(state.marketVelocity)||0) * damp + drift + noise, -.080, .080);
   state.market = Number(state.market) + state.marketVelocity;
-  if(state.market < MARKET_MIN || state.market > MARKET_MAX){
-    state.market = clamp(state.market, MARKET_MIN, MARKET_MAX);
+  if(state.market < min || state.market > max){
+    state.market = clamp(state.market, min, max);
     state.marketVelocity *= -.62;
-    state.marketTarget = rnd(MARKET_MIN + .08, MARKET_MAX - .08);
+    state.marketTarget = rnd(min + .08, max - .08);
   }
   recordMarketSample(Date.now());
   for(const [i,t] of state.field.entries()){
@@ -3482,7 +3633,7 @@ function heatMalt(i){
 
 function isStagePanSurfaceTarget(target){
   if(!target?.closest?.('#game')) return false;
-  if(target.closest('button,input,label,select,textarea,a,[data-drag],.drop-target,.field-tile,.malt-tile,.machine-unit,.card,.clean,.bar,.quality-pill,.warning-overlay,.field-upgrade-panel,.field-upgrade-overlay,.equipment-shop,.barrel-shop,.barrel-discard,#hud,#hudIcon,#tooltip,.game-popup,.bottle-modal,.market-sim-modal,.scotland-map-overlay')) return false;
+  if(target.closest('button,input,label,select,textarea,a,[data-drag],.drop-target,.field-tile,.malt-tile,.machine-unit,.card,.clean,.bar,.quality-pill,.warning-overlay,.field-upgrade-panel,.field-upgrade-overlay,.equipment-shop,.barrel-shop,.barrel-discard,#hud,#hudIcon,#tooltip,.game-popup,.bottle-modal,.market-sim-modal,.advertising-shop-modal,.scotland-map-overlay')) return false;
   return !!target.closest('#game,#finca,#fincaRoofs');
 }
 function startStagePan(e){
@@ -3617,7 +3768,7 @@ document.addEventListener('click', e=>{
     if(fieldTileDisabledReason(i)) return;
     if(t?.status==='dry' || t?.status==='rotten'){ Object.assign(t,{status:'empty',growth:0,moisture:0,dry:0,overdue:0,quality:100}); playFx('fxDropGrain'); markDirty(); render(); saveGame(); return; }
     if(t?.status==='empty' && warehouseBuilt()){ plantFieldFromWarehouse(i); markDirty(); render(); saveGame(); }
-    else if(t?.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:fieldUpgrades().autoWater ? FIELD_WATER_CAP : 0, dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); markDirty(); render(); }
+    else if(t?.status==='empty' && state.seeds>=SEED_KG_PER_PLOT){ state.seeds-=SEED_KG_PER_PLOT; Object.assign(t,{status:'planted', growth:0, moisture:fieldPlantMoisture(), dry:0, overdue:0, quality:100}); playFx('fxDropGrain'); markDirty(); render(); }
     else waterField(fieldTile);
   }
   const maltTile=e.target.closest('.malt-tile');
@@ -3727,9 +3878,15 @@ function debugFill(){
 document.addEventListener('click', e=>{
   const ach=e.target.closest('.force-achievement'); if(ach){ e.preventDefault(); e.stopPropagation(); forceAchievement(ach.dataset.ach); showDistilleryStats(); return; }
   const toggle=e.target.closest('#barrelShopToggle'); if(toggle){ e.preventDefault(); e.stopPropagation(); barrelShopOpen=!barrelShopOpen; playFx(barrelShopOpen?'fxCork':'fxAhhh', barrelShopOpen ? .72 : .68); render(); return; }
+  const adToggle=e.target.closest('#advertisingShopToggle'); if(adToggle){ e.preventDefault(); e.stopPropagation(); advertisingShopOpen=!advertisingShopOpen; playFx(advertisingShopOpen?'fxCork':'fxAhhh', advertisingShopOpen ? .72 : .58); render(); return; }
   const closeShop=e.target.closest('.barrel-shop-close'); if(closeShop){ e.preventDefault(); e.stopPropagation(); closeBarrelShop(true); return; }
   const shopModal=e.target.closest('#barrelShopModal'); if(shopModal && e.target===shopModal){ e.preventDefault(); e.stopPropagation(); closeBarrelShop(true); return; }
   const buy=e.target.closest('.barrel-shop-option'); if(buy){ e.preventDefault(); e.stopPropagation(); if(buy.classList.contains('locked')) return; buyBarrel(buy.dataset.type); return; }
+  const closeAd=e.target.closest('.advertising-shop-close'); if(closeAd){ e.preventDefault(); e.stopPropagation(); closeAdvertisingShop(true); return; }
+  const adModal=e.target.closest('#advertisingShopModal'); if(adModal && e.target===adModal){ e.preventDefault(); e.stopPropagation(); closeAdvertisingShop(true); return; }
+  const adPrev=e.target.closest('.ad-carousel-arrow.prev'); if(adPrev){ e.preventDefault(); e.stopPropagation(); const bought=advertisingBought(); if(bought>1){ advertisingCarouselIndex=(advertisingCarouselIndex+bought-1)%bought; renderAdvertisingShopModal(); } return; }
+  const adNext=e.target.closest('.ad-carousel-arrow.next'); if(adNext){ e.preventDefault(); e.stopPropagation(); const bought=advertisingBought(); if(bought>1){ advertisingCarouselIndex=(advertisingCarouselIndex+1)%bought; renderAdvertisingShopModal(); } return; }
+  const adBuy=e.target.closest('.advertising-buy'); if(adBuy){ e.preventDefault(); e.stopPropagation(); if(!adBuy.disabled) buyAdvertisingCampaign(); return; }
   const fieldUpgrade=e.target.closest('.field-upgrade-buy'); if(fieldUpgrade){ e.preventDefault(); e.stopPropagation(); buyFieldUpgrade(fieldUpgrade.dataset.upgrade); return; }
   const eq=e.target.closest('.equipment-buy'); if(eq){ e.preventDefault(); buyEquipment(eq.dataset.equipment); }
   const hist=e.target.closest('#bottleHistorySide, #bottleStat'); if(hist){ e.preventDefault(); e.stopPropagation(); showBottleHistory(); }
@@ -3780,7 +3937,7 @@ $('#speedSlider').addEventListener('input', e=>{ setSpeedStep(Number(e.target.va
 $('#speedReset').onclick=()=>{ setSpeedStep(0); render(); };
 $('#speedSlider').addEventListener('wheel', e=>{ e.preventDefault(); setSpeedStep(Number(state.speedStep||0)+(e.deltaY<0?1:-1)); }, {passive:false});
 document.addEventListener('wheel', e=>{
-  if(e.target.closest?.('#speedSlider, #bottleAbvRange, .market-sim-modal:not(.hidden), .scotland-map-overlay.visible, .reference-modal:not(.hidden), .help-modal:not(.hidden), .game-popup:not(.hidden), .bottle-modal, .bottle-history-modal:not(.hidden), .distillery-modal:not(.hidden)')) return;
+  if(e.target.closest?.('#speedSlider, #bottleAbvRange, .market-sim-modal:not(.hidden), .advertising-shop-modal:not(.hidden), .scotland-map-overlay.visible, .reference-modal:not(.hidden), .help-modal:not(.hidden), .game-popup:not(.hidden), .bottle-modal, .bottle-history-modal:not(.hidden), .distillery-modal:not(.hidden)')) return;
   e.preventDefault();
   const dir = e.deltaY < 0 ? 1 : -1;
   setGameZoom(gameZoom + dir * .22, e.clientX, e.clientY);

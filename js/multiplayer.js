@@ -28,6 +28,7 @@ const esc = value => String(value ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<'
 const profileComparable = profile => JSON.stringify({...profile, updatedAtClient:0});
 const topFresh = () => Date.now() - Number(state.lastTopFetchedAt||0) < TOP10_CACHE_MS;
 const syncLog = (...args) => console.debug('[SimDistillery:sync]', ...args);
+const userScopedKey = (base, uid=state.user?.uid) => uid ? `${base}:${uid}` : base;
 const visibleStatusText = () => {
   if(state.status === 'error') return state.statusText || 'Error social';
   if(state.status === 'pending') return state.statusText || 'Cargando…';
@@ -40,6 +41,7 @@ const setStatus = (status, text) => { state.status=status; state.statusText=text
 function cleanPublicName(value){ return String(value || '').trim().replace(/\s+/g,' ').slice(0,48) || 'Jugador'; }
 function savePublicName(value){
   state.publicName=cleanPublicName(value);
+  localStorage.setItem(userScopedKey(PROFILE_KEY), state.publicName);
   localStorage.setItem(PROFILE_KEY, state.publicName);
   state.editingName=false;
   setStatus(state.user ? 'connected' : 'offline', state.user ? `Conectado como ${state.publicName}` : 'Conecta Google para ver el top 10.');
@@ -68,7 +70,11 @@ async function loadFirebase(){
   state.db = firestore.getFirestore(state.app);
   auth.onAuthStateChanged(state.auth, user=>{
     state.user=user;
-    if(user && !state.publicName){ state.publicName=user.displayName || 'Jugador'; localStorage.setItem(PROFILE_KEY, state.publicName); }
+    if(user){
+      const storedName=localStorage.getItem(userScopedKey(PROFILE_KEY, user.uid));
+      state.publicName=cleanPublicName(storedName || user.displayName || state.publicName || 'Jugador');
+      localStorage.setItem(userScopedKey(PROFILE_KEY, user.uid), state.publicName);
+    }
     if(!user){
       state.dirtyReasons.delete('auth');
       setStatus('offline', 'Desconectado');
@@ -102,7 +108,7 @@ function currentProfile(){
 
 function profileChanged(profile){
   const comparable=profileComparable(profile);
-  return comparable !== localStorage.getItem(LAST_PROFILE_KEY);
+  return comparable !== localStorage.getItem(userScopedKey(LAST_PROFILE_KEY));
 }
 
 async function login(){
@@ -153,7 +159,7 @@ async function publishProfile(reason='manual', {force=false}={}){
     syncLog('publishing profile', reason, [...state.dirtyReasons]);
     const docRef=firestore.doc(state.db, 'players', state.user.uid);
     await firestore.setDoc(docRef, {...profile, updatedAt:firestore.serverTimestamp()}, {merge:false});
-    localStorage.setItem(LAST_PROFILE_KEY, profileComparable(profile));
+    localStorage.setItem(userScopedKey(LAST_PROFILE_KEY), profileComparable(profile));
     state.dirtyReasons.clear();
     syncLog('profile published', reason);
     setStatus('connected', 'Conectado');

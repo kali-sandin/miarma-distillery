@@ -1333,6 +1333,147 @@
   fill:#ffe16d !important;
 }
 
+/* 2026-06-25 publicidad y radar limpio */
+.advertising-side {
+  position:absolute !important;
+  right:190px !important;
+  top:-40px !important;
+  bottom:auto !important;
+  min-width:168px !important;
+  z-index:30 !important;
+}
+.advertising-side .action-btn-icon {
+  width:62px !important;
+  height:42px !important;
+  min-width:62px !important;
+  object-fit:cover !important;
+  border-radius:6px;
+  image-rendering:auto;
+}
+.advertising-shop-modal {
+  position:fixed;
+  inset:0;
+  z-index:30030;
+  display:grid;
+  place-items:center;
+  background:rgba(0,0,0,.62);
+}
+.advertising-shop-modal.hidden { display:none !important; }
+.advertising-shop-window {
+  position:relative;
+  width:min(920px, calc(100vw - 40px));
+  max-height:min(820px, calc(100vh - 40px));
+  overflow:auto;
+  border-radius:18px;
+  padding:22px;
+  color:#ffe7b5;
+  background:linear-gradient(145deg, rgba(63,43,28,.98), rgba(30,20,14,.98));
+  box-shadow:0 26px 90px rgba(0,0,0,.65);
+}
+.advertising-shop-window header { padding-right:58px; margin-bottom:14px; }
+.advertising-shop-window h3 { margin:0; color:#e2a64b; font-size:30px; text-shadow:2px 2px #000; }
+.advertising-shop-window p { margin:5px 0 0; color:#d8c29d; font:800 13px/1.35 ui-monospace, monospace; }
+.advertising-carousel {
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr) 56px;
+  align-items:center;
+  gap:14px;
+  margin:10px 0 14px;
+}
+.advertising-carousel figure {
+  margin:0;
+  min-height:390px;
+  display:grid;
+  align-items:center;
+  justify-items:center;
+  gap:9px;
+  padding:14px;
+  border-radius:14px;
+  background:rgba(0,0,0,.24);
+  box-shadow:inset 0 0 0 2px rgba(255,231,181,.12);
+}
+.advertising-carousel img {
+  max-width:100%;
+  max-height:520px;
+  border-radius:10px;
+  object-fit:contain;
+  box-shadow:0 16px 42px rgba(0,0,0,.45);
+}
+.advertising-carousel.empty img { filter:grayscale(.65) brightness(.55); opacity:.72; }
+.advertising-carousel figcaption {
+  display:grid;
+  gap:4px;
+  text-align:center;
+  color:#fff3cf;
+  font:1000 16px/1.15 ui-monospace, monospace;
+  text-shadow:1px 1px #000;
+}
+.advertising-carousel figcaption small {
+  color:#a7e184;
+  font-size:12px;
+}
+.ad-carousel-arrow {
+  width:56px;
+  height:96px;
+  border:0;
+  border-radius:10px;
+  color:#ffe7b5;
+  background:rgba(36,25,17,.88);
+  box-shadow:0 8px 20px rgba(0,0,0,.32);
+  font:1000 56px/1 ui-monospace, monospace;
+  cursor:pointer;
+}
+.ad-carousel-arrow:disabled { opacity:.28; cursor:default; }
+.advertising-buy {
+  width:100%;
+  min-height:54px;
+  font-size:20px !important;
+}
+.advertising-buy.locked {
+  filter:grayscale(.55) brightness(.75);
+  cursor:not-allowed !important;
+}
+.advertising-effect {
+  text-align:center;
+  color:#a7e184 !important;
+}
+.advertising-unlock {
+  display:grid;
+  gap:12px;
+}
+.advertising-unlock img {
+  width:min(420px, 100%);
+  max-height:390px;
+  object-fit:contain;
+  border-radius:10px;
+  box-shadow:0 14px 36px rgba(0,0,0,.46);
+}
+.scotland-radar { max-width:336px !important; margin:0 auto 6px !important; }
+.scotland-radar text.radar-icon {
+  font:1000 22px ui-monospace, monospace !important;
+  fill:#fff3cf !important;
+  paint-order:stroke;
+  stroke:#000;
+  stroke-width:2.8px;
+  stroke-linejoin:round;
+}
+.scotland-radar text.radar-label {
+  display:none !important;
+}
+.scotland-radar text.radar-value {
+  display:block !important;
+  fill:#ffe16d !important;
+  font:1000 8.6px ui-monospace, monospace !important;
+  paint-order:stroke;
+  stroke:#000;
+  stroke-width:2.4px;
+  stroke-linejoin:round;
+}
+.scotland-radar-legend span {
+  font-size:13px !important;
+  line-height:1.22 !important;
+}
+
 /* 2026-06-22 stillhouse thermostat, warehouse tier and harvester fixes */
 .warehouse-overlay.expanded-2 {
   left:53% !important;
