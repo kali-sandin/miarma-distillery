@@ -2087,9 +2087,9 @@ function radarSvg(metrics, comparisons=[]){
   const seriesPointTip=(name,m)=>`${m.icon || ''} ${name} · ${m.label}: ${m.value}||${RADAR_METRIC_INFO[m.key] || 'Métrica pública del radar.'}`;
   const poly=metrics.map((m,i)=>point(m.pct,i).map(v=>v.toFixed(1)).join(',')).join(' ');
   const axes=metrics.map((m,i)=>{
-    const [x,y]=point(1,i), [ix,iy]=point(1.34,i), [vx,vy]=point(1.13,i);
+    const [x,y]=point(1,i), [ix,iy]=point(1.47,i), [vx,vy]=point(1.23,i);
     const tip=`${m.icon || ''} ${m.label}: ${m.value}||${RADAR_METRIC_INFO[m.key] || 'Métrica pública del radar.'}`;
-    return `<g class="radar-axis radar-axis-${escapeHtml(m.key||i)}" data-tip="${escapeHtml(tip)}"><line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/><text class="radar-value" x="${vx.toFixed(1)}" y="${vy.toFixed(1)}">${escapeHtml(String(m.value))}</text><text class="radar-icon" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}">${escapeHtml(m.icon || '')}</text></g>`;
+    return `<g class="radar-axis radar-axis-${escapeHtml(m.key||i)}" data-tip="${escapeHtml(tip)}"><line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/><text class="radar-icon" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}">${escapeHtml(m.icon || '')}</text><text class="radar-value" x="${vx.toFixed(1)}" y="${vy.toFixed(1)}">${escapeHtml(String(m.value))}</text></g>`;
   }).join('');
   const compPolys=comparisons.map((c,i)=>`<polygon class="radar-compare radar-compare-${i}" style="--compare:${escapeHtml(c.color)}" points="${c.metrics.map((m,j)=>point(m.pct,j).map(v=>v.toFixed(1)).join(',')).join(' ')}"/>`).join('');
   const baseName=state.distilleryName || 'Mi destilería';
@@ -2257,6 +2257,7 @@ function showKeybindingsPopup(){
         <b>º / 1 / 2 / 3 / 4</b><i>⏱️</i><span>Tiempo: bajar / x1 / subir / x5 / x10</span>
         <b>Esc</b><i>☰</i><span>Mostrar/ocultar menú principal</span>
         <b>b</b><i>🍾</i><span>Abrir archivo de botellas</span>
+        <b>p</b><i>📣</i><span>Abrir/cerrar publicidad</span>
         <b>+</b><i>📈</i><span>Abrir/cerrar simulador de embotellado</span>
         <b>l</b><i>🏆</i><span>Abrir ficha de destilería y logros</span>
         <b>-</b><i>🗺️</i><span>Ir al mapa de Escocia</span>
@@ -3926,6 +3927,12 @@ document.addEventListener('keydown', e=>{
     const modal=$('#bottleHistoryModal:not(.hidden)');
     if(modal) modal.querySelector('.game-popup-close')?.click();
     else showBottleHistory();
+    return;
+  }
+  if(e.key.toLowerCase()==='p'){
+    e.preventDefault();
+    if($('#advertisingShopModal:not(.hidden)')) closeAdvertisingShop(true);
+    else { advertisingShopOpen=true; playFx('fxCork', .72); render(); }
     return;
   }
   if(e.key==='+'){ e.preventDefault(); openMarketSimulator({toggle:true}); return; }
