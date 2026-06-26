@@ -138,7 +138,7 @@ const MARKET_HISTORY_MAX = 90;
 const MARKET_MIN = 3;
 const MARKET_MAX = 5;
 const MARKET_MID = (MARKET_MIN + MARKET_MAX) / 2;
-const AD_CAMPAIGN_COSTS = [10, 20, 30, 50, 75, 100, 125, 150];
+const AD_CAMPAIGN_COSTS = [15, 20, 30, 50, 75, 100, 125, 150];
 const AD_MARKET_STEP = .25;
 const DISTILLATION_TARGETS = {
   1: { abv: LOW_WINES_ABV_TARGET, recovery: .93, label: 'low wines' },
@@ -1519,6 +1519,7 @@ function updateDragMarketChart(){
 }
 const MARKET_SIM_DEFAULTS = {litres:1000, quality:95, initialAbv:63.5, bottleAbv:46, years:40};
 const marketSimEuro = n => `${Math.round(n).toLocaleString('es-ES')}€`;
+const marketSimYear = n => `${Math.round(n).toLocaleString('es-ES')} años`;
 function marketSimAgedLitres(initialLitres, years){ return initialLitres * Math.pow(.95, Math.floor(Math.max(0, years))); }
 function ensureMarketSimModal(){
   let root=$('#marketSimModal');
@@ -1534,7 +1535,7 @@ function ensureMarketSimModal(){
         <label>Litros al embarricar <input id="simLitres" type="number" min="1" step="10"></label>
         <label>Calidad Q <input id="simQuality" type="number" min="1" max="100" step="1"></label>
         <label>Grado inicial <input id="simInitialAbv" type="number" min="40" max="90" step=".1"></label>
-        <label class="sim-range-label">Grado al embotellar <span id="simBottleAbvLabel"></span><input id="simBottleAbv" type="range" min="40" max="90" step=".5"></label>
+        <label class="sim-range-label">Grado al embotellar <span id="simBottleAbvLabel"></span><input id="simBottleAbv" type="range" min="40" max="90" step="1"></label>
         <label>Años máximos <input id="simYears" type="number" min="3" max="60" step="1"></label>
       </form>
       <section class="market-sim-chart-panel">
@@ -1546,10 +1547,10 @@ function ensureMarketSimModal(){
           <span id="simLegendMax"><i style="--c:#a8e36f"></i></span>
         </div>
         <div class="market-sim-kpis">
-          <div class="market-sim-kpi"><small>⏳ Óptimo medio</small><strong id="simBestYear">-</strong></div>
-          <div class="market-sim-kpi"><small>💶 Ingreso medio</small><strong id="simBestMoney">-</strong></div>
-          <div class="market-sim-kpi"><small>🍾 Botellas</small><strong id="simBestBottles">-</strong></div>
-          <div class="market-sim-kpi"><small>🧪 Volumen final</small><strong id="simBestLitres">-</strong></div>
+          <div class="market-sim-kpi"><small><i>⏳</i><em>Óptimo medio</em></small><strong id="simBestYear">-</strong></div>
+          <div class="market-sim-kpi"><small><i>💶</i><em>Ingreso medio</em></small><strong id="simBestMoney">-</strong></div>
+          <div class="market-sim-kpi"><small><i>🍾</i><em>Botellas</em></small><strong id="simBestBottles">-</strong></div>
+          <div class="market-sim-kpi"><small><i>🧪</i><em>Volumen final</em></small><strong id="simBestLitres">-</strong></div>
         </div>
       </section>
     </section>
@@ -1578,9 +1579,9 @@ function marketSimValues(root=ensureMarketSimModal()){
   const initialAbv=clamp(Number(els.simInitialAbv.value)||MARKET_SIM_DEFAULTS.initialAbv, 40, 90);
   const maxBottle=Math.max(40, initialAbv);
   els.simBottleAbv.max=String(maxBottle);
-  const bottleAbv=clamp(Number(els.simBottleAbv.value)||MARKET_SIM_DEFAULTS.bottleAbv, 40, maxBottle);
+  const bottleAbv=Math.round(clamp(Number(els.simBottleAbv.value)||MARKET_SIM_DEFAULTS.bottleAbv, 40, maxBottle));
   els.simBottleAbv.value=bottleAbv;
-  els.simBottleAbvLabel.textContent=`${Number(bottleAbv).toFixed(bottleAbv % 1 ? 1 : 0)}°`;
+  els.simBottleAbvLabel.textContent=`${bottleAbv}°`;
   return {
     litres:Math.max(1, Number(els.simLitres.value)||MARKET_SIM_DEFAULTS.litres),
     quality:clamp(Number(els.simQuality.value)||MARKET_SIM_DEFAULTS.quality, 1, 100),
@@ -1624,7 +1625,7 @@ function drawMarketSimulator(){
     {price:max, color:'#a8e36f', label:'máximo'}
   ].map(s=>({...s, data:marketSimEnvelope(s.price, v)}));
   const best=series[1].data.reduce((a,b)=>b.money>a.money?b:a, series[1].data[0]);
-  els.simBestYear.textContent=`${best.year.toFixed(1)} años`;
+  els.simBestYear.textContent=marketSimYear(best.year);
   els.simBestMoney.textContent=marketSimEuro(best.money);
   els.simBestBottles.textContent=best.bottles.toLocaleString('es-ES');
   els.simBestLitres.textContent=`${Math.round(best.finalL).toLocaleString('es-ES')} l`;
@@ -1632,6 +1633,7 @@ function drawMarketSimulator(){
     'Volumen en barrica = litros iniciales x 0,95 por cada año entero.',
     'Litros finales = litros de barrica x grado inicial / grado de embotellado.',
     'Botellas = litros finales / 0,7.',
+    `Rango de mercado actual con publicidad: ${min.toFixed(2)}€ - ${max.toFixed(2)}€ (${advertisingBought()} campañas compradas).`,
     'Venta = botellas x años x precio de mercado x Q/100.'
   ].map(x=>`<span>${x}</span>`).join('');
   const canvas=els.marketSimChart, ctx=canvas.getContext('2d');
@@ -1656,7 +1658,7 @@ function drawMarketSimulator(){
   const bx=x(best.year), by=y(best.money);
   ctx.fillStyle='#fff2c8'; ctx.strokeStyle='#130c08'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(bx,by,6,0,Math.PI*2); ctx.fill(); ctx.stroke();
   ctx.fillStyle='#fff2c8'; ctx.font='1000 12px ui-monospace, monospace';
-  ctx.fillText(`Óptimo ${best.year.toFixed(1)}a · ${marketSimEuro(best.money)}`, Math.min(bx+10, w-240), Math.max(18, by-10));
+  ctx.fillText(`Óptimo ${Math.round(best.year)}a · ${marketSimEuro(best.money)}`, Math.min(bx+10, w-240), Math.max(18, by-10));
 }
 function handleMarketSimChartMove(e){
   const root=ensureMarketSimModal(), tip=root.querySelector('#marketSimChartTip'), canvas=e.currentTarget;
@@ -1668,7 +1670,7 @@ function handleMarketSimChartMove(e){
     if(d<dist){ dist=d; best=p; }
   }
   if(!best || dist>28){ tip.classList.add('hidden'); return; }
-  tip.innerHTML=`<b style="color:${best.color}">Mercado ${best.label}</b><span>${best.year.toFixed(1)} años</span><span>${marketSimEuro(best.money)}</span><span>${best.bottles.toLocaleString('es-ES')} botellas · ${Math.round(best.finalL).toLocaleString('es-ES')} l</span>`;
+  tip.innerHTML=`<b style="color:${best.color}">Mercado ${best.label}</b><span>${marketSimYear(best.year)}</span><span>${marketSimEuro(best.money)}</span><span>${best.bottles.toLocaleString('es-ES')} botellas · ${Math.round(best.finalL).toLocaleString('es-ES')} l</span>`;
   tip.style.left=`${Math.min(r.width-190, Math.max(10, x+14))}px`;
   tip.style.top=`${Math.min(r.height-86, Math.max(10, y+14))}px`;
   tip.classList.remove('hidden');
@@ -1718,7 +1720,7 @@ function renderAdvertisingShopModal(){
   const effectNext=nextCost===null ? 'Todas las campañas compradas.' : `Rango de mercado: ${advertisingEffectLine(bought)} → ${advertisingEffectLine(bought+1)}.`;
   root.innerHTML=`<div class="advertising-shop-window">
     <button class="game-popup-close advertising-shop-close" type="button" aria-label="Cerrar">×</button>
-    <header><h3>Publicidad</h3><p>Campañas compradas: ${bought}/${AD_CAMPAIGN_COSTS.length}. Cada campaña sube 0,25€ el mínimo y el máximo del mercado.</p></header>
+    <header><h3>Publicidad</h3><p>Campañas compradas: ${bought}. Cada campaña sube 0,25€ el mínimo y el máximo del mercado.</p></header>
     <section class="advertising-carousel ${bought ? '' : 'empty'}">
       <button class="ad-carousel-arrow prev" type="button" ${bought>1?'':'disabled'} aria-label="Campaña anterior">‹</button>
       <figure>
@@ -2890,7 +2892,7 @@ function renderCards(){
   bottling.appendChild(hist);
   const ad=document.createElement('button');
   ad.id='advertisingShopToggle'; ad.className='advertising-side icon-action-btn'; ad.type='button';
-  ad.dataset.tip=`Publicidad.\nCampañas compradas: ${advertisingBought()}/${AD_CAMPAIGN_COSTS.length}.\nCada campaña sube 0,25€ el mínimo y máximo del mercado.`;
+  ad.dataset.tip=`Publicidad.\nCampañas compradas: ${advertisingBought()}.\nCada campaña sube 0,25€ el mínimo y máximo del mercado.`;
   ad.innerHTML=actionButtonLabel('img/adds/add01.jpg', 'Publicidad', 'publicidad');
   bottling.appendChild(ad);
   renderAdvertisingShopModal();
@@ -4138,6 +4140,11 @@ function clearScotlandMapHint(){
   try { localStorage.setItem(SCOTLAND_HINT_KEY, '1'); } catch(_){}
   $('#scotlandMapButton')?.classList.remove('menu-hint');
 }
+async function closeHelpAndShowNextHint(){
+  if(!closeOverlay('#helpModal', {silent:true})) return;
+  await showKeybindingsPopup();
+  setTimeout(showScotlandMapHintIfNeeded, 120);
+}
 if(localStorage.getItem(HAMBURGER_HINT_KEY) !== '1') $('#hudIcon')?.classList.add('menu-hint');
 if(localStorage.getItem(HAMBURGER_HINT_KEY) === '1' && localStorage.getItem(HELP_HINT_KEY) !== '1') $('#helpButton')?.classList.add('menu-hint');
 if(localStorage.getItem(HELP_HINT_KEY) === '1') showScotlandMapHintIfNeeded();
@@ -4147,7 +4154,7 @@ $('#office').onclick=()=>{ clearHamburgerHint(); showHud(); };
 function openOverlay(sel){ const el=$(sel); if(!el) return; el.classList.remove('hidden'); playFx('fxCork', .72); }
 function closeOverlay(sel, {silent=false, fx='fxAhhh'}={}){ const el=$(sel); if(!el || el.classList.contains('hidden')) return false; el.classList.add('hidden'); if(!silent) playFx(fx, .68); return true; }
 $('#helpButton').onclick=()=>{ clearHelpHint(); openOverlay('#helpModal'); };
-$('#helpModal').onclick=()=>{ if(closeOverlay('#helpModal', {silent:true})) setTimeout(showScotlandMapHintIfNeeded, 120); };
+$('#helpModal').onclick=()=>{ closeHelpAndShowNextHint(); };
 $('#magnitudesButton').onclick=()=>openOverlay('#magnitudesModal');
 $$('#magnitudesModal a').forEach(a=>{ a.target='_blank'; a.rel='noopener noreferrer'; });
 $('#magnitudesModal').onclick=e=>{ if(e.target.closest('a')) return; closeOverlay('#magnitudesModal'); };

@@ -1064,21 +1064,37 @@
   margin-top:10px;
 }
 .market-sim-kpi {
-  min-height:72px;
-  padding:10px;
+  min-height:84px;
+  padding:10px 11px;
   border-radius:8px;
   background:rgba(0,0,0,.24);
   display:grid;
-  gap:4px;
+  gap:6px;
   align-content:center;
 }
 .market-sim-kpi small {
   color:#d8c29d;
-  font:900 11px/1.15 ui-monospace, monospace;
+  font:900 11px/1.12 ui-monospace, monospace;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:center;
+  gap:7px;
+  min-width:0;
+}
+.market-sim-kpi small i {
+  font-style:normal;
+  font-size:25px;
+  line-height:1;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.48)) drop-shadow(0 0 8px rgba(255,225,109,.26));
+}
+.market-sim-kpi small em {
+  font-style:normal;
+  min-width:0;
+  overflow-wrap:anywhere;
 }
 .market-sim-kpi strong {
   color:#fff1c7;
-  font:1000 20px/1 ui-monospace, monospace;
+  font:1000 22px/1 ui-monospace, monospace;
   overflow-wrap:anywhere;
 }
 .market-sim-formula {
