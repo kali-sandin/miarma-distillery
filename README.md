@@ -1,4 +1,4 @@
-# Miarma Distillery
+# Sim Distillery
 
 Beta privada de un juego web pixel-art de gestión de una destilería de whisky escocés.
 

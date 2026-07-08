@@ -478,7 +478,7 @@ function awardAchievement(id){
   const r=rewards[id]||{};
   if(r.rep) addReputation(r.rep);
   if(r.coins) state.coins += r.coins;
-  if(Array.isArray(r.barrels)){ r.barrels.forEach((type,idx)=>state.barrels.push(newBarrel(type,24+(state.barrels.length+idx)*42,64))); }
+  if(Array.isArray(r.barrels)){ recordBarrelPacksAcquired(r.barrels.length); r.barrels.forEach((type,idx)=>state.barrels.push(newBarrel(type,24+(state.barrels.length+idx)*42,64))); }
   if(r.factory) d.secondDistilleryUnlocked = true;
   const ach=ACH_BY_ID[id] || {name:id, reward:'', img:'img/logros/logros 1.png'};
   queueAchievementPopup(ach);
@@ -488,10 +488,12 @@ function awardAchievement(id){
 function barrelTrailTypes(lot){ const set=new Set(); for(const c of normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Lote')) for(const t of (c.barrelTrail||[])) if(t) set.add(t); for(const x of (lot.lineage||[])){ const t=x.barrelType||x.to||x.from; if(t) set.add(t); } return [...set]; }
 function allComponentsTripleDistilled(lot){ const comps=normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Lote'); return comps.length>0 && comps.every(c=>Number(c.runs)>=3 || /3º|triple/i.test(String(c.label||''))); }
 function lotHasBottleAdditive(lot, key){ return (lot?.lineage||[]).some(x=>x?.stage==='embotellado' && !!x?.[key]); }
+function barrelPacksAcquiredValue(s=state){ return Math.max(1, Math.floor(Number(s?.barrelPacksAcquired)||0), Array.isArray(s?.barrels) ? s.barrels.length : 0); }
+function recordBarrelPacksAcquired(count=1){ state.barrelPacksAcquired = barrelPacksAcquiredValue(state) + Math.max(0, Math.floor(Number(count)||0)); }
 function hasAllFactoryUpgrades(){
   const upgrades=fieldUpgrades(), vat=state.vats?.[0];
   return (state.stills||[]).every(st=>st.unlocked)
-    && (state.barrels||[]).length>=8
+    && barrelPacksAcquiredValue(state)>=8
     && vatUpgradeCount(vat)>=VAT_CAPACITY_UPGRADE_COSTS.length
     && upgrades.warehouseBuilt
     && upgrades.warehouseDuplicated
@@ -503,7 +505,14 @@ function hasAllFactoryUpgrades(){
     && upgrades.thermostatBuilt
     && upgrades.thermostatAutomation;
 }
-function checkFactoryAchievement(){ if(hasAllFactoryUpgrades()) awardAchievement('the_factory'); }
+function checkFactoryAchievement(){
+  if(hasAllFactoryUpgrades() && awardAchievement('the_factory')){
+    markDirty();
+    saveGame();
+    return true;
+  }
+  return false;
+}
 function checkLotAchievements(lot, achievementsBefore={...(distillery().achievements||{})}){
   const q=qualityOrDefault(lot.quality), age=Number(lot.age)||0, peat=Number(lot.peatPpm)||0, types=barrelTrailTypes(lot), comps=normalizeComponents(lot, Math.max(0,(Number(lot.bottles)||0)*BOTTLE_LITRES), 'Lote');
   const unlocked=[];
@@ -775,6 +784,7 @@ const defaultState = () => ({
   marketHistory: [{t: Date.now(), p: 3.5}],
   marketHistoryAt: Date.now(),
   advertisingCampaigns: 0,
+  barrelPacksAcquired: 1,
   distillery: defaultDistillery(),
   debugQuality: false,
   musicEnabled: true,
@@ -845,6 +855,7 @@ function normaliseLoaded(s){
   merged.vats = mergeSavedVats(s.vats);
   merged.stills = Array.from({length: EQUIPMENT_LIMITS.stills}, (_, i) => { const st={...newStill(i===0), ...(s.stills?.[i] || {})}; st.inputLineage = Array.isArray(st.inputLineage) ? st.inputLineage : []; st.outputLineage = Array.isArray(st.outputLineage) ? st.outputLineage : []; st.inputComponents = Array.isArray(st.inputComponents) ? st.inputComponents : []; st.unlocked = i===0 || !!st.unlocked || hasStillContents(st); return st; });
   merged.barrels = Array.isArray(s.barrels) && s.barrels.length ? s.barrels.map((b,i)=>{ const key=barrelTypeKey(b.type || 'ex_bourbon_barrel'), def=barrelDef(key); const nb={...newBarrel(key), ...b, type:key, count:b.count || BARREL_PACK_SIZE, barrelQuality:Number.isFinite(Number(b.barrelQuality))?Number(b.barrelQuality):100, virginBonus:def.virginBonus?(Number.isFinite(Number(b.virginBonus))?clamp(Number(b.virginBonus),0,8):Math.floor(Math.random()*9)):0, lineage:Array.isArray(b.lineage)?b.lineage:[], components:Array.isArray(b.components)?b.components:[], x: Number.isFinite(b.x)?b.x:20+i*110, y: Number.isFinite(b.y)?b.y:48}; nb.components=normalizeComponents(nb, barrelLiquidL(nb)); if((nb.volume||0)>0 && b.bottlingRegionRoll) nb.bottlingRegionRoll=normalizeHighlandsRoll(b.bottlingRegionRoll); else delete nb.bottlingRegionRoll; return nb; }) : defaultBarrels();
+  merged.barrelPacksAcquired = barrelPacksAcquiredValue(merged);
   merged.boxes = Array.isArray(s.boxes) ? s.boxes.map((b,i)=>{ const box={...b, components:Array.isArray(b.components)?b.components:[], x: Number.isFinite(b.x)?b.x:18+i*95, y: Number.isFinite(b.y)?b.y:20}; box.components=normalizeComponents(box, Math.max(0,(Number(box.bottles)||0)*BOTTLE_LITRES), 'Botellas existentes'); if(!box.image || /^img\/botella\d+\.png$/.test(String(box.image))) box.image=chooseBottleArt(box); return box; }) : [];
   merged.bottleHistory = Array.isArray(s.bottleHistory) ? s.bottleHistory.map((b,i)=>{ const h={...b, seq:Number(b.seq)||i+1, bottledAt:Number(b.bottledAt)||Date.now(), components:Array.isArray(b.components)?b.components:[], lineage:Array.isArray(b.lineage)?b.lineage:[]}; h.components=normalizeComponents(h, Math.max(0,(Number(h.bottles)||0)*BOTTLE_LITRES), 'Botellas históricas'); if(!h.image || /^img\/botella\d+\.png$/.test(String(h.image))) h.image=chooseBottleArt(h); return h; }) : [];
   if(!merged.bottleHistory.length && merged.boxes.length) merged.bottleHistory = merged.boxes.map((b,i)=>({...b, seq:i+1, image:b.image || chooseBottleArt(b), bottledAt:Date.now()-i, sold:false, salePricePerBottle:0, saleTotal:0, components:(b.components||[]).map(c=>({...c})), lineage:(b.lineage||[]).map(x=>({...x}))}));
@@ -2927,6 +2938,7 @@ function buyBarrel(type){
   const key=barrelTypeKey(type), def=barrelDef(key); if(!def) return;
   if(state.coins<def.cost){ notice(`Necesitas ${def.cost} k€ para comprar barricas de ${def.label}.`, 'explain', 'No hay dinero'); return; }
   state.coins-=def.cost;
+  recordBarrelPacksAcquired();
   state.barrels.push(newBarrel(key, 24 + (state.barrels.length%4)*185, 56 + Math.floor(state.barrels.length/4)*118));
   barrelShopOpen=false;
   playFx('fxCashRegister', .72);
@@ -3535,6 +3547,7 @@ function render(opts={}){
   normalizeEquipmentUnlocks();
   if((dragging || pointerActive) && !force){ updateMarketHud(); updateDragMarketChart(); renderPending = true; return; }
   renderPending = false;
+  checkFactoryAchievement();
   $('.name-field').classList.toggle('editing', nameEditing);
   $('#distilleryNameView').textContent = state.distilleryName;
   $('#distilleryName').value = state.distilleryName;
