@@ -2432,6 +2432,7 @@ function stillTempCap(){
   if(upgrades.thermostatAutomation) return upgrades.thermostatAutomationEnabled === false ? TEMP_MAX : THERMOSTAT_AUTOMATION_TEMP;
   return thermostatActive() ? THERMOSTAT_TEMP_MAX : TEMP_MAX;
 }
+function thermostatFireSyncActive(){ return stillTempCap() < TEMP_MAX; }
 function autoHarvesterActive(){ const upgrades=fieldUpgrades(); return !!upgrades.autoHarvester && upgrades.autoHarvesterEnabled !== false; }
 function autoMaltingActive(){ const upgrades=fieldUpgrades(); return !!upgrades.autoMalting && upgrades.autoMaltingEnabled !== false; }
 function maltTileCapacityKg(){ return Math.round(MALT_TILE_CAPACITY_KG * (fieldUpgrades().maltCapacityUpgraded ? MALT_CAPACITY_UPGRADE_FACTOR : 1)); }
@@ -2803,11 +2804,11 @@ function renderStills(){
   const upgrades=fieldUpgrades();
   const shopButtons=[];
   if(canBuyStill) shopButtons.push(`<button class="equipment-buy icon-action-btn" type="button" data-equipment="still" data-tip="Comprar un alambique nuevo.\nCoste: ${EQUIPMENT_COST} k€.">${actionButtonLabel('img/alambique.png', actionLabel('Comprar', EQUIPMENT_COST), 'alambique')}</button>`);
-  if(!upgrades.thermostatBuilt) shopButtons.push(`<button class="equipment-buy icon-action-btn thermostat-buy" type="button" data-equipment="thermostat" data-tip="Termostato para la sala de alambiques.\nCoste: ${THERMOSTAT_COST} k€.\nEncendido limita el fuego a ${THERMOSTAT_TEMP_MAX}°C.">${actionButtonLabel('img/termostato_ON.png', actionLabel('Termostato', THERMOSTAT_COST), 'termostato')}</button>`);
-  if(upgrades.thermostatBuilt && !upgrades.thermostatAutomation) shopButtons.push(`<button class="equipment-buy icon-action-btn thermostat-buy" type="button" data-equipment="thermostat-auto" data-tip="Mejorar termostato.\nCoste: ${THERMOSTAT_AUTOMATION_COST} k€.\nCon la mejora ON, el fuego que enciendas se limita exactamente a ${THERMOSTAT_AUTOMATION_TEMP}°C.\nAl usarlo aplica -2% Q por pasada de destilación.">${actionButtonLabel('img/termostato_ON.png', actionLabel('Mejorar', THERMOSTAT_AUTOMATION_COST), 'mejorar termostato')}</button>`);
+  if(!upgrades.thermostatBuilt) shopButtons.push(`<button class="equipment-buy icon-action-btn thermostat-buy" type="button" data-equipment="thermostat" data-tip="Termostato para la sala de alambiques.\nCoste: ${THERMOSTAT_COST} k€.\nON: sincroniza el fuego de todos los alambiques activos y limita a ${THERMOSTAT_TEMP_MAX}°C.">${actionButtonLabel('img/termostato_ON.png', actionLabel('Termostato', THERMOSTAT_COST), 'termostato')}</button>`);
+  if(upgrades.thermostatBuilt && !upgrades.thermostatAutomation) shopButtons.push(`<button class="equipment-buy icon-action-btn thermostat-buy" type="button" data-equipment="thermostat-auto" data-tip="Mejorar termostato.\nCoste: ${THERMOSTAT_AUTOMATION_COST} k€.\nCon la mejora ON, cualquier fuego sincroniza todos los alambiques activos y se limita exactamente a ${THERMOSTAT_AUTOMATION_TEMP}°C.\nAl usarlo aplica -2% Q por pasada de destilación.">${actionButtonLabel('img/termostato_ON.png', actionLabel('Mejorar', THERMOSTAT_AUTOMATION_COST), 'mejorar termostato')}</button>`);
   const thermostatTip=upgrades.thermostatAutomation
-    ? `Termostato automático ${upgrades.thermostatAutomationEnabled===false?'OFF':'ON'}.\nClick para ${upgrades.thermostatAutomationEnabled===false?'activar':'desactivar'} automatización.\nON: el fuego que enciendas se limita a ${THERMOSTAT_AUTOMATION_TEMP}°C y aplica -2% Q por pasada. No enciende alambiques solo.\nOFF: control manual completo, sin límite de ${THERMOSTAT_AUTOMATION_TEMP}°C ni penalización por automatización.`
-    : `Termostato ${upgrades.thermostatOn===false?'apagado':'encendido'}.\nClick para ${upgrades.thermostatOn===false?'encender':'apagar'}.\nEncendido: limita el fuego a ${THERMOSTAT_TEMP_MAX}°C.`;
+    ? `Termostato automático ${upgrades.thermostatAutomationEnabled===false?'OFF':'ON'}.\nClick para ${upgrades.thermostatAutomationEnabled===false?'activar':'desactivar'} automatización.\nON: cualquier fuego sincroniza todos los alambiques activos, limita a ${THERMOSTAT_AUTOMATION_TEMP}°C y aplica -2% Q por pasada.\nOFF: control manual de uno en uno, sin límite de ${THERMOSTAT_AUTOMATION_TEMP}°C ni penalización por automatización.`
+    : `Termostato ${upgrades.thermostatOn===false?'apagado':'encendido'}.\nClick para ${upgrades.thermostatOn===false?'encender':'apagar'}.\nON: cualquier fuego sincroniza todos los alambiques activos y limita a ${THERMOSTAT_TEMP_MAX}°C.\nOFF: control manual de uno en uno, sin límite de termostato.`;
   const thermostatOverlay=upgrades.thermostatBuilt ? `<button class="thermostat-overlay ${upgrades.thermostatAutomation ? 'auto' : ''} ${upgrades.thermostatOn===false || upgrades.thermostatAutomationEnabled===false?'off':'on'}" type="button" data-tip="${escapeHtml(thermostatTip)}"><img src="${upgrades.thermostatOn===false || upgrades.thermostatAutomationEnabled===false?'img/termostato.png':'img/termostato_ON.png'}" alt="termostato" draggable="false"></button>` : '';
   root.innerHTML = `${shopButtons.length ? `<div class="equipment-shop still-shop">${shopButtons.join('')}</div>` : ''}${thermostatOverlay}` + state.stills.map((s,i)=>{
     const spiritReady = s.output > 0;
@@ -2817,7 +2818,7 @@ function renderStills(){
     const hasInput=s.input>0, hasOutput=s.output>0;
     const inputTip=hasInput ? `<p>💧 ${s.input.toFixed(0)}% (${Math.round(s.input/100*STILL_INPUT_LITRES)}l)</p><p>⭐ Calidad ${Math.round(qualityOrDefault(s.inputQuality))}</p><p>🧪 Gradación ${s.inputAbv.toFixed(0)}°</p><p>🪵 Turba ${Math.round(s.inputPeatPpm||0)}ppm</p>` : '<p class="tip-muted">Sin líquido.</p>';
     const outputTip=hasOutput ? `<p>💧 ${s.output.toFixed(1)}% (${Math.round(stillOutLitres(s))}l)</p><p>⭐ Calidad ${Math.round(qualityOrDefault(s.outputQuality))}</p><p>🧪 Gradación ${s.outputAbv.toFixed(0)}°</p><p>🪵 Turba ${Math.round(s.outputPeatPpm||0)}ppm</p>` : '<p class="tip-muted">Sin líquido.</p>';
-    const autoText=thermostatAutomationActive() ? `<p>🤖 Termostato automático: fuego limitado a ${THERMOSTAT_AUTOMATION_TEMP}°C, -2% Q por pasada.</p>` : '';
+    const autoText=thermostatAutomationActive() ? `<p>🤖 Termostato automático: fuego sincronizado, límite ${THERMOSTAT_AUTOMATION_TEMP}°C, -2% Q por pasada.</p>` : '';
     const tip = `<div class="tip-wide still-tip"><div class="tip-head"><b>⚗️ Alambique ${i+1}</b><span class="still-heat" style="--still-temp-color:${tempColor};color:${tempColor}">🔥 ${s.temp.toFixed(0)}°C</span></div>${autoText}
 <div class="tip-cols"><section><h5>Entrada</h5>${inputTip}</section><section><h5>Salida</h5>${outputTip}</section></div></div>||1ª pasada: low wines ~${LOW_WINES_ABV_TARGET}°. 2ª pasada: new make ~${NEW_MAKE_ABV_TARGET}°. 3ª pasada opcional: triple destilado ~${THIRD_DISTILL_ABV_TARGET}°. Por encima de 100° arrastra agua: más volumen, menos ABV/calidad, nunca más LPA.`;
     const mirrored=i%2===1;
@@ -3963,7 +3964,17 @@ async function emptyStillZone(i, zone='input'){
   }
 }
 function toggleStillFire(i){
-  const s=state.stills[i]; if(!s || !isStillActive(s,i)) return;
+  const s=state.stills[i];
+  if(thermostatFireSyncActive()){
+    const active=state.stills.map((still,idx)=>({s:still,i:idx})).filter(({s:still,i:idx})=>isStillActive(still,idx));
+    if(!active.length) return;
+    const targetActive=s && isStillActive(s,i);
+    const next=targetActive ? !s.fire : !active.every(({s:still})=>still.fire);
+    active.forEach(({s:still})=>{ still.fire=next; });
+    markDirty(); render(); saveGame();
+    return;
+  }
+  if(!s || !isStillActive(s,i)) return;
   s.fire=!s.fire; markDirty(); render(); saveGame();
 }
 function toggleAllStillFires(){

@@ -50,7 +50,7 @@ No se sube `state`, barricas, componentes, lineage ni histórico completo.
 - `js/public-profile.js`: construye la ficha pública desde el estado local.
 - `js/multiplayer.js`: Auth Google, publicación, ranking top 10 cacheado y panel social del mapa.
 - `js/firebase-config.example.js`: plantilla de configuración.
-- `js/firebase-config.js`: configuración real local, ignorada por Git.
+- `js/firebase-config.js`: configuración pública real de Firebase Web App, versionada a propósito. No contiene credenciales de servidor.
 - `docs/firestore.rules`: reglas mínimas de Firestore.
 
 ## Setup manual Firebase
@@ -61,8 +61,8 @@ No se sube `state`, barricas, componentes, lineage ni histórico completo.
 4. Añadir los dominios donde se servirá el juego en Authentication → Settings → Authorized domains.
 5. Crear Cloud Firestore en modo production.
 6. Copiar `docs/firestore.rules` en Firestore Rules y publicar.
-7. Copiar `js/firebase-config.example.js` a `js/firebase-config.js`.
-8. Pegar el objeto de configuración de la Web App en formato `window.MIARMA_FIREBASE_CONFIG = {...}`.
+7. Copiar `js/firebase-config.example.js` a `js/firebase-config.js` si se está montando otra instancia.
+8. Pegar el objeto público de configuración de la Web App en formato `window.MIARMA_FIREBASE_CONFIG = {...}`.
 9. Abrir el juego, elegir ubicación, volver al mapa de Escocia y conectar Google.
 
 ## Comportamiento offline/no configurado
