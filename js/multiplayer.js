@@ -151,6 +151,12 @@ function backupChunks(text){
   for(let i=0;i<text.length;i+=BACKUP_CHUNK_SIZE) chunks.push(text.slice(i, i+BACKUP_CHUNK_SIZE));
   return chunks;
 }
+async function confirmAccountAction({title, html, fallback, ok='Continuar'}){
+  if(typeof window.gamePopup === 'function'){
+    return window.gamePopup({title, html, mood:'warn', confirm:true, ok, cancel:'Cancelar'});
+  }
+  return window.confirm(fallback);
+}
 async function backupAccount(){
   try{
     await loadOptionalConfig();
@@ -162,6 +168,16 @@ async function backupAccount(){
     const payload={schemaVersion:1, publicName:state.publicName || user.displayName || 'Jugador', savedAtClient:Date.now(), local};
     const text=JSON.stringify(payload);
     const chunks=backupChunks(text);
+    const ok=await confirmAccountAction({
+      title:'Backup de cuenta',
+      ok:'Subir backup',
+      fallback:'Subir backup de cuenta: se guardará la partida local actual en tu cuenta de Google/Firebase y se sustituirá cualquier backup remoto anterior. La partida local de este navegador no cambia.',
+      html:`<p>Se subirá una copia de la partida local actual a tu cuenta conectada.</p>
+        <p>Si ya existe un backup remoto, quedará sustituido por este.</p>
+        <p>No se cambia la partida local de este navegador.</p>
+        <p class="tip-muted">Tamaño aproximado: ${Math.ceil(new Blob([text]).size/1024)} KB en ${chunks.length} bloque${chunks.length===1?'':'s'}.</p>`
+    });
+    if(!ok) return false;
     setStatus('pending', `Subiendo backup (${chunks.length})…`);
     const metaRef=firestore.doc(state.db, 'accountBackups', user.uid);
     const oldSnap=await firestore.getDoc(metaRef).catch(()=>null);
@@ -187,7 +203,15 @@ async function restoreAccount(){
     if(!window.MIARMA_FIREBASE_CONFIG){ setStatus('error','Firebase no configurado.'); return false; }
     const {firestore}=await ensureFirebase();
     const user=requireLoggedUser();
-    if(!window.confirm('¿Restaurar la cuenta desde Firebase? Se sustituirá la partida local de este navegador.')) return false;
+    const ok=await confirmAccountAction({
+      title:'Restaurar cuenta',
+      ok:'Restaurar',
+      fallback:'Restaurar cuenta desde Firebase: se descargará el backup remoto de tu cuenta conectada y sustituirá la partida local de este navegador. La partida actual se perderá si no la has subido antes.',
+      html:`<p>Se descargará el backup remoto de tu cuenta conectada.</p>
+        <p>La partida local actual de este navegador será sustituida por esa copia.</p>
+        <p>Si quieres conservar la partida actual, sube un backup antes de restaurar.</p>`
+    });
+    if(!ok) return false;
     setStatus('pending','Restaurando backup…');
     const metaRef=firestore.doc(state.db, 'accountBackups', user.uid);
     const metaSnap=await firestore.getDoc(metaRef);
@@ -287,7 +311,15 @@ function renderMapControls(){
   const statusText=visibleStatusText();
   const nameValue=esc(state.publicName || user?.displayName || 'Jugador');
   const nameEditor=user && state.editingName ? `<label class="social-public-name"><span>Nombre visible</span><input id="mpPublicName" maxlength="48" value="${nameValue}" autocomplete="off"><button id="mpSaveName" class="pixel-btn small" type="button">Guardar</button></label>` : '';
-  root.innerHTML=`<div class="social-map-title">🌐 Sim Distillery</div><div id="multiplayerStatus" class="multiplayer-status compact" data-status="${esc(state.status)}">${esc(statusText)}${staleTxt?`<br><small>${esc(staleTxt)}</small>`:''}</div>${nameEditor}<div class="social-map-actions">${user?'<button id="mpEditName" class="pixel-btn small" type="button">Cambiar nombre</button><button id="mpBackupAccount" class="pixel-btn small" type="button">Backup cuenta</button><button id="mpRestoreAccount" class="pixel-btn small" type="button">Restaurar cuenta</button><button id="mpLogout" class="pixel-btn small danger" type="button">Desconectar cuenta</button>':'<button id="mpLogin" class="pixel-btn small" type="button">Login Google</button>'}</div>`;
+  const userActions=user
+    ? `<div class="social-map-actions primary-actions"><button id="mpEditName" class="pixel-btn small" type="button">Cambiar nombre</button><button id="mpLogout" class="pixel-btn small danger" type="button">Desconectar cuenta</button></div>
+      <div class="social-account-actions" aria-label="Backup y restauración de cuenta">
+        <div class="social-account-title">Cuenta</div>
+        <button id="mpBackupAccount" class="pixel-btn small account-backup" type="button">Backup cuenta</button>
+        <button id="mpRestoreAccount" class="pixel-btn small account-restore" type="button">Restaurar cuenta</button>
+      </div>`
+    : '<div class="social-map-actions primary-actions"><button id="mpLogin" class="pixel-btn small" type="button">Login Google</button></div>';
+  root.innerHTML=`<div class="social-map-title">🌐 Sim Distillery</div><div id="multiplayerStatus" class="multiplayer-status compact" data-status="${esc(state.status)}">${esc(statusText)}${staleTxt?`<br><small>${esc(staleTxt)}</small>`:''}</div>${nameEditor}${userActions}`;
   root.querySelectorAll('button,input').forEach(el=>el.addEventListener('pointerdown', e=>e.stopPropagation()));
   $('#mpLogin',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); state.mapLoginAttempted=true; login(); });
   $('#mpLogout',root)?.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); logout(); });
